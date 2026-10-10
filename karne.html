@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cihaz Karnesi</title>
+<style>:root{--mavi:#16315c;--yesil:#0a7d32;--kirmizi:#b00020;--turuncu:#b45309}
+body{font:15px/1.45 system-ui,Arial,sans-serif;margin:0;background:#eef1f6;color:#16213a}
+header{background:var(--mavi);color:#fff;padding:12px 16px;font-weight:700;font-size:17px;position:sticky;top:0;z-index:5}
+main{max-width:900px;margin:12px auto;padding:0 10px 40px}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.dt{font-weight:700;color:var(--mavi);margin-bottom:8px;font-size:14px;letter-spacing:.3px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f0f2f6}.row:last-child{border:0}.k{color:#556}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.kpi div{background:#f5f7fb;border-radius:10px;padding:10px;text-align:center}.kpi b{display:block;font-size:22px}
+.chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600;background:#e8edf6;color:var(--mavi)}
+.chip.Arıza,.chip.Tamir{background:#fde8e8;color:var(--kirmizi)}.chip.Bakım,.chip.Planlı{background:#e6f4ea;color:var(--yesil)}.chip.Kalibrasyon,.chip.Doğrulama{background:#eef0ff;color:#3a3aa0}
+.ol{padding:10px 0;border-bottom:1px solid #eef0f4}.ol:last-child{border:0}.ol small{color:#667}
+button{background:var(--mavi);color:#fff;border:0;border-radius:8px;padding:10px 14px;font-size:15px;font-weight:600;cursor:pointer}button.y{background:var(--yesil)}button.l{background:#fff;color:var(--mavi);border:1px solid #c5ccd9;padding:6px 10px;font-size:13px}
+label{display:block;font-size:12px;color:#556;margin-top:8px}input,select,textarea{width:100%;box-sizing:border-box;padding:9px;border:1px solid #c5ccd9;border-radius:8px;font:inherit}
+.msg{font-size:13px;margin-top:8px}.err{color:var(--kirmizi)}.ok{color:var(--yesil)}
+.liste a{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #f0f2f6;color:inherit;text-decoration:none}.liste a:last-child{border:0}
+.gec{color:var(--kirmizi);font-weight:600}.yak{color:var(--turuncu);font-weight:600}
+#kilit{position:fixed;inset:0;background:#eef1f6;z-index:50;display:flex;align-items:center;justify-content:center}#kilit .card{width:min(330px,90vw)}
+</style>
+<script>const SHEET_ID = "1T7L5c7nnffw8O8HFFVLnhgjr0CnLsJ_lmk-VkAaGd_A";
+const SERVIS_URL = "https://script.google.com/macros/s/AKfycbxFXTZEYyDTH9SscQygnRiW9HOIx1c4v3tgdGLjId9tXpJ5G0byl_LhaCXeEPDuzH-c/exec";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s ?? "").toLocaleLowerCase("tr").trim();
+const key = s => String(s ?? "").trim().replace(/\s+/g,"").replace(/\//g,"-").toLocaleUpperCase("tr");
+async function sekme(ad){
+  const r = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(ad)}&t=${Date.now()}`);
+  const t = await r.text(), j = JSON.parse(t.substring(t.indexOf("{"), t.lastIndexOf("}") + 1));
+  if(!j.table) return [];
+  const H = j.table.cols.map(c => norm(c.label));
+  return j.table.rows.map(r => { const o = {}; H.forEach((h,i) => { o[h] = r.c && r.c[i] ? r.c[i] : null; }); return o; });
+}
+const v = c => c ? (c.v ?? "") : "";
+const tarih = c => { if(!c || c.v == null) return null; const m = /Date\((\d+),(\d+),(\d+)/.exec(String(c.v)); if(m) return new Date(+m[1], +m[2], +m[3]); const n = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(String(c.f || c.v)); return n ? new Date(+n[3], n[2]-1, +n[1]) : null; };
+const fd = d => d ? `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}` : "–";
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+async function servis(o){ const r = await fetch(SERVIS_URL, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: JSON.stringify(o) }); return r.json(); }
+</script></head><body>
+<header>📒 Cihaz Karnesi <span id="baslik"></span></header>
+<main>
+ <div class="card" id="cihaz">Yükleniyor…</div>
+ <div class="card"><div class="dt">PERFORMANS (SON 12 AY)</div><div class="kpi" id="kpi"></div></div>
+ <div class="card"><div class="dt">YENİ KAYIT (BAKIM / ARIZA / TAMİR / SÖKÜM-TAKMA)</div>
+  <label>Tür<select id="tur"><option>Arıza</option><option>Tamir</option><option>Bakım</option><option>Planlı Bakım</option><option>Söküm / Takma</option><option>Kontrol</option><option>Not</option></select></label>
+  <label>Tarih<input type="date" id="tarih"></label>
+  <label>Açıklama (ne oldu, ne yapıldı, nereye söküldü/takıldı, değişen parça…)<textarea id="acik" rows="3"></textarea></label>
+  <label>Süre (saat) – arızada cihazın kullanılamadığı süre<input id="sure" inputmode="decimal" placeholder="örn. 4,5"></label>
+  <label>Kaydeden<input id="kaydeden"></label>
+  <p><button class="y" id="kaydet">Kaydet (PIN)</button></p><div class="msg" id="msg"></div>
+ </div>
+ <div class="card"><div class="dt">GEÇMİŞ</div><div id="gecmis">Yükleniyor…</div></div>
+</main>
+<script>
+const id = new URLSearchParams(location.search).get("id") || "";
+$("#tarih").value = iso(new Date()); $("#kaydeden").value = localStorage.getItem("kaydeden") || "";
+async function yukle(){
+  $("#baslik").textContent = id;
+  const [C, K] = await Promise.all([sekme("Cihazlar"), sekme("Karne").catch(() => [])]);
+  const c = C.find(r => key(v(r["kayıt no"])) === key(id));
+  if(!c){ $("#cihaz").textContent = "Cihaz bulunamadı: " + id; return; }
+  const sb = tarih(c["son bakım tarihi"]), bp = Number(v(c["bakım periyodu (ay)"])) || 0, nb = sb && bp ? new Date(sb.getFullYear(), sb.getMonth()+bp, sb.getDate()) : null;
+  $("#cihaz").innerHTML = `<div class="dt">${esc(v(c["cihaz adı"]))} · ${esc(v(c["marka"]))} ${esc(v(c["model"]))}</div>
+   <div class="row"><span class="k">Bulunduğu Yer</span><span>${esc(v(c["bulunduğu yer"])) || "–"}</span></div>
+   <div class="row"><span class="k">Kalibrasyon / Sonraki</span><span>${fd(tarih(c["kalibrasyon tarihi"]))} / ${fd(tarih(c["sonraki kalibrasyon"]))}</span></div>
+   <div class="row"><span class="k">Doğrulama / Sonraki</span><span>${fd(tarih(c["doğrulama tarihi"]))} / ${fd(tarih(c["sonraki doğrulama"]))}</span></div>
+   <div class="row"><span class="k">Son Bakım / Planlı Bakım</span><span>${fd(sb)} / ${nb ? `<span class="${nb < new Date() ? "gec" : ""}">${fd(nb)}</span>` : (bp ? "–" : "plan yok")}</span></div>
+   <p><a href="cihaz.html?id=${encodeURIComponent(id)}">← Cihaz kartı</a></p>`;
+  const L = K.filter(r => key(v(r["kayıt no"])) === key(id) && !/^(Doğrulama|Kalibrasyon)$/.test(String(v(r["tür"])))).map(r => ({ t: tarih(r["tarih"]), tur: String(v(r["tür"])), a: v(r["açıklama"]), link: String(v(r["belge linki"])), s: Number(v(r["süre (saat)"])) || 0, kim: v(r["kaydeden"]) }))
+    .sort((a,b) => (b.t||0) - (a.t||0));
+  const yil = new Date(Date.now() - 365*864e5), son = L.filter(x => x.t && x.t >= yil), say = t => son.filter(x => x.tur === t).length;
+  const ariza = son.filter(x => x.tur === "Arıza"), sure = ariza.reduce((s,x) => s + x.s, 0);
+  $("#kpi").innerHTML = `<div><b class="${ariza.length ? "gec" : ""}">${ariza.length}</b>Arıza</div><div><b>${sure.toLocaleString("tr")}</b>Arıza süresi (saat)</div>
+    <div><b>${say("Tamir")}</b>Tamir</div><div><b>${say("Bakım") + say("Planlı Bakım")}</b>Bakım</div><div><b>${say("Söküm / Takma")}</b>Söküm / Takma</div>
+    <div><b>${ariza.length > 1 ? Math.round(365 / ariza.length) : "–"}</b>Arızalar arası ort. gün</div>`;
+  $("#gecmis").innerHTML = L.length ? L.map(x => { const fid = (/\/d\/([\w-]{10,})/.exec(x.link) || [])[1];
+    return `<div class="ol"><span class="chip ${esc(x.tur.split(" ")[0])}">${esc(x.tur)}</span> <b>${fd(x.t)}</b>${x.s ? ` · ${x.s} saat` : ""}<br>${esc(x.a)}${x.kim ? ` <small>— ${esc(x.kim)}</small>` : ""}
+      ${fid ? `<br><button class="l" data-fid="${esc(fid)}">🔒 Belgeyi aç</button>` : ""}</div>`; }).join("") : "Henüz kayıt yok.";
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button[data-fid]"); if(!b) return;
+  let pin = sessionStorage.getItem("erisimPin"); if(!pin){ pin = (prompt("Şifre:") || "").trim(); if(!pin) return; }
+  const w = window.open("", "_blank");
+  try{ const j = await servis({ islem:"dosya", tur:"karne", id, fid:b.dataset.fid, pin });
+    if(!j.ok){ if(/şifre/i.test(j.hata||"")) sessionStorage.removeItem("erisimPin"); if(w) w.close(); alert(j.hata); return; }
+    sessionStorage.setItem("erisimPin", pin);
+    const bin = atob(j.veri), a = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i] = bin.charCodeAt(i);
+    const u = URL.createObjectURL(new Blob([a], { type: j.mime })); if(w) w.location.href = u;
+  }catch(err){ if(w) w.close(); alert("Açılamadı: " + err.message); }
+});
+$("#kaydet").onclick = async () => {
+  const m = $("#msg"); m.className = "msg";
+  if(!$("#acik").value.trim()){ m.className = "msg err"; m.textContent = "Açıklama yazın."; return; }
+  let pin = localStorage.getItem("kayitPin") || ""; if(!pin){ pin = (prompt("Kayıt PIN'i:") || "").trim(); if(!pin) return; }
+  $("#kaydet").disabled = true; m.textContent = "Kaydediliyor…";
+  try{ const j = await servis({ islem:"olay", pin, id, tur:$("#tur").value, tarih:$("#tarih").value, aciklama:$("#acik").value, sure:$("#sure").value, kaydeden:$("#kaydeden").value });
+    if(j.ok){ localStorage.setItem("kayitPin", pin); localStorage.setItem("kaydeden", $("#kaydeden").value); m.className = "msg ok"; m.textContent = "✓ Kaydedildi."; $("#acik").value = ""; $("#sure").value = ""; setTimeout(yukle, 1500); }
+    else { if(/PIN/.test(j.hata||"")) localStorage.removeItem("kayitPin"); m.className = "msg err"; m.textContent = "⚠ " + j.hata; }
+  }catch(err){ m.className = "msg err"; m.textContent = "⚠ Servise ulaşılamadı: " + err.message; }
+  $("#kaydet").disabled = false;
+};
+yukle().catch(e => { $("#cihaz").textContent = "Veri okunamadı: " + e.message; });
+</script>
+
+</body></html>
