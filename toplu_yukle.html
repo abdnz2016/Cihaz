@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Doğrulama PDF'lerini toplu yükle</title>
+<style>
+ body{font:15px/1.45 system-ui,Arial,sans-serif;margin:0;background:#f3f5f9;color:#16213a}
+ header{background:#16315c;color:#fff;padding:12px 16px;font-weight:700;font-size:17px}
+ main{max-width:860px;margin:14px auto;padding:0 12px}
+ .card{background:#fff;border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+ label{display:block;font-size:12px;color:#555;margin:8px 0 3px}
+ input[type=text],input[type=password]{width:100%;box-sizing:border-box;padding:9px;border:1px solid #c5ccd9;border-radius:7px;font-size:14px}
+ button{background:#0a7d32;color:#fff;border:0;border-radius:8px;padding:11px 18px;font-size:15px;font-weight:600;cursor:pointer;margin-right:8px}
+ button.k{background:#a33}
+ button:disabled{opacity:.5}
+ #bar{height:10px;background:#dde3ee;border-radius:6px;overflow:hidden;margin:10px 0}#bar i{display:block;height:100%;width:0;background:#0a7d32}
+ #liste{font-size:13px;max-height:380px;overflow:auto;border-top:1px solid #eee}
+ #liste div{padding:3px 0;border-bottom:1px solid #f0f0f0}.ok{color:#0a7d32}.hata{color:#b00020}.atla{color:#8a6d00}
+ small{color:#666}
+</style></head><body>
+<header>Doğrulama PDF'lerini Drive'a toplu yükle</header>
+<main>
+ <div class="card">
+  <label>Kayıt servisi adresi (…/exec)</label><input type="text" id="url">
+  <label>Kayıt PIN'i (yalnızca bu bilgisayarda saklanır)</label><input type="password" id="pin" autocomplete="off">
+  <label>PDF dosyaları ya da ZIP dosyaları (birden çok seçebilirsiniz)</label><input type="file" id="dosya" multiple accept=".pdf,.zip,application/pdf,application/zip">
+  <p><small>Dosya adı <b>KK-XX_CihazAdi_Dogrulama_YYYY-AA-GG.pdf</b> biçiminde olmalı. Aynı adlı dosya Drive'da varsa yenisiyle değiştirilir. Sonunda Sheet'teki doğrulama linkleri kendiliğinden güncellenir. Sayfayı yükleme bitene kadar kapatmayın.</small></p>
+  <button id="basla">Yüklemeyi başlat</button><button id="dur" class="k" disabled>Durdur</button><button id="test" style="background:#16315c">Servisi test et</button>
+  <div id="bar"><i></i></div><div id="ozet"></div>
+ </div>
+ <div class="card"><div id="liste"></div></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const VARSAYILAN_URL = "https://script.google.com/macros/s/AKfycbxFXTZEYyDTH9SscQygnRiW9HOIx1c4v3tgdGLjId9tXpJ5G0byl_LhaCXeEPDuzH-c/exec";
+const $ = s => document.querySelector(s), AD = /^([A-Za-z0-9-]+)_[A-Za-z0-9-]+_Dogrulama_(\d{4}-\d{2}-\d{2})\.pdf$/;
+$("#url").value = localStorage.getItem("tkUrl") || VARSAYILAN_URL; $("#pin").value = localStorage.getItem("tkPin") || "";
+let durdur = false;
+const ekle = (m, c) => { const d = document.createElement("div"); d.className = c || ""; d.textContent = m; $("#liste").prepend(d); };
+const b64 = blob => new Promise((res, rej) => { const f = new FileReader(); f.onload = () => res(String(f.result).split(",")[1]); f.onerror = rej; f.readAsDataURL(blob); });
+async function topla(dosyalar){
+  const L = [];
+  for(const f of dosyalar){
+    if(/\.zip$/i.test(f.name)){
+      if(typeof JSZip === "undefined"){ ekle("⚠ " + f.name + ": ZIP açıcı yüklenemedi (internet?). Zip'i açıp PDF'leri seçin.", "hata"); continue; }
+      const z = await JSZip.loadAsync(f);
+      for(const [yol, e] of Object.entries(z.files)){ if(e.dir || !/\.pdf$/i.test(yol)) continue; const ad = yol.split("/").pop(); L.push({ ad, blob: await e.async("blob") }); }
+    } else if(/\.pdf$/i.test(f.name)) L.push({ ad: f.name, blob: f });
+  }
+  return L;
+}
+async function gonder(url, pin, o){
+  for(let deneme = 1; deneme <= 2; deneme++){
+    try{
+      const r = await fetch(url, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: JSON.stringify({ pin, id:o.id, ad:o.ad, tarih:o.tarih, pdf:o.pdf }) });
+      return await r.json();
+    }catch(e){ if(deneme === 2) return { ok:false, hata:"Servise ulaşılamadı (" + e.message + "): dağıtım erişimi 'Herkes' mi, adres doğru mu, kod güncel mi? 'Servisi test et' düğmesine basın." }; await new Promise(r => setTimeout(r, 1500)); }
+  }
+}
+$("#dur").onclick = () => { durdur = true; };
+$("#test").onclick = async () => {
+  const url = $("#url").value.trim(); $("#ozet").textContent = "Servis deneniyor…";
+  try{
+    const r = await fetch(url), s = await r.text();
+    let j = null; try{ j = JSON.parse(s); }catch(e){}
+    if(j && j.ok) $("#ozet").textContent = "✓ Servis çalışıyor: " + (j.mesaj || "tamam") + " (PIN ayrıca denenir, yükleme sırasında).";
+    else $("#ozet").textContent = "⚠ Servis JSON döndürmedi. Büyük olasılıkla dağıtımda 'Erişimi olan kişiler: Herkes' değil ya da eski sürüm dağıtılmış. Gelen: " + s.slice(0, 120).replace(/\s+/g, " ");
+  }catch(e){
+    $("#ozet").textContent = "✗ Servise ulaşılamadı (" + e.message + "). Nedenleri: (1) 'Erişimi olan kişiler' Herkes değil, (2) adres yanlış, (3) dağıtımda kod eski sürüm. Adresi tarayıcıda yeni sekmede açıp JSON görüp görmediğinize bakın.";
+  }
+};
+$("#basla").onclick = async () => {
+  const url = $("#url").value.trim(), pin = $("#pin").value.trim(), sec = $("#dosya").files;
+  if(!url || !pin || !sec.length){ $("#ozet").textContent = "Adres, PIN ve en az bir dosya gerekli."; return; }
+  localStorage.setItem("tkUrl", url); localStorage.setItem("tkPin", pin);
+  $("#basla").disabled = true; $("#dur").disabled = false; durdur = false; $("#liste").innerHTML = ""; $("#ozet").textContent = "Dosyalar okunuyor…";
+  let L; try{ L = await topla(Array.from(sec)); }catch(e){ $("#ozet").textContent = "Dosyalar okunamadı: " + e.message; $("#basla").disabled = false; $("#dur").disabled = true; return; }
+  if(!L.length){ $("#ozet").textContent = "Seçilen dosyalar arasında PDF ya da ZIP bulunamadı. 'Dosyaları Seç'te PDF veya ZIP dosyalarını seçin (toplu_yukle.html değil)."; $("#basla").disabled = false; $("#dur").disabled = true; return; }
+  ekle("Bulunan PDF sayısı: " + L.length, "atla");
+  let ok = 0, hata = 0, atla = 0;
+  for(let i = 0; i < L.length && !durdur;  i++){
+    const o = L[i], m = AD.exec(o.ad);
+    $("#bar i").style.width = Math.round(i / L.length * 100) + "%"; $("#ozet").textContent = "Yükleniyor " + (i + 1) + " / " + L.length + " — " + o.ad;
+    if(!m){ atla++; ekle("— atlandı (ad biçimi uygun değil): " + o.ad, "atla"); continue; }
+    const j = await gonder(url, pin, { id:m[1], ad:o.ad, tarih:m[2], pdf: await b64(o.blob) });
+    if(j && j.ok){ ok++; ekle("✓ " + o.ad, "ok"); }
+    else { hata++; ekle("✗ " + o.ad + " — " + ((j && j.hata) || "bilinmeyen hata"), "hata"); if(j && /PIN|kilit|Çok fazla/i.test(j.hata || "")){ ekle("Yükleme durduruldu: PIN/kilit sorunu.", "hata"); break; } }
+  }
+  $("#bar i").style.width = "100%";
+  $("#ozet").textContent = (durdur ? "Durduruldu. " : "Bitti. ") + "Yüklenen: " + ok + " · hatalı: " + hata + " · atlanan: " + atla + (ok ? " · Sheet'teki linkler güncellendi." : "");
+  $("#basla").disabled = false; $("#dur").disabled = true;
+};
+</script></body></html>
