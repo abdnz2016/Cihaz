@@ -251,7 +251,7 @@ const MOD = {
   msic:   { ik:"🌡", ad:"Sıcaklık Takip", yakinda:"Aşama 4", alt:"Sınırın üstünde uyarı" },
   ariza:  { ik:"🔧", ad:"Arızalı Makine ve Cihazlar", link:"makine.html?acik", alt:"Açık arıza ve bakım kayıtları" },
   afoto:  { ik:"🖼", ad:"Fotoğraf ve Dokümanlar", link:"https://drive.google.com/drive/folders/1zlbnIjWSgNEHa3hJFUSCmufpc8gxAyyF", alt:"Arıza fotoğrafları, servis raporları (Drive)" },
-  depo:   { ik:"📦", ad:"Depo", yakinda:"Aşama 2", alt:"Barkodla giriş / çıkış · stok" },
+  depo:   { ik:"📦", ad:"Depo", link:"depo.html", alt:"Barkodla giriş / çıkış · stok" },
   karne:  { ik:"🛠", ad:"Bakım / Arıza Karnesi", f:x => true, alt:x => x.b ? "Planlı bakım " + fd(x.b) : "", ac:x => git("karne.html", x.id) },
   talimat:{ ik:"📘", ad:"Kullanım Talimatları", f:x => x.tl || x.vt, alt:x => [x.tk, x.vt ? "🎬 video" : ""].filter(Boolean).join(" · "), ac:x => window.open(x.tl || x.vt, "_blank") },
   kalk:   { ik:"🎯", ad:"Kalibrasyon Kontrol", f:x => x.kal, alt:x => [x.sert ? "Sertifika " + x.sert : "", x.mx ? "max hata " + x.mx : "", x.ks].filter(Boolean).join(" · "), ac:x => git("kalkontrol.html", x.id) },
@@ -268,7 +268,7 @@ const GRUPLAR = [
   { k:"makine", ad:"Makine Listesi", gi:"⚙️", alt:"Makineler · doküman · QR", modlar:["makine","mqr","mtal","msic"] },
   { k:"ariza", ad:"Arıza Takip", gi:"🔧", alt:"Arıza · bakım karnesi", modlar:["ariza","karne","afoto"] },
   { k:"enerji", ad:"Enerji", gi:"⚡", alt:"Güç · besleme", modlar:["enerji"] },
-  { k:"depo", ad:"Depo", gi:"📦", alt:"Barkod · stok", modlar:["depo"] }
+  { k:"depo", ad:"Depo", gi:"📦", alt:"Barkod · stok", link:"depo.html", modlar:["depo"] }
 ];
 let GRUP = (GRUPLAR.find(g => g.modlar.includes(mod)) || GRUPLAR[1]).k;
 function gruplarCiz(){
