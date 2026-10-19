@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seval Park – Seval Kablo</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef1f5;color:#0f172a}
+.top{background:linear-gradient(135deg,#0d1b36,#1d4a85);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.top b{font-size:19px}.top a{color:#fff;font-size:13px;opacity:.85}
+.wrap{max-width:1200px;margin:0 auto;padding:12px}
+.ozet{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.oz{background:#fff;border-radius:12px;padding:10px 14px;border:1px solid #e2e8f0;font-size:13px;display:flex;align-items:center;gap:8px}
+.oz b{font-size:20px}.nok{width:12px;height:12px;border-radius:50%;display:inline-block}
+.g{background:#16a34a}.s{background:#eab308}.k{background:#dc2626}.b{background:#94a3b8}
+.arac{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.arac input{flex:1;min-width:180px;padding:10px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px}
+.arac button{border:1px solid #cbd5e1;background:#fff;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer}.arac button.on{background:#14305e;color:#fff;border-color:#14305e}
+.bol{font-size:13px;font-weight:800;letter-spacing:.6px;color:#14305e;margin:16px 0 8px;text-transform:uppercase}
+.grup{background:#fff;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden}
+.gb{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:800}
+.gb small{font-weight:600;color:#64748b}.gi{padding:10px;display:flex;flex-wrap:wrap;gap:8px}
+.mak{border:2px solid #e2e8f0;border-radius:12px;padding:8px 10px;min-width:150px;flex:1 1 170px;max-width:260px;background:#fff;cursor:pointer;text-decoration:none;color:#0f172a}
+.mak.g{border-color:#86efac;background:#f0fdf4}.mak.s{border-color:#fde047;background:#fefce8}.mak.k{border-color:#fca5a5;background:#fef2f2}
+.mak .mb{display:flex;justify-content:space-between;align-items:center;gap:6px;font-weight:800;font-size:14px}.mak .ma{font-size:12px;color:#475569;margin-top:2px}
+.cips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.cip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 7px;border-radius:12px;text-decoration:none;color:#0f172a;border:1px solid #e2e8f0;background:#fff}
+.cip .nok{width:8px;height:8px}
+.msg{font-size:14px;color:#64748b;padding:10px}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;padding:10px}
+.ks{border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:#fcfdff}.kb{font-size:12px;font-weight:800;color:#14305e;margin-bottom:6px;letter-spacing:.3px}.kb small{color:#64748b;font-weight:700}
+.dg summary{list-style:none}.dg summary::-webkit-details-marker{display:none}
+</style></head><body>
+<div class="top"><b>🏭 Seval Park</b><a href="index.html">Kontrol merkezi</a></div>
+<div class="wrap" id="app"><div class="msg">Yükleniyor…</div></div>
+<script>
+const SHEET_ID = "1T7L5c7nnffw8O8HFFVLnhgjr0CnLsJ_lmk-VkAaGd_A";
+const $ = s => document.querySelector(s), esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s ?? "").toLocaleLowerCase("tr").trim(), key = s => String(s ?? "").trim().replace(/\s+/g, "").replace(/\//g, "-").toLocaleUpperCase("tr");
+const GRUP = { AK:"Aktarma", BK:"Büküm", CT:"Tel Çekme", CV:"Orta Gerilim", DK:"Döküm", EK:"Ekstruder", KN:"Kangallama", KT:"Katot", OR:"Örgü", PL:"Plastik", RJ:"Rijit", ZR:"Zırhlama" };
+async function sekme(ad){
+  const r = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(ad)}&t=${Date.now()}`), t = await r.text();
+  const j = JSON.parse(t.substring(t.indexOf("{"), t.lastIndexOf("}") + 1)); if(!j.table) return [];
+  const H = j.table.cols.map(c => norm(c.label));
+  return j.table.rows.map(x => { const o = {}; H.forEach((h, i) => { o[h] = x.c && x.c[i] ? x.c[i] : null; }); return o; });
+}
+const v = c => c ? String(c.v ?? "").trim() : "", tar = c => { if(!c || c.v == null) return null; const m = /Date\((\d+),(\d+),(\d+)/.exec(String(c.v)); return m ? new Date(+m[1], +m[2], +m[3]) : null; };
+// makine kodu: yer / model içindeki EK-03, KN-5, AK03… → UR-EK03
+const makineKodu = s => { const m = /(?:^|[^A-ZÇĞİÖŞÜ])(AK|BK|CT|CV|DK|EK|KN|KT|OR|PL|RJ|ZR)[\s\-]?0*(\d{1,2})(?!\d)/i.exec(String(s || "").toLocaleUpperCase("tr")); return m ? "UR-" + m[1].toUpperCase() + ("0" + m[2]).slice(-2) : ""; };
+let MAK = [], CIH = [], FILTRE = "tum";
+// ölçüm kategorileri (cihaz adına göre) – [ad, desen, simge]
+const KATEGORI = [
+  ["Sıcaklık", /etüv|etuv|termometre|sıcaklık|data logger|ısı kayıt|termokupl|dondurucu|su banyosu|kül fırını|termoreakt|ısıl|soğutma|isi kayit/, "🌡️"],
+  ["Boyut / uzunluk", /kumpas|mikrometre|mikroskop|profil|çap|şerit|çelik metre|metre sayac|metre disk|yazı makina|komparatör|mastar|cam skala|kalınlık/, "📏"],
+  ["Elektrik / gerilim", /yüksek gerilim|orta gerilim|spark|prob|multimetre|megaohm|miliohm|resistomat|sehpa|direnç|oto trafo|akım|wattmetre|shortester|kısa devre/, "⚡"],
+  ["Kütle", /terazi|kantar|tartı/, "⚖️"],
+  ["Basınç / akış", /manometre|flowmetre|debimetre|anemometre|basınç|hava akış/, "💨"],
+  ["Mekanik test", /çekme|kopma|bükülgenlik|aşındırma|soğukta|sertlik|dinamometre|kronometre|darbe|uzama/, "🔩"],
+  ["Yangın / CPR", /alev|en 50399|en 60332|en 50200|en 61034|duman|cpr|yanma|ekipman doğ/, "🔥"],
+  ["Kimya / çevre", /ph|iletkenlik|ses seviye|gürültü|nem|gaz analiz|mezur|balonjoje|su tayin/, "🧪"]
+];
+const kategori = ad => { const n = norm(ad); const x = KATEGORI.find(k => k[1].test(n)); return x ? x[0] : "Diğer"; };
+async function yukle(){
+  let C, M, A, E, K;
+  try{ [C, M, A, E, K] = await Promise.all([sekme("Cihazlar"), sekme("Makinalar").catch(() => []), sekme("Arizalar").catch(() => []), sekme("Etuv_Testleri").catch(() => []), sekme("Karne").catch(() => [])]); }
+  catch(e){ $("#app").innerHTML = `<div class="msg">Veriler alınamadı: ${esc(e.message)}</div>`; return; }
+  const bugun = new Date(); bugun.setHours(0, 0, 0, 0);
+  const acikAriza = {}; A.forEach(r => { if(v(r["durum"]) && v(r["durum"]) !== "Kapalı") { const k = key(v(r["makine kodu"])); (acikAriza[k] = acikAriza[k] || []).push(v(r["arıza no"])); } });
+  // karne: bitişi girilmemiş arıza / kalibrasyon olayları
+  const tz = c => { if(!c || c.v == null) return null; const m = /Date\((\d+),(\d+),(\d+)/.exec(String(c.v)); return m ? new Date(+m[1], +m[2], +m[3]) : null; };
+  const kArz = {}, kKal = {};
+  K.forEach(r => { if(v(r["bitiş"])) return; const id = key(v(r["kayıt no"])), t = v(r["tür"]), b = tz(r["başlangıç"]) || tz(r["tarih"]);
+    if(/^(Arıza|Tamir)$/.test(t)) kArz[id] = b || true; else if(t === "Kalibrasyon") kKal[id] = b || true; });
+  const gunSay = d => d instanceof Date ? Math.max(0, Math.floor((Date.now() - d) / 864e5)) + " gün" : "";
+  const etuvTest = {}; E.forEach(r => { if(v(r["durum"]) === "Devam") etuvTest[key(v(r["kayıt no"]))] = v(r["test no"]) + " · " + v(r["test tipi"]) + " · " + v(r["test sıcaklığı (°c)"]) + " °C"; });
+  MAK = M.map(r => ({ kod:v(r["makine kodu"]), ad:v(r["makine adı"]), hat:v(r["hat / bölüm"]), yer:v(r["bulunduğu yer"]), durum:v(r["durum"]) })).filter(m => m.kod).map(m => {
+    const ar = acikAriza[key(m.kod)] || [];
+    m.renk = ar.length ? "k" : /duruyor|pasif|bakım|kapalı/i.test(m.durum) ? "s" : "g";
+    m.neden = ar.length ? ar.length + " açık arıza (" + ar.join(", ") + ")" : m.renk === "s" ? "Durum: " + m.durum : "Çalışıyor";
+    return m; });
+  CIH = C.map(r => ({ id:v(r["kayıt no"]), ad:v(r["cihaz adı"]), yer:v(r["bulunduğu yer"]), model:v(r["model"]), durum:v(r["cihaz durumu"]), kn:tar(r["sonraki kalibrasyon"]), dn:tar(r["sonraki doğrulama"]), ds:v(r["doğrulama sonucu"]) })).filter(c => c.id).map(c => {
+    const neden = [];
+    if(/arız|kullanım dışı|hurda|uygun değil|olumsuz/i.test(c.durum)) neden.push("Durum: " + c.durum);
+    if(c.kn && c.kn < bugun) neden.push("kalibrasyon süresi geçti");
+    if(c.dn && c.dn < bugun) neden.push("doğrulama süresi geçti");
+    if(/RAPORUNA|OLUMSUZ/i.test(c.ds)) neden.push("doğrulama: ölçüm raporuna bakınız");
+    if(kArz[key(c.id)]) neden.unshift("ARIZADA" + (gunSay(kArz[key(c.id)]) ? " (" + gunSay(kArz[key(c.id)]) + ")" : ""));
+    const etuv = /etüv|etuv/i.test(c.ad), test = etuvTest[key(c.id)], kal = kKal[key(c.id)];
+    // öncelik: arızada (kırmızı) → kalibrasyonda (sarı; süre/uygunluk nedeni zaten bu) → diğer kırmızı nedenler → etüv durumu → hazır
+    const kalY = kal ? "Kalibrasyonda" + (gunSay(kal) ? " (" + gunSay(kal) + ")" : "") : "";
+    c.renk = kArz[key(c.id)] ? "k" : kal ? "s" : neden.length ? "k" : etuv ? (test ? "g" : "s") : "g";
+    c.neden = kal && !kArz[key(c.id)] ? [kalY].concat(neden).join(" · ") : neden.length ? (kal ? [neden[0], kalY].concat(neden.slice(1)) : neden).join(" · ") : etuv ? (test ? "Test sürüyor: " + test : "Etüv boş / duruyor") : "Kullanıma hazır";
+    c.mk = makineKodu(c.yer) || (/ısı göster|isi göster/.test(norm(c.ad)) ? makineKodu(c.model) : "");
+    return c; });
+  ciz();
+}
+const cip = c => `<a class="cip" href="cihaz.html?id=${encodeURIComponent(c.id)}" title="${esc(c.ad + " – " + c.neden)}"><span class="nok ${c.renk}"></span>${esc(c.id)}</a>`;
+function ciz(){
+  const q = norm($("#ara") ? $("#ara").value : ""), uy = s => !q || norm(s).includes(q);
+  const mkSet = new Set(MAK.map(m => key(m.kod))), makCih = {}, kalan = [];
+  CIH.forEach(c => { if(c.mk && mkSet.has(key(c.mk))) (makCih[key(c.mk)] = makCih[key(c.mk)] || []).push(c); else kalan.push(c); });
+  const say = L => ({ g:L.filter(x => x.renk === "g").length, s:L.filter(x => x.renk === "s").length, k:L.filter(x => x.renk === "k").length });
+  const sm = say(MAK), sc = say(CIH);
+  let h = `<div class="ozet"><div class="oz"><span class="nok g"></span><b>${sm.g + sc.g}</b> çalışıyor / hazır</div><div class="oz"><span class="nok s"></span><b>${sm.s + sc.s}</b> duruyor</div><div class="oz"><span class="nok k"></span><b>${sm.k + sc.k}</b> arıza / uygunsuz</div><div class="oz">⚙️ <b>${MAK.length}</b> makine · 🔬 <b>${CIH.length}</b> cihaz</div></div>
+    <div class="arac"><input id="ara" placeholder="Ara: UR-EK03, KK-23, etüv, LAB-ARGE…" value="${esc($("#ara") ? $("#ara").value : "")}">
+    ${[["tum","Tümü"],["mak","Üretim hatları"],["lab","Laboratuvarlar"],["kir","Yalnız kırmızı"]].map(([k, a]) => `<button data-f="${k}" class="${FILTRE === k ? "on" : ""}">${a}</button>`).join("")}</div>`;
+  if(FILTRE !== "lab"){
+    const hatlar = {}; MAK.forEach(m => { (hatlar[m.hat || "Diğer"] = hatlar[m.hat || "Diğer"] || []).push(m); });
+    const hBlok = Object.keys(hatlar).sort((a, b) => a.localeCompare(b, "tr")).map(hat => {
+      const L = hatlar[hat].filter(m => (FILTRE !== "kir" || m.renk === "k" || (makCih[key(m.kod)] || []).some(c => c.renk === "k")) && (uy(m.kod + " " + m.ad + " " + m.yer) || (makCih[key(m.kod)] || []).some(c => uy(c.id + " " + c.ad)))); if(!L.length) return "";
+      const s = say(L);
+      return `<div class="grup"><div class="gb"><span>${esc(hat)}</span><small>🟢 ${s.g} · 🟡 ${s.s} · 🔴 ${s.k}</small></div><div class="gi">${L.map(m => { const cc = makCih[key(m.kod)] || [];
+        return `<div class="mak ${m.renk}" onclick="location.href='makine.html?id=${encodeURIComponent(m.kod)}'" title="${esc(m.neden)}"><div class="mb"><span>${esc(m.kod)}</span><span class="nok ${m.renk}"></span></div><div class="ma">${esc(m.neden)}</div>
+          ${cc.length ? `<div class="cips" onclick="event.stopPropagation()">${cc.map(cip).join("")}</div>` : ""}</div>`; }).join("")}</div></div>`; }).join("");
+    h += `<div class="bol">⚙️ Üretim hatları</div>` + (hBlok || `<div class="msg">${MAK.length ? "Filtreye uyan makine yok." : "Makinalar sekmesi boş – Düzenleme → Makine listesini yükle."}</div>`);
+  }
+  if(FILTRE !== "mak"){   // laboratuvar → içinde kategori sütunları → kodlar
+    const labAd = y => { const t = String(y || "").toLocaleUpperCase("tr").split(/[-\s]+/).filter(Boolean); return t[0] === "LAB" ? (t[1] ? "LAB-" + t[1] : "LAB") : ""; };
+    const labs = {}, diger = {};
+    kalan.forEach(c => { const l = labAd(c.yer); if(l) (labs[l] = labs[l] || []).push(c); else (diger[c.yer || "Yeri belirtilmemiş"] = diger[c.yer || "Yeri belirtilmemiş"] || []).push(c); });
+    const kutu = (ad, L, ikon) => {
+      L = L.filter(c => (FILTRE !== "kir" || c.renk === "k") && uy(c.id + " " + c.ad + " " + c.yer)); if(!L.length) return ""; const s = say(L), kat = {};
+      L.forEach(c => { const k = kategori(c.ad); (kat[k] = kat[k] || []).push(c); });
+      const sut = KATEGORI.map(x => x[0]).concat(["Diğer"]).filter(k => kat[k]).map(k => `<div class="ks"><div class="kb">${(KATEGORI.find(x => x[0] === k) || [0, 0, "🔹"])[2]} ${esc(k)} <small>${kat[k].length}</small></div>
+        <div class="cips">${kat[k].sort((a, b) => a.id.localeCompare(b.id, "tr", { numeric:true })).map(c => `<a class="cip" href="cihaz.html?id=${encodeURIComponent(c.id)}" title="${esc(c.ad + " · " + (c.yer || "") + " – " + c.neden)}"><span class="nok ${c.renk}"></span>${esc(c.id)}</a>`).join("")}</div></div>`).join("");
+      return `<div class="grup"><div class="gb"><span>${ikon} ${esc(ad)}</span><small>${L.length} cihaz · 🟢 ${s.g} · 🟡 ${s.s} · 🔴 ${s.k}</small></div><div class="kgrid">${sut}</div></div>`; };
+    const lBlok = Object.keys(labs).sort((a, b) => a.localeCompare(b, "tr", { numeric:true })).map(l => kutu(l, labs[l], "🔬")).join("");
+    h += `<div class="bol">🔬 Laboratuvarlar</div>` + (lBlok || `<div class="msg">Filtreye uyan laboratuvar cihazı yok.</div>`);
+    const dBlok = Object.keys(diger).sort((a, b) => a.localeCompare(b, "tr")).map(y => kutu(y, diger[y], "📍")).join("");
+    if(dBlok) h += `<details class="dg" ${q || FILTRE === "kir" ? "open" : ""}><summary class="bol" style="cursor:pointer">📍 Diğer yerler (stok, sevkiyat, üretim alanı…)</summary>${dBlok}</details>`;
+  }
+  h += `<div class="msg">🗺️ Fabrika yerleşim haritası: kat planı görseli gelince makineler ve laboratuvarlar harita üzerinde aynı renklerle gösterilecek.</div>`;
+  $("#app").innerHTML = h;
+  $("#ara").oninput = () => { const p = $("#ara").selectionStart; ciz(); $("#ara").focus(); $("#ara").setSelectionRange(p, p); };
+  document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { FILTRE = b.dataset.f; ciz(); });
+}
+yukle();
+</script></body></html>
