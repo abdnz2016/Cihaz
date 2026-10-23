@@ -36,6 +36,9 @@
 .ft .im .sm{font-size:28px}.ft .im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .ft .im .mm{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(15,23,42,.88));color:#fff;font-size:10px;font-weight:800;padding:12px 5px 3px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ft .kd{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:4px 6px 0;white-space:nowrap}.ft .ca{font-size:10px;color:#475569;font-weight:700;padding:1px 6px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.me{font-size:12px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.harita{background:linear-gradient(#f8fafc,#e2e8f0);border:1px solid #e2e8f0;border-radius:14px;overflow-x:auto;padding:6px;margin-bottom:6px}.harita svg{display:block;width:100%;min-width:900px;height:auto}
+.hm,.hl{cursor:pointer;transition:transform .15s ease,filter .15s ease;transform-box:fill-box;transform-origin:50% 60%}.hm:hover,.hl:hover{transform:scale(1.12);filter:drop-shadow(0 4px 6px rgba(20,48,94,.35))}
+.hz{font:800 12px Arial;fill:#14305e}.hk{font:700 9.5px Arial;fill:#334155}
 </style></head><body>
 <div class="top"><b>🏭 Seval Park</b><a href="index.html">Kontrol merkezi</a></div>
 <div class="wrap" id="app"><div class="msg">Yükleniyor…</div></div>
@@ -53,7 +56,7 @@ async function sekme(ad){
 const v = c => c ? String(c.v ?? "").trim() : "", tar = c => { if(!c || c.v == null) return null; const m = /Date\((\d+),(\d+),(\d+)/.exec(String(c.v)); return m ? new Date(+m[1], +m[2], +m[3]) : null; };
 // makine kodu: yer / model içindeki EK-03, KN-5, AK03… → UR-EK03
 const makineKodu = s => { const m = /(?:^|[^A-ZÇĞİÖŞÜ])(AK|BK|CT|CV|DK|EK|KN|KT|OR|PL|RJ|ZR)[\s\-]?0*(\d{1,2})(?!\d)/i.exec(String(s || "").toLocaleUpperCase("tr")); return m ? "UR-" + m[1].toUpperCase() + ("0" + m[2]).slice(-2) : ""; };
-let MAK = [], CIH = [], FILTRE = "tum";
+let MAK = [], CIH = [], FILTRE = "harita";
 // ölçüm kategorileri (cihaz adına göre) – [ad, desen, simge]
 const KATEGORI = [
   ["Sıcaklık", /etüv|etuv|termometre|sıcaklık|data logger|ısı kayıt|termokupl|dondurucu|su banyosu|kül fırını|termoreakt|ısıl|soğutma|isi kayit/, "🌡️"],
@@ -131,7 +134,8 @@ function ciz(){
   const sm = say(MAK), sc = say(CIH);
   let h = `<div class="ozet"><div class="oz"><span class="nok g"></span><b>${sm.g + sc.g}</b> çalışıyor / hazır</div><div class="oz"><span class="nok s"></span><b>${sm.s + sc.s}</b> duruyor</div><div class="oz"><span class="nok k"></span><b>${sm.k + sc.k}</b> arıza / uygunsuz</div><div class="oz">⚙️ <b>${MAK.length}</b> makine · 🔬 <b>${CIH.length}</b> cihaz</div></div>
     <div class="arac"><input id="ara" placeholder="Ara: UR-EK03, KK-23, etüv, LAB-ARGE…" value="${esc($("#ara") ? $("#ara").value : "")}">
-    ${[["tum","Tümü"],["mak","Üretim hatları"],["lab","Laboratuvarlar"],["kir","Yalnız kırmızı"]].map(([k, a]) => `<button data-f="${k}" class="${FILTRE === k ? "on" : ""}">${a}</button>`).join("")}</div>`;
+    ${[["harita","🗺️ Harita"],["tum","Liste"],["mak","Üretim hatları"],["lab","Laboratuvarlar"],["kir","Yalnız kırmızı"]].map(([k, a]) => `<button data-f="${k}" class="${FILTRE === k ? "on" : ""}">${a}</button>`).join("")}</div>`;
+  if(FILTRE === "harita"){ h += harita(makCih, kalan); $("#app").innerHTML = h; baglaHarita(); $("#ara").oninput = () => { FILTRE = "tum"; ciz(); }; document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { FILTRE = b.dataset.f; ciz(); }); return; }
   if(FILTRE !== "lab"){
     const hatlar = {}; MAK.forEach(m => { (hatlar[m.hat || "Diğer"] = hatlar[m.hat || "Diğer"] || []).push(m); });
     const hBlok = Object.keys(hatlar).sort((a, b) => a.localeCompare(b, "tr")).map(hat => {
@@ -161,6 +165,53 @@ function ciz(){
   $("#app").innerHTML = h;
   $("#ara").oninput = () => { const p = $("#ara").selectionStart; ciz(); $("#ara").focus(); $("#ara").setSelectionRange(p, p); };
   document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { FILTRE = b.dataset.f; ciz(); });
+}
+
+// ===================== FABRİKA HARİTASI (3B eğik görünüm) =====================
+const HS = 15, HDX = -0.22, HDY = 0.5;   // izdüşüm: derinlik (y) ekranda aşağı-sola
+const HP = (x, y, z) => [60 + (x + y * HDX + 30) * HS, 40 + (y * HDY - z) * HS];
+const hpt = L => L.map(q => q.map(n => n.toFixed(1)).join(",")).join(" ");
+const hton = (h, k) => { const n = parseInt(h.slice(1), 16), f = c => Math.max(0, Math.min(255, Math.round(c * k))); return "#" + [f(n >> 16), f(n >> 8 & 255), f(n & 255)].map(c => c.toString(16).padStart(2, "0")).join(""); };
+function hkutu(x, y, z, w, d, h, r, op){ const st = `stroke="${hton(r, .6)}" stroke-width=".6"${op ? ` fill-opacity="${op}"` : ""}`;
+  return `<polygon points="${hpt([HP(x, y + d, z), HP(x + w, y + d, z), HP(x + w, y + d, z + h), HP(x, y + d, z + h)])}" fill="${hton(r, .82)}" ${st}/>` +
+         `<polygon points="${hpt([HP(x, y, z), HP(x, y + d, z), HP(x, y + d, z + h), HP(x, y, z + h)])}" fill="${hton(r, .68)}" ${st}/>` +
+         `<polygon points="${hpt([HP(x, y, z + h), HP(x + w, y, z + h), HP(x + w, y + d, z + h), HP(x, y + d, z + h)])}" fill="${hton(r, 1.12)}" ${st}/>`; }
+const HRENK = { g:"#16a34a", s:"#eab308", k:"#dc2626" };
+function harita(makCih, kalan){
+  const hatlar = {}; MAK.forEach(m => (hatlar[m.hat || "Diğer"] = hatlar[m.hat || "Diğer"] || []).push(m));
+  const ad = Object.keys(hatlar).sort((a, b) => hatlar[b].length - hatlar[a].length || a.localeCompare(b, "tr"));
+  const bolge = [], KOL = 4, BW = 13, GAP = 2.0; let yy = 0, sat = [];
+  ad.forEach((h, i) => { const L = hatlar[h].sort((a, b) => a.kod.localeCompare(b.kod, "tr", { numeric:true })), kolon = Math.max(1, Math.ceil(L.length / 13)), satir = Math.ceil(L.length / kolon);
+    sat.push({ h, L, kolon, satir }); if(sat.length === KOL || i === ad.length - 1){ const yuk = Math.max(...sat.map(b => b.satir)) * 1.05 + 2.8;
+      sat.forEach((b, j) => bolge.push(Object.assign(b, { x:j * (BW + GAP), y:yy, w:BW, d:yuk }))); yy += yuk + GAP; sat = []; } });
+  const labs = {}; kalan.forEach(c => { const t = String(c.yer || "").toLocaleUpperCase("tr").split(/[-\s]+/); if(t[0] === "LAB") { const l = t[1] ? "LAB-" + t[1] : "LAB"; (labs[l] = labs[l] || []).push(c); } });
+  const labAdlar = Object.keys(labs).sort((a, b) => labs[b].length - labs[a].length), LW = (KOL * (BW + GAP) - GAP) / Math.max(1, Math.min(labAdlar.length, 7)) - 0.6, ly = yy + 1.5;
+  const kot = L => L.some(x => x.renk === "k") ? "k" : L.some(x => x.renk === "s") ? "s" : "g";
+  let svg = hkutu(-1.5, -1.5, -0.25, KOL * (BW + GAP) + 1, ly + Math.ceil(labAdlar.length / 7) * 6.6 + 2.5, 0.25, "#cbd5e1");
+  bolge.forEach(b => { svg += hkutu(b.x, b.y, 0, b.w, b.d, 0.08, "#e2e8f0") + `<text x="${HP(b.x + 0.4, b.y + 0.75, 0.1)[0]}" y="${HP(b.x + 0.4, b.y + 0.75, 0.1)[1]}" class="hz">${esc(b.h)} · ${b.L.length}</text>`;
+    const cw = (b.w - 1) / b.kolon;
+    b.L.forEach((m, i) => { const c = Math.floor(i / b.satir), r = i % b.satir, x = b.x + 0.5 + c * cw, y = b.y + 2.0 + r * 1.05, cc = makCih[key(m.kod)] || [], rk = m.renk === "k" || cc.some(q => q.renk === "k") ? "k" : m.renk;
+      const uz = Math.min(cw - 2.6, 7.5), rkh = HRENK[rk] || "#64748b";
+      svg += `<g class="hm" data-kod="${esc(m.kod)}"><title>${esc(m.kod + " · " + m.ad + " – " + m.neden + (cc.length ? " · " + cc.length + " ölçüm cihazı" : ""))}</title>` +
+        hkutu(x, y, 0.08, uz, 0.42, 0.18, "#475569") + hkutu(x + 0.1, y + 0.02, 0.26, 0.6, 0.38, 0.55, "#f59e0b") + hkutu(x + uz * 0.3, y + 0.02, 0.26, uz * 0.18, 0.38, 0.5, "#2563eb") +
+        hkutu(x + uz * 0.55, y + 0.05, 0.26, uz * 0.28, 0.32, 0.22, "#93c5fd") + hkutu(x + uz - 0.7, y + 0.02, 0.26, 0.6, 0.38, 0.6, "#f59e0b") +
+        `<circle cx="${HP(x + uz + 0.35, y + 0.2, 0.3)[0]}" cy="${HP(x + uz + 0.35, y + 0.2, 0.3)[1]}" r="4.2" fill="${rkh}" stroke="#fff" stroke-width="1.2"/>` +
+        `<text x="${HP(x + uz + 0.75, y + 0.35, 0.1)[0]}" y="${HP(x + uz + 0.75, y + 0.35, 0.1)[1]}" class="hk">${esc(m.kod.replace(/^UR-/, ""))}</text></g>`; }); });
+  let labYazi = "";
+  labAdlar.forEach((l, i) => { const x = (i % 7) * (LW + 0.6), y = ly + Math.floor(i / 7) * 6.6, L = labs[l], r = kot(L), sy = { g:0, s:0, k:0 }; L.forEach(c => sy[c.renk]++);
+    svg += `<g class="hl" data-lab="${esc(l)}"><title>${esc(l + " · " + L.length + " cihaz · 🟢 " + sy.g + " 🟡 " + sy.s + " 🔴 " + sy.k)}</title>` + hkutu(x, y, 0, LW, 4.4, 0.08, "#f1f5f9") +
+      hkutu(x, y, 0.08, LW, 0.15, 1.1, "#94a3b8", .9) + hkutu(x, y, 0.08, 0.15, 4.4, 1.1, "#94a3b8", .9) +
+      Array.from({ length:Math.min(L.length, 12) }, (_, k) => hkutu(x + 0.6 + (k % 6) * (LW - 1) / 6, y + 1.3 + Math.floor(k / 6) * 1.2, 0.08, 0.55, 0.5, 0.45, HRENK[L[k].renk] ? hton(HRENK[L[k].renk], 1.25) : "#cbd5e1")).join("") +
+      "" + (labYazi += `<text x="${HP(x + 0.5, y + 4.0, 0.1)[0]}" y="${HP(x + 0.5, y + 4.0, 0.1)[1]}" class="hz" style="paint-order:stroke;stroke:#fff;stroke-width:3px" pointer-events="none">🔬 ${esc(l.replace(/^LAB-/, ""))} · ${L.length}</text>`, "") +
+      `<circle cx="${HP(x + LW - 0.6, y + 0.8, 1.3)[0]}" cy="${HP(x + LW - 0.6, y + 0.8, 1.3)[1]}" r="5" fill="${HRENK[r]}" stroke="#fff" stroke-width="1.5"/></g>`; });
+  const W = Math.ceil(HP(KOL * (BW + GAP) + 1, -1.5, 0)[0] + 20), Hh = Math.ceil(HP(0, ly + Math.ceil(labAdlar.length / 7) * 6.6 + 2, 0)[1] + 20);
+  return `<div class="bol">🗺️ Fabrika haritası <small style="font-weight:600;color:#64748b;text-transform:none;letter-spacing:0">· makineye tıklayın: hat görünümü açılır · laboratuvara tıklayın: cihazları listelenir</small></div>
+    <div class="harita"><svg viewBox="0 0 ${W} ${Hh}" xmlns="http://www.w3.org/2000/svg">${svg}${labYazi}</svg></div>
+    <div class="msg">Yerleşim temsili: hat grupları bölgeler halinde gösteriliyor. Fabrika kat planı gelince makineler gerçek konumlarına taşınacak.</div>`;
+}
+function baglaHarita(){
+  document.querySelectorAll(".hm").forEach(g => g.onclick = () => { const k = g.dataset.kod; location.href = (/^UR-EK/i.test(k) ? "hat.html?id=" : "makine.html?id=") + encodeURIComponent(k); });
+  document.querySelectorAll(".hl").forEach(g => g.onclick = () => { FILTRE = "lab"; ciz(); const a = $("#ara"); a.value = g.dataset.lab; a.dispatchEvent(new Event("input")); });
 }
 yukle();
 </script></body></html>
