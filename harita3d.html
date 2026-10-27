@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seval Park 3B – Seval Kablo</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;font-family:Arial,Helvetica,sans-serif;background:#0d1b36}
+#sahne{position:fixed;inset:0}
+.ust{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(rgba(13,27,54,.92),rgba(13,27,54,0));color:#fff;z-index:5}
+.ust b{font-size:18px}.ust a{color:#fff;font-size:13px;opacity:.9;margin-left:12px}
+.dug{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;display:flex;gap:8px;z-index:5;flex-wrap:wrap;justify-content:center}
+.dug button{border:0;border-radius:22px;padding:10px 16px;font-weight:700;font-size:13px;background:rgba(255,255,255,.95);color:#14305e;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}
+.dug button.on{background:#b88b36;color:#fff}
+#bilgi{position:fixed;z-index:6;display:none;width:300px;background:#fff;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.35);padding:10px 12px;font-size:12.5px;pointer-events:none;color:#0f172a}
+#bilgi b.t{font-size:15px;color:#14305e}.nok{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px}
+.lej{position:fixed;right:12px;top:54px;z-index:5;background:rgba(255,255,255,.92);border-radius:10px;padding:8px 10px;font-size:11.5px;color:#334155;line-height:1.7}
+#canli{position:fixed;left:12px;bottom:70px;z-index:5;width:310px;max-height:46vh;overflow:auto;background:rgba(255,255,255,.95);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:10px 12px;font-size:12px;color:#0f172a}
+#canli b.b{font-size:13px;color:#14305e}.cu{padding:7px 0;border-top:1px solid #f1f5f9;cursor:pointer}.cu:hover{background:#f8fafc}.cubar{height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin-top:4px}.cubar i{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e)}
+.demo{display:inline-block;background:#fef3c7;color:#92400e;border-radius:6px;padding:1px 6px;font-size:10.5px;font-weight:700;margin-left:4px}
+#yuk{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;z-index:9;background:#0d1b36}
+</style></head><body>
+<div id="yuk">Fabrika yükleniyor…</div>
+<div id="sahne"></div>
+<div class="ust"><b>🏭 Seval Park · 3B</b><span><a href="park.html">🗺️ Harita / liste</a><a href="index.html">Kontrol merkezi</a></span></div>
+<div class="lej"><b>Makine</b><br><span class="nok" style="background:#16a34a"></span>çalışıyor <span class="nok" style="background:#dc2626;margin-left:6px"></span>duruyor / arıza<br><b>Cihaz ışığı</b><br><span class="nok" style="background:#16a34a"></span>hazır <span class="nok" style="background:#eab308;margin-left:6px"></span>yaklaşan <span class="nok" style="background:#dc2626;margin-left:6px"></span>uygunsuz</div>
+<div class="dug"><button id="bDrone">🚁 Drone turu</button><button id="bUst">⬇ Kuş bakışı</button><button id="bSif">↺ Sıfırla</button></div>
+<div id="bilgi"></div><div id="canli" style="display:none"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const SHEET_ID = "1T7L5c7nnffw8O8HFFVLnhgjr0CnLsJ_lmk-VkAaGd_A";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s ?? "").toLocaleLowerCase("tr").trim(), key = s => String(s ?? "").trim().replace(/\s+/g, "").replace(/\//g, "-").toLocaleUpperCase("tr");
+const FPLAN = {
+  bina:[[385, 340, 2072, 1405], [135, 245, 400, 676], [2082, 540, 2215, 696]], koridor:[[400, 692, 2040], [400, 1050, 2050]],
+  m:{ "AK-04":[434,372,512,390],"AK-03":[434,395,512,412],"AK-08":[434,418,512,436],"AK-01":[434,441,512,458],"AK-10":[434,471,512,489],"AK-05":[434,500,512,517],
+    "KN-03":[528,401,605,419],"KN-07":[526,432,603,450],"KN-01":[694,384,768,403],"KN-06":[694,412,761,452],"KN-02":[816,369,890,386],"KN-10":[816,390,890,408],"KN-11":[816,413,890,431],"KN-09":[816,435,890,453],
+    "KN-12":[1010,365,1080,383],"KN-05":[1010,388,1080,406],"KN-08":[1010,411,1080,429],"KN-13":[1010,434,1080,452],
+    "EK-16":[1143,373,1346,391],"EK-19":[1157,399,1366,417],"EK-11":[1135,426,1343,445],"EK-20":[1408,368,1659,386],"EK-15":[1520,395,1661,412],"EK-07":[1391,421,1659,440],"EK-25":[1281,452,1641,471],
+    "EK-12":[1235,493,1598,514],"EK-24":[1215,521,1658,544],"EK-21":[1287,562,1600,582],"EK-10":[1230,591,1600,610],"EK-03":[1288,618,1603,638],"EK-08":[736,570,988,589],
+    "RJ-08":[455,729,618,749],"ZR-08":[731,726,979,749],"ZR-11":[1119,719,1462,739],"ZR-05":[1688,707,1972,727],"ZR-06":[672,786,841,804],"ZR-09":[886,781,1057,800],"ZR-10":[1234,776,1461,796],
+    "PLANET":[1520,773,1688,792],"ZR-12":[1801,769,1978,787],"EK-04":[843,818,1064,837],"BK-07":[1238,811,1516,831],"BK-09":[1539,809,1692,828],"RJ-02":[1530,834,1692,852],"EK-14":[786,849,1065,869],
+    "RJ-04":[1296,851,1519,871],"RJ-01":[1530,856,1692,875],"RJ-07":[1243,882,1692,902],"CT-03":[1522,922,1697,941],"KT-02":[1813,919,1985,938],"EK-05":[676,930,841,948],"EK-06":[676,953,841,971],
+    "EK-02":[676,975,841,993],"EK-22":[675,998,890,1016],"EK-13":[953,940,1125,959],"EK-18":[953,965,1125,984],"EK-23":[953,992,1125,1011],"CT-02":[1522,952,1697,971],"CT-04":[1233,989,1459,1009],
+    "CT-01":[1522,985,1697,1004],"KT-03":[1828,953,1993,972],"KT-01":[1817,985,1985,1004],"BK-05":[406,954,501,972],"BK-06":[406,979,501,997],"BK-03":[406,1004,501,1022],"BK-01":[511,978,604,996],"BK-08":[511,1004,604,1022],
+    "MB-05":[793,1150,888,1168],"MB-01":[793,1188,888,1206] },
+  a:[["Sevkiyat",[175,478,352,512],/sevk/],["Stok alanı",[288,815,365,1088],/stok/],["Gerilim test",[951,461,1079,515],/gerilim test/],["Hammadde depo",[782,260,1000,300],/hammadde/],["HFFR plastik",[1739,341,1866,402],/hffr/],
+    ["PVC plastik",[1880,338,2008,400],/pvc/],["Kablo karantina",[1903,590,2028,648],/karantina/],["Kalay kaplama 2",[1535,1080,1690,1108],/kalay.*2/],["Kalay kaplama 1",[1535,1127,1690,1155],/kalay/],
+    ["Upcast 1",[1782,1081,1960,1157],/upcast/],["Upcast 2",[1787,1198,1965,1273],/upcast\s*2/],["Yazı mak.",[400,1080,474,1097],/yazı mak|yazi mak/],["İdari bölüm",[385,1285,557,1400],/idari/],
+    ["Soyunma",[557,1285,728,1400],/soyunma/],["Yemekhane",[728,1285,900,1400],/yemekhane/],["Sığınak",[1072,1330,1405,1400],/sığınak|siginak/],["Revir",[673,712,727,732],/revir/]],
+  lab:{ "LAB-ARGE":[2088, 546, 2209, 616], "LAB-CPR":[2088, 620, 2209, 690] }   // Ar-Ge binası karantina sahasının yanında: 2. kat LAB-ARGE (depo + etüv odası), alt kat LAB-CPR · diğer laboratuvarların plandaki yeri: örn. "LAB-ARGE":[x1,y1,x2,y2] – kullanıcıdan gelince eklenecek
+};
+// ===== KUŞ BAKIŞI HAT ÇİZİMİ (Seval Park ve hat sayfası ortak) – yalnız gerçekten kayıtlı cihazların istasyonları; durum noktası cihazın kendi istasyonunda =====
+const KB = {
+  tur: c => { const n = String(c.ad || "").toLocaleLowerCase("tr"); return /çap|cap ölç/.test(n) ? "cap" : /spark/.test(n) ? "spark" : /yazı makina|yazi makina|metre göster/.test(n) ? "yazi" : /metre sayac|metre disk/.test(n) ? "metre"
+    : /ısı göster|isi göster|termokupl/.test(n) ? (/dolgu/.test(n) ? "dolgu" : "ana") : "diger"; },
+  renk: c => { if(c.renk === "k") return "k"; const g = new Date(); g.setHours(0, 0, 0, 0); const y = d => d && d >= g && (d - g) / 864e5 <= 30;
+    return /kalibrasyonda/i.test(c.neden || "") || y(c.kn) || y(c.dn) ? "s" : "g"; },
+  neden: c => { const g = new Date(); g.setHours(0, 0, 0, 0); const y = d => d && d >= g && (d - g) / 864e5 <= 30;
+    return c.renk === "k" ? c.neden : /kalibrasyonda/i.test(c.neden || "") ? c.neden : y(c.kn) ? "kalibrasyon " + c.kn.toLocaleDateString("tr-TR") + " (yaklaşıyor)" : y(c.dn) ? "doğrulama " + c.dn.toLocaleDateString("tr-TR") + " (yaklaşıyor)" : (/raporuna/i.test(c.neden || "") ? "kullanıma hazır · ölçüm raporuna bakınız" : "kullanıma hazır"); },
+  RENK: { g:"#16a34a", s:"#eab308", k:"#dc2626" },
+  en: L => L.some(c => KB.renk(c) === "k") ? "k" : L.some(c => KB.renk(c) === "s") ? "s" : "g",
+  istasyonlar(ek, cc){
+    const by = t => cc.filter(c => KB.tur(c) === t), cap = by("cap"), sp = by("spark"), yz = by("yazi"), mt = by("metre"), L = [];
+    if(ek){ L.push(["verici", "Verici 1", []], ["verici", "Verici 2", []], ["ekstr", "Dolgu ekstr.", by("dolgu")]);
+      if(cap[0]) L.push(["cap", "Çap ölçer 1", [cap[0]]]);
+      L.push(["ekstr", "Ana ekstr.", by("ana")]);
+      cap.slice(1).forEach((c, i) => L.push(["cap", "Çap ölçer " + (i + 2), [c]]));
+      L.push(["havuz", "Soğutma havuzu", []]);
+      sp.forEach((c, i) => L.push(["spark", "Spark" + (sp.length > 1 ? " " + (i + 1) : ""), [c]]));
+      yz.forEach((c, i) => L.push(["yazi", "Yazı mak." + (yz.length > 1 ? " " + (i + 1) : ""), [c]]));
+      L.push(["katarpil", "Katarpil", mt], ["topla", "Toplayıcı 1", []], ["topla", "Toplayıcı 2", []]);
+    } else { L.push(["verici", "Verici", []], ["govde", "Makine", by("diger").concat(by("dolgu"), by("ana"))]);
+      cap.forEach(c => L.push(["cap", "Çap ölçer", [c]])); sp.forEach(c => L.push(["spark", "Spark", [c]])); yz.forEach(c => L.push(["yazi", "Yazı mak.", [c]])); mt.forEach(c => L.push(["metre", "Metre sayacı", [c]]));
+      L.push(["topla", "Toplayıcı", []]); }
+    const W = { verici:5, ekstr:4, cap:2.4, havuz:24, spark:3.6, yazi:2.8, katarpil:6, topla:6, govde:28, metre:2.8 }, gap = 1.6;
+    const top = L.reduce((s, x) => s + W[x[0]], 0) + gap * (L.length - 1); let t = 0;
+    return L.map(x => { const a = t / top, b = (t + W[x[0]]) / top; t += W[x[0]] + gap; return { tip:x[0], ad:x[1], cihaz:x[2], a, b }; });
+  },
+  ciz(x1, y, x2, h, L, etiketli, ek){   // akış sağdan (doğu, karantina tarafı) sola
+    const cy = y + h / 2, W = x2 - x1, px = t => x2 - t * W, f = n => +n.toFixed(1);
+    let s = `<line x1="${f(x2)}" y1="${f(cy)}" x2="${f(x1)}" y2="${f(cy)}" stroke="#334155" stroke-width="${f(Math.max(.8, h * .1))}"/>`, nok = "";
+    L.forEach(st => { const xa = px(st.b), w = f(px(st.a) - px(st.b)), tip = st.tip;
+      let r;
+      if(!etiketli && (tip === "ekstr" || tip === "yazi")) r = `<rect x="${f(xa)}" y="${f(y + h * .04)}" width="${w}" height="${f(h * .92)}" rx="1" fill="${tip === "ekstr" ? "#2563eb" : "#a78bfa"}" stroke="${tip === "ekstr" ? "#1e3a8a" : "#6d28d9"}" stroke-width=".5"/>`;
+      else r = { verici:`<rect x="${f(xa)}" y="${f(y + h * .12)}" width="${w}" height="${f(h * .76)}" rx="${f(h * .15)}" fill="#f59e0b" stroke="#b45309" stroke-width=".5"/>`,
+        topla:`<rect x="${f(xa)}" y="${f(y + h * .08)}" width="${w}" height="${f(h * .84)}" rx="${f(h * .15)}" fill="#f59e0b" stroke="#b45309" stroke-width=".5"/><rect x="${f(xa + w * .35)}" y="${f(y + h * .3)}" width="${f(w * .3)}" height="${f(h * .4)}" fill="#78350f"/>`,
+        ekstr:`<rect x="${f(xa)}" y="${f(y - h * 1.3)}" width="${w}" height="${f(h * 1.8)}" rx="1" fill="#2563eb" stroke="#1e3a8a" stroke-width=".5"/><circle cx="${f(xa + w / 2)}" cy="${f(y - h * .7)}" r="${f(Math.min(w, h) * .32)}" fill="#93c5fd" stroke="#1e3a8a" stroke-width=".4"/>`,
+        cap:`<rect x="${f(xa)}" y="${f(y + h * .15)}" width="${w}" height="${f(h * .7)}" fill="#e2e8f0" stroke="#475569" stroke-width=".5"/><line x1="${f(xa + w / 2)}" y1="${f(y + h * .15)}" x2="${f(xa + w / 2)}" y2="${f(y + h * .85)}" stroke="#ef4444" stroke-width=".7"/>`,
+        havuz:`<rect x="${f(xa)}" y="${f(y + h * .22)}" width="${w}" height="${f(h * .56)}" rx="1" fill="#93c5fd" stroke="#1e40af" stroke-width=".5" fill-opacity=".85"/>` +
+          (etiketli && ek ? `<rect x="${f(xa + w * .25)}" y="${f(y - h * 1.15)}" width="${f(w * .4)}" height="${f(h * .7)}" fill="#cbd5e1" stroke="#64748b" stroke-width=".5"/><text x="${f(xa + w * .45)}" y="${f(y - h * 1.3)}" font-size="${f(h * .38)}" text-anchor="middle" fill="#14305e" font-weight="700">Pano</text>` : ""),
+        spark:`<rect x="${f(xa)}" y="${f(y + h * .12)}" width="${w}" height="${f(h * .76)}" fill="#cbd5e1" stroke="#475569" stroke-width=".5"/><circle cx="${f(xa + w / 2)}" cy="${f(cy)}" r="${f(h * .2)}" fill="#f59e0b"/>`,
+        yazi:`<rect x="${f(xa)}" y="${f(y - h * .55)}" width="${w}" height="${f(h * .75)}" fill="#d1d5db" stroke="#6b7280" stroke-width=".5"/><rect x="${f(xa + w * .2)}" y="${f(y - h * .45)}" width="${f(w * .6)}" height="${f(h * .25)}" fill="#7c3aed"/>`,
+        katarpil:`<rect x="${f(xa)}" y="${f(y + h * .05)}" width="${w}" height="${f(h * .9)}" fill="#cbd5e1" stroke="#475569" stroke-width=".5"/><rect x="${f(xa + w * .08)}" y="${f(y + h * .2)}" width="${f(w * .84)}" height="${f(h * .18)}" fill="#1f2937"/><rect x="${f(xa + w * .08)}" y="${f(y + h * .62)}" width="${f(w * .84)}" height="${f(h * .18)}" fill="#1f2937"/>`,
+        metre:`<rect x="${f(xa)}" y="${f(y + h * .15)}" width="${w}" height="${f(h * .7)}" fill="#0f172a" stroke="#334155" stroke-width=".5"/>`,
+        govde:`<rect x="${f(xa)}" y="${f(y + h * .15)}" width="${w}" height="${f(h * .7)}" rx="1" fill="#94a3b8" stroke="#475569" stroke-width=".5"/>` }[tip];
+      s += r;
+      if(etiketli) s += `<text x="${f(xa + w / 2)}" y="${f(tip === "ekstr" || tip === "yazi" ? y - h * 1.45 : y + h * 1.75)}" font-size="${f(h * .38)}" text-anchor="middle" fill="#14305e" font-weight="700">${st.ad}</text>`;
+      if(st.cihaz.length){ const rk = KB.en(st.cihaz), ny = etiketli ? (tip === "ekstr" ? y - h * 1.3 : tip === "yazi" ? y - h * .55 : y + h * .05) : y;
+        nok += `<circle cx="${f(xa + w / 2)}" cy="${f(ny)}" r="${etiketli ? f(h * .26) : f(Math.max(2.2, h * .28))}" fill="${KB.RENK[rk]}" stroke="#fff" stroke-width="${etiketli ? 1.4 : .8}"><title>${st.cihaz.map(c => c.id + " " + c.ad + " – " + KB.neden(c)).join("\n")}</title></circle>`; } });
+    return s + nok;   // noktalar en üstte
+  }
+};
+
+async function sekme(ad){
+  const r = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(ad)}&t=${Date.now()}`), t = await r.text();
+  const j = JSON.parse(t.substring(t.indexOf("{"), t.lastIndexOf("}") + 1)); if(!j.table) return [];
+  const H = j.table.cols.map(c => norm(c.label)); return j.table.rows.map(x => { const o = {}; H.forEach((h, i) => { o[h] = x.c && x.c[i] ? x.c[i] : null; }); return o; });
+}
+const v = c => c ? String(c.v ?? "").trim() : "", tar = c => { if(!c || c.v == null) return null; const m = /Date\((\d+),(\d+),(\d+)/.exec(String(c.v)); return m ? new Date(+m[1], +m[2], +m[3]) : null; };
+const makineKodu = s => { const m = /(?:^|[^A-ZÇĞİÖŞÜ])(AK|BK|CT|CV|DK|EK|KN|KT|OR|PL|RJ|ZR)[\s\-]?0*(\d{1,2})(?!\d)/i.exec(String(s || "").toLocaleUpperCase("tr")); return m ? "UR-" + m[1].toUpperCase() + ("0" + m[2]).slice(-2) : ""; };
+
+// ---------- ölçek: plan pikseli → sahne birimi ----------
+const S = 0.06, CX = 1230, CZ = 520, X = px => (px - CX) * S, Z = py => (py - CZ) * S;
+const HOL = [385, 340, 2072, 690];
+let sahne, kamera, cizer, kontrol, isaretler = [], secili = null;
+const mat = {}, M = (renk, o = {}) => { const k = renk + JSON.stringify(o); return mat[k] || (mat[k] = new THREE.MeshStandardMaterial(Object.assign({ color:renk, roughness:.6, metalness:.15 }, o))); };
+function kutu(g, w, h, d, renk, x, y, z, o){ const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(renk, o)); m.position.set(x, y + h / 2, z); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; }
+function silindir(g, r, uz, renk, x, y, z, eksen){ const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, uz, 24), M(renk)); if(eksen === "z") m.rotation.x = Math.PI / 2; if(eksen === "x") m.rotation.z = Math.PI / 2; m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; }
+function yazi(metin, renk, boy){ const c = document.createElement("canvas"), x = c.getContext("2d"), F = "bold 38px Arial"; x.font = F; const g = Math.max(256, Math.ceil(x.measureText(metin).width) + 40);   // tuval yazı boyuna göre: uzun ad kesilmez
+  c.width = g; c.height = 64; x.font = F; x.textAlign = "center"; x.textBaseline = "middle"; x.lineWidth = 8; x.strokeStyle = "rgba(255,255,255,.95)"; x.strokeText(metin, g / 2, 34); x.fillStyle = renk || "#14305e"; x.fillText(metin, g / 2, 34);
+  const b = (boy || .9) * g / 256, s = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), depthTest:false })); s.scale.set(b, (boy || .9) / 4, 1); s.renderOrder = 10; return s; }
+function kafes(g, w, h, d, x, z){ const e = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, d)), new THREE.LineBasicMaterial({ color:0xeab308 })); e.position.set(x, h / 2, z); g.add(e);
+  const p = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color:0xeab308, transparent:true, opacity:.08, depthWrite:false })); p.position.copy(e.position); g.add(p); }
+function isik(g, renk, x, y, z){ const m = new THREE.Mesh(new THREE.SphereGeometry(.16, 16, 12), new THREE.MeshBasicMaterial({ color:renk })); m.position.set(x, y, z); g.add(m);
+  const h = new THREE.Mesh(new THREE.SphereGeometry(.3, 16, 12), new THREE.MeshBasicMaterial({ color:renk, transparent:true, opacity:.25, depthWrite:false })); h.position.copy(m.position); g.add(h); return h; }
+const IRENK = { g:0x22c55e, s:0xfacc15, k:0xef4444 };
+
+// ---------- bir hattı 3B kur (akış doğudan batıya: x2 → x1) ----------
+function hatKur(m, b, cc){
+  const g = new THREE.Group(), x1 = X(b[0]), x2 = X(b[2]), z = (Z(b[1]) + Z(b[3])) / 2, L = x2 - x1, d = Math.max(.9, (b[3] - b[1]) * S), ek = /^UR-EK/.test(m.kod);
+  const px = t => x2 - t * L, calis = m.calis, zr = calis ? 0x16a34a : 0xdc2626;
+  const taban = new THREE.Mesh(new THREE.BoxGeometry(L + .3, .05, d + .3), new THREE.MeshStandardMaterial({ color:calis ? 0xdcfce7 : 0xfee2e2, roughness:.9 })); taban.position.set((x1 + x2) / 2, .025, z); taban.receiveShadow = true; g.add(taban);
+  const kenar = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(L + .3, .06, d + .3)), new THREE.LineBasicMaterial({ color:zr })); kenar.position.copy(taban.position); g.add(kenar);
+  silindir(g, .04, L, "#334155", (x1 + x2) / 2, .55, z, "x");   // kablo
+  const isk = [], makaralar = [], akis = [];
+  for(let k = 0; k < Math.max(4, Math.floor(L / 1.4)); k++){ const a = new THREE.Mesh(new THREE.BoxGeometry(.18, .06, .06), new THREE.MeshBasicMaterial({ color:0xffffff })); a.position.set(x2 - k * 1.4, .55, z); a.visible = false; g.add(a); akis.push(a); }
+  KB.istasyonlar(ek, cc).forEach(st => { const xa = px(st.b), xb = px(st.a), w = xb - xa, xm = (xa + xb) / 2;
+    switch(st.tip){
+      case "verici": case "topla": { const r = st.tip === "topla" ? .55 : .45, gen = d * .6; kutu(g, w, .1, d * .9, "#475569", xm, .05, z);
+        const pv = new THREE.Group(); pv.position.set(xm, r + .12, z); g.add(pv);
+        [-1, 1].forEach(sy => { const fl = new THREE.Mesh(new THREE.CylinderGeometry(r, r, .05, 32), M("#f97316")); fl.rotation.x = Math.PI / 2; fl.position.z = sy * gen / 2; fl.castShadow = true; pv.add(fl);
+          for(let k = 0; k < 12; k++){ const ka = new THREE.Mesh(new THREE.BoxGeometry(r * .9, .035, .03), M("#c2410c")); const a = k / 12 * Math.PI * 2; ka.position.set(Math.cos(a) * r * .5, Math.sin(a) * r * .5, sy * (gen / 2 + .03)); ka.rotation.z = a; pv.add(ka); } });   // kaburgalar: dönüş net görünsün
+        const ck = r * .42; silindir(pv, ck, gen, "#ea580c", 0, 0, 0, "z");
+        const sar = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, gen * .94, 32), new THREE.MeshStandardMaterial({ color:st.tip === "topla" ? 0x111827 : 0xb87333, roughness:.5, metalness:st.tip === "topla" ? .1 : .7 }));
+        sar.rotation.x = Math.PI / 2; sar.visible = false; pv.add(sar);
+        makaralar.push({ pv, r, ck, sar, tip:st.tip, sira:st.ad }); kafes(g, w + .2, 1.4, d + .2, xm, z); break; }
+      case "ekstr": { const bw = Math.max(.35, w * .8); kutu(g, bw, .5, d * 1.6, "#2563eb", xm, .25, z - d * .55); kutu(g, bw * 1.1, .7, .5, "#1e3a8a", xm, .1, z - d * 1.4);
+        const h = new THREE.Mesh(new THREE.ConeGeometry(.22, .4, 16, 1, true), M("#60a5fa", { side:THREE.DoubleSide })); h.rotation.x = Math.PI; h.position.set(xm, 1.05, z - d * .7); g.add(h); kutu(g, bw * .7, .35, .4, "#0f172a", xm, .3, z); break; }
+      case "cap": kutu(g, w, .1, .4, "#64748b", xm, 0, z); kutu(g, w, .12, .6, "#e2e8f0", xm, .78, z); kutu(g, w, .55, .1, "#e2e8f0", xm, .28, z - .25); kutu(g, w, .55, .1, "#e2e8f0", xm, .28, z + .25); break;
+      case "havuz": kutu(g, w, .45, d * .7, "#93c5fd", xm, .2, z, { transparent:true, opacity:.75 }); [0, .5, 1].forEach(t => kutu(g, .08, .2, .08, "#64748b", xa + .1 + t * (w - .2), 0, z));
+        if(ek) kutu(g, w * .35, 1.6, .5, "#cbd5e1", xa + w * .45, 0, z - d * 1.15); break;
+      case "spark": kutu(g, w, .75, d * .7, "#cbd5e1", xm, .05, z); break;
+      case "yazi": kutu(g, w, 1.05, .45, "#d1d5db", xm, 0, z - d * .55); kutu(g, w * .8, .18, .02, "#7c3aed", xm, .72, z - d * .55 + .24); break;
+      case "katarpil": kutu(g, w, .9, d * .75, "#cbd5e1", xm, .05, z); kutu(g, w * .9, .08, d * .78, "#111827", xm, .62, z); kutu(g, w * .9, .08, d * .78, "#111827", xm, .38, z); break;
+      case "metre": kutu(g, w, .5, .3, "#0f172a", xm, .3, z); break;
+      default: kutu(g, w, .6, d * .7, "#94a3b8", xm, .05, z);
+    }
+    if(st.cihaz.length){ const h = isik(g, IRENK[KB.en(st.cihaz)], xm, st.tip === "ekstr" ? 1.4 : st.tip === "yazi" ? 1.35 : 1.25, st.tip === "ekstr" || st.tip === "yazi" ? z - d * .55 : z); isk.push(h); } });
+  const ad = yazi(m.kod.replace("UR-", "").replace(/(\D)(\d)/, "$1-$2"), calis ? "#15803d" : "#b91c1c", 3.4); ad.position.set(x1 - 1.9, 1.5, z); g.add(ad);
+  let canliEt = null; if(m.uretim){ canliEt = yazi("▶", "#15803d", 2.2); canliEt.position.set(x2 - Math.min(4, L * .25), 1.9 + (Math.round(z / 1.6) % 3 + 3) % 3 * 1.15, z); g.add(canliEt); }   // komşu hatlarda farklı yükseklik
+  g.userData = { m, cc, isk, x1, x2, z, makaralar, akis, canliEt }; g.traverse(o => { o.userData.hat = g; }); sahne.add(g); isaretler.push(g); return g;
+}
+// ---------- ÜRETİM (SCADA bağlanınca Uretim_Takip sekmesine otomatik yazılacak; şimdilik elle/ERP; sekme yoksa örnek veri) ----------
+const nsay = s => parseFloat(String(s ?? "").replace(/\./g, "").replace(",", ".")) || 0;
+// ERP "Atölyeden Operasyon Bildirimi" biçimi; sütun adları esnek (İş Merkezi / Makine Kodu, Mamul / Ürün Kodu, Tamamlanan Miktar / Üretilen …)
+const ORNEK = { "UR-EK03":{ fis:"1598422", kod:"152 07170 E0003150002501", ad:"YVV-R 3x150+70mm² ((MV NT)-KH-SY-GR) SİYAH/Eca", operasyon:"901025 KF/PVC SİYAH KILIF", tezgah:"EXTRUDER/TANDEM",
+    musteri:"BAŞKENT ELEKT", mps:"218115", isno:"218115000035", lot:"EK03262817/2", operator:"0793 MUSA SÖKEL", vardiya:"V3", hedef:2000, uretilen:979, fire:21, hiz:10.3, giris:"ZR08261230 (990 m)", not:"ARADA EK VAR" },
+  "UR-EK10":{ ad:"H05VV-F 3G1,5 mm²", operasyon:"KF/PVC BEYAZ KILIF", musteri:"Örnek Bayi Ltd.", mps:"MPS-2610-118", hedef:8000, uretilen:2350, hiz:40 },
+  "UR-EK21":{ ad:"N2XH 1x95 mm²", operasyon:"HFFR KIRMIZI KILIF", musteri:"Örnek Proje A.Ş.", mps:"MPS-2610-121", hedef:1500, uretilen:1320, hiz:12 },
+  "UR-EK12":{ ad:"NYM-J 3x1,5 mm²", operasyon:"KF/PVC GRİ KILIF", musteri:"Örnek Market Zinciri", mps:"MPS-2610-097", hedef:6000, uretilen:900, hiz:35 } };
+const al = (r, ...ad) => { for(const a of ad){ const x = v(r[a]); if(x) return x; } return ""; };
+function uretimOku(UR, kod, calis){
+  const r = UR.find(x => makineKodu(al(x, "makine kodu", "iş merkezi")) === kod || key(al(x, "makine kodu", "iş merkezi")) === kod);
+  let u;
+  if(r){ const g = r["güncelleme"] || r["son güncelleme"] || r["bitiş"], gz = g && /Date\(/.test(String(g.v)) ? (m => new Date(+m[1], +m[2], +m[3], +(m[4] || 0), +(m[5] || 0)))(/Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/.exec(String(g.v))) : new Date();
+    u = { fis:al(r, "fiş no"), kod:al(r, "ürün kodu", "mamul"), ad:al(r, "ürün adı", "ad"), operasyon:al(r, "operasyon"), tezgah:al(r, "tezgah adı"), plastik:al(r, "plastik"), musteri:al(r, "müşteri", "müşteri adı"),
+      mps:al(r, "mps / sipariş", "mps no", "mps"), isno:al(r, "iş no"), lot:al(r, "lot no", "lot"), operator:al(r, "operatör adı", "operatör"), vardiya:al(r, "vardiya"),
+      hedef:nsay(al(r, "hedef (m)", "t", "hedef")), uretilen:nsay(al(r, "üretilen (m)", "tamamlanan miktar", "u")), fire:nsay(al(r, "fire (m)", "k", "fire")), hiz:nsay(al(r, "hız (m/dk)", "hız")),
+      sure:nsay(al(r, "toplam (dk)", "süre (dk)")), giris:al(r, "giriş lotu", "girdi lotu"), not:al(r, "not"), durum:al(r, "durum") || "Çalışıyor", zaman:gz, demo:false };
+    if(!u.hiz && u.sure && u.uretilen) u.hiz = Math.round(u.uretilen / u.sure * 10) / 10; }
+  else if(!UR.length && ORNEK[kod]) u = Object.assign({ durum:"Çalışıyor", zaman:new Date(), demo:true, fire:0 }, ORNEK[kod]);
+  else return null;
+  if(!u.plastik){ const p = /(XLPE|HFFR|LSZH|PVC|PE)\b/i.exec(u.operasyon + " " + u.ad); u.plastik = p ? p[1].toUpperCase() + (/KILIF/i.test(u.operasyon) ? " kılıf" : /İZOLE|IZOLE/i.test(u.operasyon) ? " izolasyon" : "") : ""; }
+  u.renk = kabloRengi(u.operasyon + " " + u.ad); return u;
+}
+function kabloRengi(t){ const R = [[/SİYAH|SIYAH/i, 0x111827], [/KIRMIZI/i, 0xb91c1c], [/MAVİ|MAVI/i, 0x1d4ed8], [/GRİ|GRI/i, 0x6b7280], [/BEYAZ/i, 0xe5e7eb], [/TURUNCU/i, 0xea580c], [/YEŞİL|YESIL/i, 0x15803d], [/SARI/i, 0xeab308], [/KAHVE/i, 0x78350f]];
+  const r = R.find(x => x[0].test(t)); return r ? r[1] : 0x111827; }
+const yuruyor = m => m.uretim ? m.uretim.hiz > 0 && !/dur|bitti|bekle/i.test(m.uretim.durum) : m.calis;   // üretim verisi yoksa: makine çalışıyorsa döner
+const hizOf = m => m.uretim && m.uretim.hiz ? m.uretim.hiz : 20;
+const metraj = u => Math.min(u.hedef || Infinity, u.uretilen + (u.hiz || 0) * Math.max(0, (Date.now() - u.zaman) / 60000));
+function uretimHtml(m){ const u = m.uretim; if(!u) return m.calis ? '<br><small style="color:#64748b">Üretim bilgisi yok</small>' : "";
+  const mt = metraj(u), y = u.hedef ? Math.min(100, mt / u.hedef * 100) : 0, kal = u.hedef && u.hiz ? (u.hedef - mt) / u.hiz : 0;
+  return `<hr style="border:0;border-top:1px solid #e2e8f0;margin:6px 0"><b style="color:#14305e">🧵 ${esc(u.ad || u.kod)}</b>${u.demo ? '<span class="demo">örnek veri</span>' : ""}${u.kod ? `<br><small>${esc(u.kod)}</small>` : ""}
+    ${!m.calis && yuruyor(m) ? '<br><small style="color:#b45309">⚠ Üretim sürüyor ama açık arıza kaydı var – kapatılmamış olabilir</small>' : ""}
+    <br>Operasyon: <b>${esc(u.operasyon || "–")}</b> · Plastik: <b>${esc(u.plastik || "–")}</b><br>Müşteri: <b>${esc(u.musteri || "–")}</b>
+    <br><small>MPS ${esc(u.mps || "–")}${u.isno ? " · İş " + esc(u.isno) : ""}${u.lot ? " · Lot " + esc(u.lot) : ""}${u.fis ? " · Fiş " + esc(u.fis) : ""}</small>
+    ${u.operator || u.vardiya ? `<br><small>👷 ${esc(u.operator)}${u.vardiya ? " · " + esc(u.vardiya) : ""}</small>` : ""}${u.giris ? `<br><small>↩ Giriş lotu: <b>${esc(u.giris)}</b></small>` : ""}${u.fire ? `<br><small>Fire: ${u.fire.toLocaleString("tr-TR")} m</small>` : ""}${u.not ? `<br><small>📝 ${esc(u.not)}</small>` : ""}
+    <div class="cubar"><i style="width:${y.toFixed(1)}%"></i></div><small><b>${Math.round(mt).toLocaleString("tr-TR")}</b> / ${u.hedef.toLocaleString("tr-TR")} m · %${y.toFixed(0)} · ${u.hiz} m/dk${yuruyor(m) && kal > 0 ? ` · bitiş ≈ ${kal >= 60 ? Math.floor(kal / 60) + " sa " : ""}${Math.round(kal % 60)} dk` : ""}</small>`; }
+function canliPanel(){ const L = isaretler.filter(g => g.userData.m && g.userData.m.uretim), p = document.querySelector("#canli"); if(!L.length){ p.style.display = "none"; return; }
+  const demo = L.some(g => g.userData.m.uretim.demo);
+  p.innerHTML = `<b class="b">▶ Canlı üretim (${L.filter(g => yuruyor(g.userData.m)).length} hat)</b>${demo ? '<span class="demo">örnek veri · SCADA bağlanınca gerçek</span>' : ""}` + L.map(g => { const m = g.userData.m, u = m.uretim, mt = metraj(u), y = u.hedef ? Math.min(100, mt / u.hedef * 100) : 0;
+    return `<div class="cu" data-kod="${esc(m.kod)}"><b>${esc(m.kod.replace("UR-", ""))}</b> · ${esc(u.ad)}<span style="float:right;color:${yuruyor(m) ? "#16a34a" : "#dc2626"};font-weight:700">${yuruyor(m) ? u.hiz + " m/dk" : "duruyor"}</span>
+      <div class="cubar"><i style="width:${y.toFixed(1)}%"></i></div><small>${Math.round(mt).toLocaleString("tr-TR")} / ${u.hedef.toLocaleString("tr-TR")} m · ${esc(u.musteri)}</small></div>`; }).join("");
+  p.style.display = "block";
+  p.querySelectorAll(".cu").forEach(e => e.onclick = () => { const g = isaretler.find(x => x.userData.m && x.userData.m.kod === e.dataset.kod); if(!g) return; const { x1, x2, z } = g.userData;
+    kamera.position.set(x2 + 6, 7, z + 8); kontrol.target.set((x1 + x2) / 2, 0, z); kontrol.autoRotate = false; }); }
+async function yukle(){
+  let MK = [], C = [], A = [], K = [], UR = [];
+  try{ [MK, C, A, K, UR] = await Promise.all([sekme("Makinalar"), sekme("Cihazlar"), sekme("Arizalar").catch(() => []), sekme("Karne").catch(() => []), sekme("Uretim_Takip").catch(() => [])]); }catch(e){ document.querySelector("#yuk").textContent = "Veriler alınamadı: " + e.message; return; }
+  const g0 = new Date(); g0.setHours(0, 0, 0, 0);
+  const kal = new Set(K.filter(r => !v(r["bitiş"]) && v(r["tür"]) === "Kalibrasyon").map(r => key(v(r["kayıt no"]))));
+  const TUM = C.map(r => { const c = { id:v(r["kayıt no"]), ad:v(r["cihaz adı"]), model:v(r["model"]), yer:v(r["bulunduğu yer"]), kn:tar(r["sonraki kalibrasyon"]), dn:tar(r["sonraki doğrulama"]), ds:v(r["doğrulama sonucu"]) };
+    const n = []; if(c.kn && c.kn < g0) n.push("kalibrasyon süresi geçti"); if(c.dn && c.dn < g0) n.push("doğrulama süresi geçti"); if(/OLUMSUZ/i.test(c.ds)) n.push("doğrulama olumsuz");   // "ölçüm raporuna bakınız" hata değil: yeşil, açıklamada yazar
+    c.renk = n.length ? "k" : "g"; c.neden = n.join(" · ") || (kal.has(key(c.id)) ? "kalibrasyonda" : (/RAPORUNA/i.test(c.ds) ? "kullanıma hazır · ölçüm raporuna bakınız" : "kullanıma hazır")); return c; }).filter(c => c.id);
+  const planKod = k => k.replace(/^UR-/, "").replace(/^([A-Z]{2})(\d+)$/, (t, a, b) => a + "-" + b.padStart(2, "0"));
+  kur();
+  MK.forEach(r => { const kod = key(v(r["makine kodu"])); const b = FPLAN.m[planKod(kod)]; if(!kod || !b || b[1] < HOL[1] || b[3] > HOL[3]) return;
+    const d = norm(v(r["durum"]) || v(r["makine durumu"])), arz = A.some(a => key(v(a["makine kodu"])) === kod && !/kapan/i.test(v(a["durum"])));
+    const m = { kod, ad:v(r["makine adı"]), calis:!/dur|arıza|ariza|bakım|bakim|pasif|kapalı|kapali/.test(d) && !arz, neden:arz ? "açık arıza" : d || "çalışıyor" };
+    m.uretim = uretimOku(UR, kod, m.calis); hatKur(m, b, TUM.filter(c => makineKodu(c.yer) === kod || makineKodu(c.model) === kod)); });
+  canliPanel(); sarimGuncelle();
+  // Ar-Ge binası (karantina sahasının yanında, 2 kat)
+  const lb = FPLAN.lab["LAB-ARGE"], lc = FPLAN.lab["LAB-CPR"], ax = (X(lb[0]) + X(lb[2])) / 2, az = (Z(lb[1]) + Z(lc[3])) / 2, aw = X(lb[2]) - X(lb[0]), ad = Z(lc[3]) - Z(lb[1]);
+  kutu(sahne, aw, 1.6, ad, "#e2e8f0", ax, 0, az); kutu(sahne, aw, .08, ad, "#94a3b8", ax, 1.6, az); kutu(sahne, aw, 1.5, ad, "#f8fafc", ax, 1.68, az, { transparent:true, opacity:.85 });
+  const t1 = yazi("Ar-Ge · 2. kat etüv", "#14305e", 3.2); t1.position.set(ax, 3.6, az); sahne.add(t1); const t2 = yazi("Alt kat · CPR", "#475569", 2.6); t2.position.set(ax, 2.0, az + ad / 2 + .2); sahne.add(t2);
+  const arge = new THREE.Group(); arge.userData = { lab:"LAB-ARGE" }; const hit = new THREE.Mesh(new THREE.BoxGeometry(aw, 3.2, ad), new THREE.MeshBasicMaterial({ visible:false })); hit.position.set(ax, 1.6, az); hit.userData.hat = arge; arge.add(hit); sahne.add(arge); isaretler.push(arge);
+  document.querySelector("#yuk").style.display = "none"; dongu();
+}
+function kur(){
+  const kap = document.querySelector("#sahne");
+  sahne = new THREE.Scene(); sahne.background = new THREE.Color(0xdfe7f1); sahne.fog = new THREE.Fog(0xdfe7f1, 120, 260);
+  kamera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, .1, 1000); kamera.position.set(10, 36, 46);
+  cizer = new THREE.WebGLRenderer({ antialias:true }); cizer.setPixelRatio(Math.min(devicePixelRatio, 2)); cizer.setSize(innerWidth, innerHeight); cizer.shadowMap.enabled = true; cizer.shadowMap.type = THREE.PCFSoftShadowMap; kap.appendChild(cizer.domElement);
+  kontrol = new THREE.OrbitControls(kamera, cizer.domElement); kontrol.target.set(4, 0, 2); kontrol.enableDamping = true; kontrol.maxPolarAngle = Math.PI / 2.08; kontrol.minDistance = 6; kontrol.maxDistance = 140; kontrol.autoRotateSpeed = 0.7;
+  sahne.add(new THREE.HemisphereLight(0xffffff, 0x64748b, .6));
+  const gu = new THREE.DirectionalLight(0xffffff, .7); gu.position.set(30, 60, 25); gu.castShadow = true; gu.shadow.mapSize.set(2048, 2048); Object.assign(gu.shadow.camera, { left:-70, right:70, top:40, bottom:-40, far:160 }); sahne.add(gu);
+  // zemin, hol, yürüme yolları, alanlar
+  const z0 = new THREE.Mesh(new THREE.PlaneGeometry(260, 160), new THREE.MeshStandardMaterial({ color:0x9aa6b2, roughness:1 })); z0.rotation.x = -Math.PI / 2; z0.position.y = -.02; z0.receiveShadow = true; sahne.add(z0);
+  const hw = X(HOL[2]) - X(HOL[0]), hd = Z(HOL[3]) - Z(HOL[1]), hx = (X(HOL[0]) + X(HOL[2])) / 2, hz = (Z(HOL[1]) + Z(HOL[3])) / 2;
+  const hol = new THREE.Mesh(new THREE.PlaneGeometry(hw, hd), new THREE.MeshStandardMaterial({ color:0x8792a0, roughness:.95 })); hol.rotation.x = -Math.PI / 2; hol.position.set(hx, 0, hz); hol.receiveShadow = true; sahne.add(hol);
+  [[hw, hx, Z(HOL[1])], [hw, hx, Z(HOL[3])]].forEach(([w, x, z]) => kutu(sahne, w, 1.2, .25, "#cbd5e1", x, 0, z, { transparent:true, opacity:.4 }));
+  [[hd, X(HOL[0]), hz], [hd, X(HOL[2]), hz]].forEach(([d, x, z]) => kutu(sahne, .25, 1.2, d, "#cbd5e1", x, 0, z, { transparent:true, opacity:.4 }));
+  [Z(HOL[1]) + .9, Z(HOL[3]) - .9].forEach(z => { for(let x = X(HOL[0]) + 1; x < X(HOL[2]) - 1; x += 2.2) kutu(sahne, 1.3, .01, .12, "#eab308", x, .005, z); });
+  FPLAN.a.filter(a => a[1][1] >= HOL[1] && a[1][3] <= HOL[3] + 5).forEach(a => { const [x1, y1, x2, y2] = a[1]; kutu(sahne, X(x2) - X(x1), .5, Z(y2) - Z(y1), "#e2e8f0", (X(x1) + X(x2)) / 2, 0, (Z(y1) + Z(y2)) / 2, { transparent:true, opacity:.8 });
+    const t = yazi(a[0], "#475569", 2.6); t.position.set((X(x1) + X(x2)) / 2, 1.2, (Z(y1) + Z(y2)) / 2); sahne.add(t); });
+  addEventListener("resize", () => { kamera.aspect = innerWidth / innerHeight; kamera.updateProjectionMatrix(); cizer.setSize(innerWidth, innerHeight); });
+  // seçim
+  const ray = new THREE.Raycaster(), fare = new THREE.Vector2(), bilgi = document.querySelector("#bilgi");
+  const bul = e => { fare.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(fare, kamera); const h = ray.intersectObjects(isaretler, true).find(x => x.object.userData.hat); return h ? h.object.userData.hat : null; };
+  cizer.domElement.addEventListener("pointermove", e => { const h = bul(e);
+    if(secili && secili !== h) secili.scale.set(1, 1, 1); secili = h;
+    if(!h){ bilgi.style.display = "none"; cizer.domElement.style.cursor = "default"; return; }
+    cizer.domElement.style.cursor = "pointer"; h.scale.set(1, 1.15, 1);
+    if(h.userData.lab){ bilgi.innerHTML = `<b class="t">Ar-Ge binası</b><br>2. kat: depo + etüv odası (LAB-ARGE)<br>Alt kat: CPR laboratuvarı<br><small style="color:#64748b">Tıklayın: 3B laboratuvar</small>`; }
+    else { const { m, cc } = h.userData; bilgi.innerHTML = `<b class="t">${esc(m.kod)}</b> · ${esc(m.ad || "")}<br><b style="color:${m.calis ? "#16a34a" : "#dc2626"}">● ${m.calis ? "ÇALIŞIYOR" : esc(m.neden).toLocaleUpperCase("tr")}</b>
+      ${uretimHtml(m)}${cc.length ? "<br>" + cc.map(c => `<span class="nok" style="background:${KB.RENK[KB.renk(c)]}"></span><b>${esc(c.id)}</b> ${esc(c.ad)} – ${esc(KB.neden(c))}`).join("<br>") : "<br><small>Kayıtlı ölçüm cihazı yok</small>"}<br><small style="color:#64748b">Tıklayın: hat görünümü</small>`; }
+    bilgi.style.display = "block"; bilgi.style.left = Math.min(innerWidth - 310, e.clientX + 14) + "px"; bilgi.style.top = Math.min(innerHeight - bilgi.offsetHeight - 10, e.clientY + 14) + "px"; });
+  let bas = null; cizer.domElement.addEventListener("pointerdown", e => bas = [e.clientX, e.clientY]);
+  cizer.domElement.addEventListener("pointerup", e => { if(!bas || Math.hypot(e.clientX - bas[0], e.clientY - bas[1]) > 6) return; const h = bul(e); if(!h) return;
+    location.href = h.userData.lab ? "lab3d.html" : (/^UR-EK/.test(h.userData.m.kod) ? "hat.html?id=" : "makine.html?id=") + encodeURIComponent(h.userData.m.kod); });
+  const drone = document.querySelector("#bDrone");
+  drone.onclick = () => { kontrol.autoRotate = !kontrol.autoRotate; drone.classList.toggle("on", kontrol.autoRotate); };
+  document.querySelector("#bUst").onclick = () => { kamera.position.set(4, 110, 0.1); kontrol.target.set(4, 0, 2); };
+  document.querySelector("#bSif").onclick = () => { kamera.position.set(10, 36, 46); kontrol.target.set(4, 0, 2); kontrol.autoRotate = false; drone.classList.remove("on"); };
+}
+let TW = null;
+const yumusak = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+function git(p, t, ms){ return new Promise(ok => { TW = { a:kamera.position.clone(), b:new THREE.Vector3(...p), ta:kontrol.target.clone(), tb:new THREE.Vector3(...t), t0:performance.now(), ms, ok }; }); }
+const bekle = ms => new Promise(ok => setTimeout(ok, ms));
+let SON = performance.now(), ETK = 0;
+function sarimGuncelle(){ isaretler.forEach(g => { const { m, makaralar } = g.userData; if(!makaralar) return; const u = m.uretim, f = u && u.hedef ? Math.min(1, metraj(u) / u.hedef) : (yuruyor(m) ? .45 : 0);
+    let ilk = true; makaralar.forEach(r => { const R = (a) => r.ck + (r.r * .93 - r.ck) * a;
+      if(r.tip === "topla"){ const dol = ilk ? f : 0; ilk = false; r.sar.visible = dol > .01; r.sar.scale.set(R(dol), 1, R(dol)); if(u) r.sar.material.color.setHex(u.renk); }
+      else { const kal = yuruyor(m) || u ? Math.max(.08, 1 - f * .85) : .9; r.sar.visible = true; r.sar.scale.set(R(kal), 1, R(kal)); } }); }); }
+function etiketGuncelle(){ isaretler.forEach(g => { const { m, canliEt } = g.userData; if(!canliEt || !m.uretim) return; const u = m.uretim, y = u.hedef ? Math.min(100, metraj(u) / u.hedef * 100) : 0;
+    const t = yuruyor(m) ? `▶ ${u.hiz} m/dk · %${y.toFixed(0)}` : "■ duruyor"; if(canliEt.userData.t === t) return; canliEt.userData.t = t;
+    const yeni = yazi(t, yuruyor(m) ? "#15803d" : "#b91c1c", 2.2); canliEt.material.map.dispose(); canliEt.material.map = yeni.material.map; canliEt.scale.copy(yeni.scale); canliEt.material.needsUpdate = true; }); }
+function dongu(){ requestAnimationFrame(dongu);
+  const simdi = performance.now(), dt = Math.min(.1, (simdi - SON) / 1000); SON = simdi;
+  isaretler.forEach(g => { const { m, makaralar, akis, x1, x2 } = g.userData; if(!makaralar) return; const yur = yuruyor(m), hz = yur ? hizOf(m) : 0;
+    makaralar.forEach(r => r.pv.rotation.z += (hz / 60) / r.r * dt * 2.2);                   // görsel hız: m/dk → dönüş
+    akis.forEach(a => { a.visible = yur; if(yur){ a.position.x -= hz / 60 * dt * 1.6; if(a.position.x < x1) a.position.x += (x2 - x1); } }); });
+  if(simdi - ETK > 2000){ ETK = simdi; etiketGuncelle(); sarimGuncelle(); if(document.querySelector("#canli").style.display !== "none") canliPanel(); }
+  if(TW){ const k = Math.min(1, (performance.now() - TW.t0) / TW.ms), e = yumusak(k); kamera.position.lerpVectors(TW.a, TW.b, e); kontrol.target.lerpVectors(TW.ta, TW.tb, e); if(k >= 1){ const ok = TW.ok; TW = null; ok(); } } const t = performance.now() / 600; isaretler.forEach(g => (g.userData.isk || []).forEach((h, i) => h.material.opacity = .15 + .2 * (1 + Math.sin(t + i)) / 2)); kontrol.update(); cizer.render(sahne, kamera); }
+yukle();
+</script></body></html>
