@@ -193,13 +193,13 @@ function kur(){
     if(secili && secili !== h) secili.scale.set(1, 1, 1); secili = h;
     if(!h){ bilgi.style.display = "none"; cizer.domElement.style.cursor = "default"; return; }
     cizer.domElement.style.cursor = "pointer"; h.scale.set(1, 1.15, 1);
-    if(h.userData.lab){ bilgi.innerHTML = `<b class="t">Ar-Ge binası</b><br>2. kat: depo + etüv odası (LAB-ARGE)<br>Alt kat: CPR laboratuvarı<br><small style="color:#64748b">Tıklayın: laboratuvar</small>`; }
+    if(h.userData.lab){ bilgi.innerHTML = `<b class="t">Ar-Ge binası</b><br>2. kat: depo + etüv odası (LAB-ARGE)<br>Alt kat: CPR laboratuvarı<br><small style="color:#64748b">Tıklayın: 3B laboratuvar</small>`; }
     else { const { m, cc } = h.userData; bilgi.innerHTML = `<b class="t">${esc(m.kod)}</b> · ${esc(m.ad || "")}<br><b style="color:${m.calis ? "#16a34a" : "#dc2626"}">● ${m.calis ? "ÇALIŞIYOR" : esc(m.neden).toLocaleUpperCase("tr")}</b>
       ${cc.length ? "<br>" + cc.map(c => `<span class="nok" style="background:${KB.RENK[KB.renk(c)]}"></span><b>${esc(c.id)}</b> ${esc(c.ad)} – ${esc(KB.neden(c))}`).join("<br>") : "<br><small>Kayıtlı ölçüm cihazı yok</small>"}<br><small style="color:#64748b">Tıklayın: hat görünümü</small>`; }
     bilgi.style.display = "block"; bilgi.style.left = Math.min(innerWidth - 310, e.clientX + 14) + "px"; bilgi.style.top = Math.min(innerHeight - bilgi.offsetHeight - 10, e.clientY + 14) + "px"; });
   let bas = null; cizer.domElement.addEventListener("pointerdown", e => bas = [e.clientX, e.clientY]);
   cizer.domElement.addEventListener("pointerup", e => { if(!bas || Math.hypot(e.clientX - bas[0], e.clientY - bas[1]) > 6) return; const h = bul(e); if(!h) return;
-    location.href = h.userData.lab ? "lab.html?id=LAB-ARGE" : (/^UR-EK/.test(h.userData.m.kod) ? "hat.html?id=" : "makine.html?id=") + encodeURIComponent(h.userData.m.kod); });
+    location.href = h.userData.lab ? "lab3d.html" : (/^UR-EK/.test(h.userData.m.kod) ? "hat.html?id=" : "makine.html?id=") + encodeURIComponent(h.userData.m.kod); });
   const drone = document.querySelector("#bDrone");
   drone.onclick = () => { kontrol.autoRotate = !kontrol.autoRotate; drone.classList.toggle("on", kontrol.autoRotate); };
   document.querySelector("#bUst").onclick = () => { kamera.position.set(4, 110, 0.1); kontrol.target.set(4, 0, 2); };
