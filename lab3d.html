@@ -165,7 +165,7 @@ function kur(){
     bilgi.style.display = "block"; bilgi.style.left = Math.min(innerWidth - 310, e.clientX + 14) + "px"; bilgi.style.top = Math.min(innerHeight - bilgi.offsetHeight - 10, e.clientY + 14) + "px"; });
   let bas = null; cizer.domElement.addEventListener("pointerdown", e => bas = [e.clientX, e.clientY]);
   cizer.domElement.addEventListener("pointerup", e => { if(!bas || Math.hypot(e.clientX - bas[0], e.clientY - bas[1]) > 6) return; const h = bul(e); if(h && h.userData.c) location.href = "cihaz.html?id=" + encodeURIComponent(h.userData.c.id); });
-  document.querySelector("#bPano").onclick = () => panoramik([["Giriş", 1.6, 7.2, 30], ["Ada tezgâh önü", 7.3, 5.3, 0], ["Etüv odasının içi", 14.6, 4.0, 90]], 1.6);
+  document.querySelector("#bPano").onclick = () => panoramik([["Lab'ın tamamı", 9.5, 4.2, 10, 9], ["Etüv odası", 15.5, 4.0, 5, 5], ["Camlı oda", 5.0, 6.5, 5, 4.5], ["Ada tezgâh", 7.3, 3.8, 4.5, 4]]);
   const drone = document.querySelector("#bDrone"), git = (p, t) => { kamera.position.set(...p); kontrol.target.set(...t); };
   drone.onclick = () => { panoCik(); kontrol.autoRotate = !kontrol.autoRotate; drone.classList.toggle("on", kontrol.autoRotate); };
   document.querySelector("#bEtuv").onclick = () => panoCik() || git([12.4, 3.0, 4.0], [17.0, .5, 4.0]);
@@ -177,22 +177,21 @@ const yumusak = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 function gec(p, t, ms){ return new Promise(ok => { TW = { a:kamera.position.clone(), b:new THREE.Vector3(...p), ta:kontrol.target.clone(), tb:new THREE.Vector3(...t), t0:performance.now(), ms, ok }; }); }
 // ---------- PANORAMİK: göz hizasında bir noktadan 360° bakış (sürükle: etrafına bak; düğmeye tekrar bas: sonraki nokta) ----------
 let PANO_I = -1, PANO_ESKI = null;
-function panoramik(noktalar, goz){
+function panoramik(noktalar){   // yukarıdan 360°: seçilen noktanın çevresinde havadan döner (drone bakışı); tekrar bas: sonraki nokta
   const b = document.querySelector("#bPano"), et = document.querySelector("#panoAd");
   PANO_I++; if(PANO_I >= noktalar.length){ panoCik(); return; }
   if(!PANO_ESKI) PANO_ESKI = { min:kontrol.minDistance, max:kontrol.maxDistance, pan:kontrol.enablePan, pol:[kontrol.minPolarAngle, kontrol.maxPolarAngle], p:kamera.position.clone(), t:kontrol.target.clone(), fov:kamera.fov };
-  const [ad, x, z, yon] = noktalar[PANO_I], a = (yon || 0) * Math.PI / 180;
-  kamera.position.set(x, goz, z); kontrol.target.set(x + Math.sin(a) * .05, goz, z - Math.cos(a) * .05);
-  kontrol.minDistance = kontrol.maxDistance = .05; kontrol.enablePan = false; kontrol.minPolarAngle = Math.PI * .22; kontrol.maxPolarAngle = Math.PI * .78;
-  if(!PANO_ESKI.yazi){ PANO_ESKI.yazi = []; sahne.traverse(o => { if(o.isSprite){ PANO_ESKI.yazi.push([o, o.scale.clone()]); o.scale.multiplyScalar(.42); } }); }   // yakından iri görünmesin
-  const cp = document.querySelector("#canli"); if(cp){ PANO_ESKI.panel = cp.style.display; cp.style.visibility = "hidden"; }
-  kamera.fov = 70; kamera.updateProjectionMatrix(); kontrol.autoRotate = true; kontrol.autoRotateSpeed = -.6; kontrol.update();
+  const [ad, x, z, D, H] = noktalar[PANO_I], R = Math.hypot(D, H), aci = Math.atan2(D, H);
+  kontrol.target.set(x, .3, z); kamera.position.set(x + D * .7, H, z + D * .7);
+  kontrol.minDistance = kontrol.maxDistance = R; kontrol.enablePan = false; kontrol.minPolarAngle = Math.max(.15, aci - .3); kontrol.maxPolarAngle = Math.min(Math.PI / 2.1, aci + .3);
+  const cp = document.querySelector("#canli"); if(cp) cp.style.visibility = "hidden";
+  kontrol.autoRotate = true; kontrol.autoRotateSpeed = 1.1; kontrol.update();
   b.classList.add("on"); b.textContent = PANO_I < noktalar.length - 1 ? "👁 Sonraki nokta" : "👁 Panoramikten çık";
-  et.textContent = "👁 " + ad + " · sürükleyerek etrafınıza bakın"; et.style.display = "block";
+  et.textContent = "👁 " + ad + " · yukarıdan 360° · sürükleyerek çevirin"; et.style.display = "block";
 }
 function panoCik(){ const b = document.querySelector("#bPano"), et = document.querySelector("#panoAd"); PANO_I = -1; if(!PANO_ESKI) return;
   kontrol.minDistance = PANO_ESKI.min; kontrol.maxDistance = PANO_ESKI.max; kontrol.enablePan = PANO_ESKI.pan; [kontrol.minPolarAngle, kontrol.maxPolarAngle] = PANO_ESKI.pol;
-  (PANO_ESKI.yazi || []).forEach(([o, sc]) => o.scale.copy(sc)); const cp = document.querySelector("#canli"); if(cp) cp.style.visibility = "";
+  const cp = document.querySelector("#canli"); if(cp) cp.style.visibility = "";
   kamera.fov = PANO_ESKI.fov; kamera.updateProjectionMatrix(); kamera.position.copy(PANO_ESKI.p); kontrol.target.copy(PANO_ESKI.t); kontrol.autoRotate = false; kontrol.autoRotateSpeed = .7; PANO_ESKI = null;
   b.classList.remove("on"); b.textContent = "👁 Panoramik"; et.style.display = "none"; }
 function dongu(){ requestAnimationFrame(dongu);
