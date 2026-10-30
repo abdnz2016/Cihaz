@@ -319,6 +319,7 @@ function ac(id){
 const PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 function pdfjsYukle(){ return window.pdfjsLib ? Promise.resolve(window.pdfjsLib) : new Promise((ok, hata) => { const s = document.createElement("script"); s.src = PDFJS_URL; s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; ok(window.pdfjsLib); }; s.onerror = () => hata(new Error("PDF okuyucu kütüphanesi yüklenemedi (internet bağlantısı?)")); document.head.appendChild(s); }); }
 /* ===== Kalibrasyon sertifikası PDF okuyucu (pdf.js konum bilgisiyle tablo çıkarır) ===== */
+/* ===== Kalibrasyon sertifikası PDF okuyucu (pdf.js konum bilgisiyle tablo çıkarır) ===== */
 const SertOku = (() => {
   const UNIT = /^(?:°C|⁰C|%\s?rh|%|pH|dB|bar|ml|kg|sn|[µmkM]?(?:Ω|V|A|W|g|m|s|Pa|Hz|l))$/;
   const nrm = s => String(s).replace(/[μ]/g, "µ").replace(/−/g, "-").replace(/\s+/g, " ").trim();
@@ -358,11 +359,11 @@ const SertOku = (() => {
     if(/belirsizlik|uncertain/.test(t)) return "u";
     if(/ortalama değer|average value|^ortalama|mean/.test(t) && !/kabin|sıcaklık/.test(t)) return "olc";
     if(/hata|error|sapma|deviation/.test(t) && !/sayısı/.test(t)) return "h";
-    if(/test cihaz|ölçülen|okunan|measured|reading|gösterge/.test(t) && !/referans cihaz|reference instrument/.test(t)) return /^referans değer/.test(t) ? "ref" : "olc";
-    if(/referans|reference|girilen|input|uygulanan|nominal|set değeri/.test(t)) return "ref";
+    if(/test cihaz|ölçülen|okunan|measured|reading|gösterge|indication/.test(t) && !/referans cihaz|reference instrument/.test(t)) return /^referans değer/.test(t) ? "ref" : "olc";
+    if(/referans|reference|girilen|input|uygulanan|nominal|set değeri|test ağırlığı|test load|kalibratörün değeri/.test(t)) return "ref";
     return "";
   }
-  function unitOf(t){ const m = /(°C|⁰C|%\s?rh|µ[ΩVAm]|m[ΩVA]|k[ΩV]|M[Ω]|[ΩVA]|mm|kg|g|bar|pH|dB)(?![A-Za-zÇĞİÖŞÜçğıöşü])/.exec(nrm(t)); return m ? m[1].replace("⁰C", "°C") : ""; }
+  function unitOf(t){ const m = /(?<![A-Za-zÇĞİÖŞÜçğıöşü])(°C|⁰C|%\s?rh|µ[ΩVAm]|m[ΩVA]|k[ΩV]|M[Ω]|[ΩVA]|mm|kg|g|bar|pH|dB)(?![A-Za-zÇĞİÖŞÜçğıöşü])/.exec(nrm(t)); return m ? m[1].replace("⁰C", "°C") : ""; }
 
   // başlık parçalarından sütun kümeleri
   function buildCols(hdr){
@@ -385,19 +386,24 @@ const SertOku = (() => {
   function tablolar(pages){
     const pts = [];
     pages.forEach((rows, pi) => {
-      let hdr = [], cols = null, blok = [], etiket = "";
+      let hdr = [], cols = null, blok = [], etiket = "", hdrY = 0, bolum = "", bolumH = "";
       const kapat = () => { blok.forEach(p => { p.aralik = p.aralik || etiket; pts.push(p); }); blok = []; cols = null; hdr = []; etiket = ""; };
       rows.forEach(r => {
         const nums = r.c.filter(c => c.n), kw = r.c.filter(c => !c.n && KW.test(c.t));
         const idxRow = nums.length >= 2 && nums.every(c => Number.isInteger(c.n.v) && c.n.v >= 1 && c.n.v <= 9 && !c.n.unit);
-        const unitRow = r.c.every(c => unitOnly(c.t));
-        if(kw.length || idxRow || (unitRow && (hdr.length || !cols))){
+        const unitRow = r.c.filter(c => unitOnly(c.t)).length >= 1 && r.c.every(c => unitOnly(c.t) || (c.n && !c.n.unit && Number.isInteger(c.n.v) && c.n.v < 10)) && (r.c.filter(c => unitOnly(c.t)).length >= 2 || r.c.every(c => unitOnly(c.t)));
+        if(!kw.length && !nums.length && r.c.length === 1 && r.c[0].t.length < 40 && /test|testi|ölçüm|ölçümü|serisi/i.test(r.c[0].t)) bolum = r.c[0].t;
+        const eksen = cols && blok.length && r.c.length === 1 && /\([^)]*\)\s*$|grafi/i.test(r.c[0].t);   // grafik ekseni etiketi ("SAPMA (µm)")
+        if(eksen) return;
+        const veriKw = kw.length && cols && nums.length >= 2 && !r.c.some(c => !c.n && /referans|ölçülen|hata|belirsizlik|measured|error|uncertain/i.test(c.t) && !/değerler\s*\(/i.test(c.t));
+        if(!veriKw && (kw.length || idxRow || (unitRow && (hdr.length || !cols)))){
           if(cols && blok.length) kapat(); else if(cols) cols = null;
-          r.c.forEach(c => { if(!(c.n && !idxRow)) hdr.push({ ...c, y: r.y }); });
-          return;
+          if(hdr.length && hdrY - r.y > 45) hdr = [];   // eski, tabloyla ilgisiz metin
+          r.c.forEach(c => { if(!(c.n && !idxRow) && c.t.length < 48) hdr.push({ ...c, y: r.y }); });
+          hdrY = r.y; return;
         }
         if(nums.length >= 2){
-          if(!cols && hdr.length) cols = buildCols(hdr);
+          if(!cols && hdr.length){ cols = buildCols(hdr); bolumH = bolum; }
           if(!cols) return;
           const lab = r.c.find(c => !c.n && /^\d+(?:[.,]\d+)?\s*-\s*\d/.test(c.t)); if(lab) etiket = lab.t;
           const vals = {}, kul = new Set();
@@ -418,7 +424,7 @@ const SertOku = (() => {
                 const nom = r.c.find(c => c.n && !kul.has(c) && c.n.unit && aile(c.n.unit) === aile(olc.unit));
                 if(!nom) return; ref = { v: nom.n.v, unit: nom.n.unit, dec: nom.n.dec };
               }
-              blok.push({ ref, olc, h, u, sayfa: pi + 2, kol: cols[oi].text.slice(0, 30) });
+              blok.push({ ref, olc, h, u, sayfa: pi + 2, kol: cols[oi].text.slice(0, 30), bolum: bolumH });
             });
           });
         }
@@ -435,10 +441,10 @@ const SertOku = (() => {
       let uCx = null, uVal = null; const sets = [];
       rows.forEach((r, ri) => {
         const t = r.c.map(c => c.t).join(" ");
-        if(/Ölçüm Belirsizliği/.test(t) && !/Nem|Humi/.test(t)){ const c = r.c.find(c => /Belirsizli/.test(c.t)); if(c) uCx = c.cx; }
+        if(/Ölçüm Belirsizliği|Measure uncertainty/i.test(t) && !/Nem|Humi/.test(t)){ const c = r.c.find(c => /Belirsizli/i.test(c.t)); if(c) uCx = c.cx; }
         else if(uCx !== null && uVal === null){ const c = r.c.find(c => c.n && Math.abs(c.cx - uCx) < 40 && !c.n.unit); if(c) uVal = c.n.v; }
-        if(/Set Sıcaklığı\s*:/.test(t)){ const c = r.c.find(c => c.n); if(c) sets.push(c.n.v); }
-        if(/Set Sıcaklığı/.test(t) && /Ortalama/.test(t) && !/:/.test(t)){
+        
+        if(/Set Sıcaklığı/i.test(t) && /Ortalama/i.test(t) && !/:/.test(t)){
           for(let k = ri + 1; k < Math.min(ri + 6, rows.length); k++){
             const n = rows[k].c.filter(c => c.n && !c.n.unit);
             if(n.length >= 2){ pts.push({ ref: { v: n[0].n.v, unit: "°C", dec: n[0].n.dec }, olc: { v: n[1].n.v, unit: "°C", dec: n[1].n.dec }, h: n[2] ? { v: n[2].n.v, unit: "°C", dec: 0 } : null, u: uVal !== null ? { v: uVal, unit: "°C", dec: 1 } : null, sayfa: pi + 2, aralik: "Set " + n[0].n.v + " °C", kabin: true }); break; }
@@ -479,7 +485,7 @@ const SertOku = (() => {
         const yak = h => Math.abs(Math.abs(h) - calc) <= Math.max(tol, 0.5 * Math.abs(h));
         if(!(yak(p.h.v * (isNaN(kh) ? 1 : kh)) || yak(p.h.v))) return;
       }
-      out.push({ ref, olc, u: p.u ? p.u.v * (isNaN(ku) ? 1 : ku) : undefined, birim: u, dec, aralik: p.aralik || "", sayfa: p.sayfa, kol: p.kol || "", kabin: !!p.kabin });
+      out.push({ bolum: p.bolum || "", ref, olc, u: p.u ? p.u.v * (isNaN(ku) ? 1 : ku) : undefined, birim: u, dec, aralik: p.aralik || "", sayfa: p.sayfa, kol: p.kol || "", kabin: !!p.kabin });
     });
     const gd = {}; out.forEach(o => { const g = o.aralik + "|" + o.birim; gd[g] = Math.max(gd[g] || 0, o.dec); }); out.forEach(o => { o.dec = gd[o.aralik + "|" + o.birim]; });
     return out;
@@ -493,6 +499,7 @@ const SertOku = (() => {
     let pts = duzelt(kabin(sonuc));
     const isKabin = pts.length > 0;
     if(!isKabin) pts = duzelt(tablolar(sonuc).pts);
+    if(pts.some(p => /doğrusallık|linearity/i.test(p.bolum))) pts = pts.filter(p => /doğrusallık|linearity/i.test(p.bolum));
     if(!pts.length) uyar.push("Sertifikada ölçüm tablosu bulunamadı (taranmış/görüntü PDF olabilir ya da düzen tanınmadı). Ham metne bakın.");
     return { bilgi: bil, noktalar: pts, uyari: uyar, ham: ham.join("\n"), sayfa: pdf.numPages, kabin: isKabin };
   }
