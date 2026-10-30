@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seval Park – Seval Kablo</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef1f5;color:#0f172a}
+.top{background:linear-gradient(135deg,#0d1b36,#1d4a85);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.top b{font-size:19px}.top a{color:#fff;font-size:13px;opacity:.85}
+.wrap{max-width:1200px;margin:0 auto;padding:12px}
+.ozet{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.oz{background:#fff;border-radius:12px;padding:10px 14px;border:1px solid #e2e8f0;font-size:13px;display:flex;align-items:center;gap:8px}
+.oz b{font-size:20px}.nok{width:12px;height:12px;border-radius:50%;display:inline-block}
+.g{background:#16a34a}.s{background:#eab308}.k{background:#dc2626}.b{background:#94a3b8}
+.arac{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.arac input{flex:1;min-width:180px;padding:10px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px}
+.arac button{border:1px solid #cbd5e1;background:#fff;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer}.arac button.on{background:#14305e;color:#fff;border-color:#14305e}
+.bol{font-size:13px;font-weight:800;letter-spacing:.6px;color:#14305e;margin:16px 0 8px;text-transform:uppercase}
+.grup{background:#fff;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden}
+.gb{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:800}
+.gb small{font-weight:600;color:#64748b}.gi{padding:10px;display:flex;flex-wrap:wrap;gap:8px}
+.mak{border:2px solid #e2e8f0;border-radius:12px;padding:8px 10px;min-width:150px;flex:1 1 170px;max-width:260px;background:#fff;cursor:pointer;text-decoration:none;color:#0f172a}
+.mak.g{border-color:#86efac;background:#f0fdf4}.mak.s{border-color:#fde047;background:#fefce8}.mak.k{border-color:#fca5a5;background:#fef2f2}
+.mak .mb{display:flex;justify-content:space-between;align-items:center;gap:6px;font-weight:800;font-size:14px}.mak .ma{font-size:12px;color:#475569;margin-top:2px}
+.cips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.cip{white-space:nowrap;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 7px;border-radius:12px;text-decoration:none;color:#0f172a;border:1px solid #e2e8f0;background:#fff}
+.cip .nok{width:8px;height:8px}.cip small{font-weight:600;color:#64748b;margin-left:3px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mak .mt{font-size:11.5px;color:#0f172a;font-weight:700;margin-top:3px}
+.lks{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
+.lk{display:block;border:2px solid #e2e8f0;border-radius:10px;padding:6px 8px;text-decoration:none;color:#0f172a;background:#fff;min-width:0}
+.lk.g{border-color:#5eead4;background:#f0fdfa}.lk.s{border-color:#fde047;background:#fefce8}.lk.k{border-color:#fca5a5;background:#fef2f2}
+.lk .mb{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:12.5px}.lk .la{font-size:11px;font-weight:700;color:#334155;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lk .lm{font-size:10.5px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.t{background:#14b8a6}
+.msg{font-size:14px;color:#64748b;padding:10px}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;padding:10px}
+.ks{border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:#fcfdff}.kb{font-size:12px;font-weight:800;color:#14305e;margin-bottom:6px;letter-spacing:.3px}.kb small{color:#64748b;font-weight:700}
+.dg summary{list-style:none}.dg summary::-webkit-details-marker{display:none}
+.ft{display:inline-flex;flex-direction:column;width:104px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff;text-decoration:none;color:#0f172a;vertical-align:top}
+.ft .im{position:relative;height:68px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ft .im .sm{font-size:28px}.ft .im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ft .im .mm{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(15,23,42,.88));color:#fff;font-size:10px;font-weight:800;padding:12px 5px 3px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ft .kd{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:4px 6px 0;white-space:nowrap}.ft .ca{font-size:10px;color:#475569;font-weight:700;padding:1px 6px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.me{font-size:12px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.harita{background:linear-gradient(#f8fafc,#e2e8f0);border:1px solid #e2e8f0;border-radius:14px;overflow-x:auto;padding:6px;margin-bottom:6px}.harita svg{display:block;width:100%;min-width:760px;height:auto}#hatOn svg{min-width:0!important;width:100%!important}
+.hm,.hl{cursor:pointer;transition:transform .15s ease,filter .15s ease;transform-box:fill-box;transform-origin:50% 60%}.hl:hover,.cip.hm:hover{transform:scale(1.06);filter:drop-shadow(0 4px 6px rgba(20,48,94,.35))}
+.hz{font:800 12px Arial;fill:#14305e}.hk{font:700 9.5px Arial;fill:#334155}
+</style></head><body>
+<div class="top"><b>🏭 Seval Park</b><a href="index.html">Kontrol merkezi</a></div>
+<div class="wrap" id="app"><div class="msg">Yükleniyor…</div></div>
+<script>
+const SHEET_ID = "1T7L5c7nnffw8O8HFFVLnhgjr0CnLsJ_lmk-VkAaGd_A";
+const $ = s => document.querySelector(s), esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s ?? "").toLocaleLowerCase("tr").trim(), key = s => String(s ?? "").trim().replace(/\s+/g, "").replace(/\//g, "-").toLocaleUpperCase("tr");
+const GRUP = { AK:"Aktarma", BK:"Büküm", CT:"Tel Çekme", CV:"Orta Gerilim", DK:"Döküm", EK:"Ekstruder", KN:"Kangallama", KT:"Katot", OR:"Örgü", PL:"Plastik", RJ:"Rijit", ZR:"Zırhlama" };
+async function sekme(ad){
+  const r = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(ad)}&t=${Date.now()}`), t = await r.text();
+  const j = JSON.parse(t.substring(t.indexOf("{"), t.lastIndexOf("}") + 1)); if(!j.table) return [];
+  const H = j.table.cols.map(c => norm(c.label));
+  return j.table.rows.map(x => { const o = {}; H.forEach((h, i) => { o[h] = x.c && x.c[i] ? x.c[i] : null; }); return o; });
+}
+const v = c => c ? String(c.v ?? "").trim() : "", tar = c => { if(!c || c.v == null) return null; const m = /Date\((\d+),(\d+),(\d+)/.exec(String(c.v)); return m ? new Date(+m[1], +m[2], +m[3]) : null; };
+// makine kodu: yer / model içindeki EK-03, KN-5, AK03… → UR-EK03
+const makineKodu = s => { const m = /(?:^|[^A-ZÇĞİÖŞÜ])(AK|BK|CT|CV|DK|EK|KN|KT|OR|PL|RJ|ZR)[\s\-]?0*(\d{1,2})(?!\d)/i.exec(String(s || "").toLocaleUpperCase("tr")); return m ? "UR-" + m[1].toUpperCase() + ("0" + m[2]).slice(-2) : ""; };
+let MAK = [], CIH = [], FILTRE = "harita";
+// ölçüm kategorileri (cihaz adına göre) – [ad, desen, simge]
+const KATEGORI = [
+  ["Sıcaklık", /etüv|etuv|termometre|sıcaklık|data logger|ısı kayıt|termokupl|dondurucu|su banyosu|kül fırını|termoreakt|ısıl|soğutma|isi kayit/, "🌡️"],
+  ["Boyut / uzunluk", /kumpas|mikrometre|mikroskop|profil|çap|şerit|çelik metre|metre sayac|metre disk|yazı makina|komparatör|mastar|cam skala|kalınlık/, "📏"],
+  ["Direnç", /resistomat|sehpa|pt-?\s?100|standart diren/, "Ω"],
+  ["Elektrik / gerilim", /yüksek gerilim|orta gerilim|spark|prob|multimetre|megaohm|miliohm|resistomat|sehpa|direnç|oto trafo|akım|wattmetre|shortester|kısa devre/, "⚡"],
+  ["Kütle", /terazi|kantar|tartı/, "⚖️"],
+  ["Basınç / akış", /manometre|flowmetre|debimetre|anemometre|basınç|hava akış/, "💨"],
+  ["Mekanik test", /çekme|kopma|bükülgenlik|aşındırma|soğukta|sertlik|dinamometre|kronometre|darbe|uzama/, "🔩"],
+  ["Yangın / CPR", /alev|en 50399|en 60332|en 50200|en 61034|duman|cpr|yanma|ekipman doğ/, "🔥"],
+  ["Kimya / çevre", /ph|iletkenlik|ses seviye|gürültü|nem|gaz analiz|mezur|balonjoje|su tayin/, "🧪"]
+];
+const kategori = (ad, model) => { const n = norm(ad + " " + (model || "")), once = KATEGORI.find(k => k[0] === "Direnç" && k[1].test(n)); if(once) return "Direnç"; const x = KATEGORI.find(k => k[1].test(n)); return x ? x[0] : "Diğer"; };   // Direnç (resistomat, sehpa, Pt100) önce
+async function yukle(){
+  let C, M, A, E, K;
+  try{ [C, M, A, E, K] = await Promise.all([sekme("Cihazlar"), sekme("Makinalar").catch(() => []), sekme("Arizalar").catch(() => []), sekme("Etuv_Testleri").catch(() => []), sekme("Karne").catch(() => [])]); }
+  catch(e){ $("#app").innerHTML = `<div class="msg">Veriler alınamadı: ${esc(e.message)}</div>`; return; }
+  const bugun = new Date(); bugun.setHours(0, 0, 0, 0);
+  const acikAriza = {}; A.forEach(r => { if(v(r["durum"]) && v(r["durum"]) !== "Kapalı") { const k = key(v(r["makine kodu"])); (acikAriza[k] = acikAriza[k] || []).push(v(r["arıza no"])); } });
+  // karne: bitişi girilmemiş arıza / kalibrasyon olayları
+  const tz = c => { if(!c || c.v == null) return null; const m = /Date\((\d+),(\d+),(\d+)/.exec(String(c.v)); return m ? new Date(+m[1], +m[2], +m[3]) : null; };
+  const kArz = {}, kKal = {};
+  K.forEach(r => { if(v(r["bitiş"])) return; const id = key(v(r["kayıt no"])), t = v(r["tür"]), b = tz(r["başlangıç"]) || tz(r["tarih"]);
+    if(/^(Arıza|Tamir)$/.test(t)) kArz[id] = b || true; else if(t === "Kalibrasyon") kKal[id] = b || true; });
+  const gunSay = d => d instanceof Date ? Math.max(0, Math.floor((Date.now() - d) / 864e5)) + " gün" : "";
+  const etuvTest = {}; E.forEach(r => { if(v(r["durum"]) === "Devam") etuvTest[key(v(r["kayıt no"]))] = v(r["test no"]) + " · " + v(r["test tipi"]) + " · " + v(r["test sıcaklığı (°c)"]) + " °C"; });
+  MAK = M.map(r => ({ kod:v(r["makine kodu"]), ad:v(r["makine adı"]), hat:v(r["hat / bölüm"]), yer:v(r["bulunduğu yer"]), durum:v(r["durum"]),
+    uretici:v(r["üretici / otomasyon"]), volt:v(r["besleme gerilimi (v)"]), guc:v(r["kurulu güç (kw)"]), hava:v(r["hava basıncı (bar)"]) })).filter(m => m.kod).map(m => {
+    const ar = acikAriza[key(m.kod)] || [];
+    m.renk = ar.length ? "k" : /duruyor|pasif|bakım|kapalı/i.test(m.durum) ? "s" : "g";
+    m.neden = ar.length ? ar.length + " açık arıza (" + ar.join(", ") + ")" : m.renk === "s" ? "Durum: " + m.durum : "Çalışıyor";
+    return m; });
+  CIH = C.map(r => ({ id:v(r["kayıt no"]), ad:v(r["cihaz adı"]), yer:v(r["bulunduğu yer"]), model:v(r["model"]), marka:v(r["marka"]), foto:v(r["fotoğraf url"]), durum:v(r["cihaz durumu"]), kn:tar(r["sonraki kalibrasyon"]), dn:tar(r["sonraki doğrulama"]), ds:v(r["doğrulama sonucu"]) })).filter(c => c.id).map(c => {
+    const neden = [];
+    if(/arız|kullanım dışı|hurda|uygun değil|olumsuz/i.test(c.durum)) neden.push("Durum: " + c.durum);
+    if(c.kn && c.kn < bugun) neden.push("kalibrasyon süresi geçti");
+    if(c.dn && c.dn < bugun) neden.push("doğrulama süresi geçti");
+    if(/OLUMSUZ/i.test(c.ds)) neden.push("doğrulama olumsuz");   // "ölçüm raporuna bakınız" hata değil
+    if(kArz[key(c.id)]) neden.unshift("ARIZADA" + (gunSay(kArz[key(c.id)]) ? " (" + gunSay(kArz[key(c.id)]) + ")" : ""));
+    const etuv = /etüv|etuv/i.test(c.ad), test = etuvTest[key(c.id)], kal = kKal[key(c.id)];
+    // öncelik: arızada (kırmızı) → kalibrasyonda (sarı; süre/uygunluk nedeni zaten bu) → diğer kırmızı nedenler → etüv durumu → hazır
+    const kalY = kal ? "Kalibrasyonda" + (gunSay(kal) ? " (" + gunSay(kal) + ")" : "") : "";
+    c.renk = kArz[key(c.id)] ? "k" : kal ? "s" : neden.length ? "k" : etuv ? (test ? "g" : "s") : "g";
+    c.neden = kal && !kArz[key(c.id)] ? [kalY].concat(neden).join(" · ") : neden.length ? (kal ? [neden[0], kalY].concat(neden.slice(1)) : neden).join(" · ") : etuv ? (test ? "Test sürüyor: " + test : "Etüv boş / duruyor") : (/RAPORUNA/i.test(c.ds) ? "Kullanıma hazır · ölçüm raporuna bakınız" : "Kullanıma hazır");
+    c.mk = makineKodu(c.yer) || (/ısı göster|isi göster/.test(norm(c.ad)) ? makineKodu(c.model) : "");
+    return c; });
+  ciz();
+}
+const mm = c => [c.marka, /^(AK|BK|CT|CV|DK|EK|KN|KT|OR|PL|RJ|ZR)[\s\-]?\d{1,2}$/i.test(c.model || "") ? "" : c.model].filter(x => x && x !== "-").join(" ");   // modelde makine kodu (EK-03) yazıyorsa gösterilmez
+// makine kartında cihaz etiketi: simge + kod (ad, marka, durum: üzerine gelince / dokununca)
+const SIMGE = [[/spark/, "⚡"], [/çap|cap ölç/, "📏"], [/metre sayac|metre disk/, "🔢"], [/yazı makina|yazi makina/, "🖋️"], [/yüksek gerilim|prob/, "🔌"], [/ısı göster|isi göster|termometre|sıcaklık/, "🌡️"], [/terazi|kantar/, "⚖️"], [/manometre|basınç/, "💨"]];
+const simge = ad => { const n = norm(ad); const x = SIMGE.find(s => s[0].test(n)); return x ? x[1] : "🔹"; };
+// makine kartında cihaz: fotoğraf (yoksa tür simgesi) + üzerinde marka/model + altında durum ve kod
+const fotoId = u => (String(u || "").match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=|thumbnail\?(?:[^#]*&)?id=)([\w-]{10,})/) || [])[1] || "";
+const fotoSrc = u => { const id = fotoId(u); return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w240` : (/^https?:\/\//.test(u || "") ? u : ""); };
+// fotoğrafı olmayan cihaz için özgün çizim (sparktester, çap ölçer); diğerlerinde tür simgesi
+const CIZIM = {
+  spark: '<svg viewBox="0 0 64 48" width="62" height="46"><rect x="7" y="9" width="50" height="31" rx="4" fill="#cbd5e1" stroke="#475569" stroke-width="2"/><rect x="40" y="13" width="13" height="6" rx="1" fill="#22c55e"/><circle cx="25" cy="25" r="9" fill="#fff" stroke="#475569" stroke-width="2"/><line x1="0" y1="25" x2="64" y2="25" stroke="#0f172a" stroke-width="3.5"/><path d="M24 15l-4 8h4l-2 8 7-10h-4l3-6z" fill="#f59e0b" stroke="#b45309" stroke-width=".6"/></svg>',
+  cap: '<svg viewBox="0 0 64 48" width="62" height="46"><path d="M12 7h40v11H41v12h11v11H12V30h11V18H12z" fill="#e2e8f0" stroke="#475569" stroke-width="2"/><line x1="0" y1="24" x2="64" y2="24" stroke="#0f172a" stroke-width="4"/><line x1="23" y1="18" x2="23" y2="30" stroke="#ef4444" stroke-width="1.6"/><line x1="41" y1="18" x2="41" y2="30" stroke="#ef4444" stroke-width="1.6"/><rect x="16" y="9" width="11" height="5" rx="1" fill="#38bdf8"/></svg>' };
+const cizim = ad => { const n = norm(ad); return /spark/.test(n) ? CIZIM.spark : /çap|cap ölç/.test(n) ? CIZIM.cap : `<span class="sm">${simge(ad)}</span>`; };
+const cip = c => { const f = fotoSrc(c.foto), y = mm(c);
+  return `<a class="ft" href="cihaz.html?id=${encodeURIComponent(c.id)}" title="${esc(c.ad + (y ? " · " + y : "") + " – " + c.neden)}"><span class="im">${cizim(c.ad)}${f ? `<img src="${esc(f)}" alt="" loading="lazy" onerror="this.remove()">` : ""}${y ? `<span class="mm">${esc(y)}</span>` : ""}</span><span class="kd"><span class="nok ${c.renk}"></span>${esc(c.id)}</span><span class="ca">${esc(c.ad)}</span></a>`; };
+const isiGosterge = c => /ısı göster|isi göster/.test(norm(c.ad));
+const isiOzet = L => { if(!L.length) return ""; const r = L.some(c => c.renk === "k") ? "k" : L.some(c => c.renk === "s") ? "s" : "g";
+  return `<a class="cip" href="cihaz.html?id=${encodeURIComponent(L[0].id)}" title="${esc("Isı göstergeleri (doğrulamaları ayrıca takip edilir):\n" + L.map(c => c.id + " " + c.ad + " – " + c.neden).join("\n"))}"><span class="nok ${r}"></span>🌡️ ${L.length}</a>`; };
+const makBilgi = m => { const e = [m.volt ? "⚡ " + m.volt.replace(/\s*V$/i, "") + " V" : "", m.guc ? m.guc.replace(".", ",") + " kW" : "", m.hava ? "💨 " + m.hava.replace(".", ",") + " bar" : ""].filter(Boolean).join(" · ");
+  return (m.uretici ? `<div class="mt">${esc(m.uretici)}</div>` : "") + (e ? `<div class="me">${esc(e)}</div>` : ""); };
+// laboratuvar cihazı: makine kartı gibi dolgulu küçük kart (hazır = turkuaz)
+const labKart = c => `<a class="lk ${c.renk}" href="cihaz.html?id=${encodeURIComponent(c.id)}" title="${esc(c.ad + " · " + (c.yer || "") + " – " + c.neden)}"><div class="mb"><span>${esc(c.id)}</span><span class="nok ${c.renk === "g" ? "t" : c.renk}"></span></div><div class="la">${esc(c.ad)}</div>${mm(c) ? `<div class="lm">${esc(mm(c))}</div>` : ""}</a>`;
+function ciz(){
+  const q = norm($("#ara") ? $("#ara").value : ""), uy = s => !q || norm(s).includes(q);
+  const mkSet = new Set(MAK.map(m => key(m.kod))), makCih = {}, kalan = [];
+  CIH.forEach(c => { if(c.mk && mkSet.has(key(c.mk))) (makCih[key(c.mk)] = makCih[key(c.mk)] || []).push(c); else kalan.push(c); });
+  const say = L => ({ g:L.filter(x => x.renk === "g").length, s:L.filter(x => x.renk === "s").length, k:L.filter(x => x.renk === "k").length });
+  const sm = say(MAK), sc = say(CIH);
+  let h = `<div class="ozet"><div class="oz"><span class="nok g"></span><b>${sm.g + sc.g}</b> çalışıyor / hazır</div><div class="oz"><span class="nok s"></span><b>${sm.s + sc.s}</b> duruyor</div><div class="oz"><span class="nok k"></span><b>${sm.k + sc.k}</b> arıza / uygunsuz</div><div class="oz">⚙️ <b>${MAK.length}</b> makine · 🔬 <b>${CIH.length}</b> cihaz</div></div>
+    <div class="arac"><input id="ara" placeholder="Ara: UR-EK03, KK-23, etüv, LAB-ARGE…" value="${esc($("#ara") ? $("#ara").value : "")}">
+    ${[["harita","🗺️ Harita"],["tum","Liste"],["mak","Üretim hatları"],["lab","Laboratuvarlar"],["kir","Yalnız kırmızı"]].map(([k, a]) => `<button data-f="${k}" class="${FILTRE === k ? "on" : ""}">${a}</button>`).join("")}</div>`;
+  if(FILTRE === "harita"){ h += harita(makCih, kalan); $("#app").innerHTML = h; baglaHarita(); $("#ara").oninput = () => { FILTRE = "tum"; ciz(); }; document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { FILTRE = b.dataset.f; ciz(); }); return; }
+  if(FILTRE !== "lab"){
+    const hatlar = {}; MAK.forEach(m => { (hatlar[m.hat || "Diğer"] = hatlar[m.hat || "Diğer"] || []).push(m); });
+    const hBlok = Object.keys(hatlar).sort((a, b) => a.localeCompare(b, "tr")).map(hat => {
+      const L = hatlar[hat].filter(m => (FILTRE !== "kir" || m.renk === "k" || (makCih[key(m.kod)] || []).some(c => c.renk === "k")) && (uy(m.kod + " " + m.ad + " " + m.yer) || (makCih[key(m.kod)] || []).some(c => uy(c.id + " " + c.ad)))); if(!L.length) return "";
+      const s = say(L);
+      return `<div class="grup"><div class="gb"><span>${esc(hat)}</span><small>🟢 ${s.g} · 🟡 ${s.s} · 🔴 ${s.k}</small></div><div class="gi">${L.map(m => { const cc = makCih[key(m.kod)] || [];
+        return `<div class="mak ${m.renk}" onclick="location.href='makine.html?id=${encodeURIComponent(m.kod)}'" title="${esc(m.neden)}"><div class="mb"><span>${esc(m.kod)}</span><span class="nok ${m.renk}"></span></div><div class="ma">${esc(m.neden)}</div>${makBilgi(m)}
+          ${cc.filter(c => !isiGosterge(c)).length ? `<div class="cips" onclick="event.stopPropagation()">${cc.filter(c => !isiGosterge(c)).map(cip).join("")}</div>` : ""}</div>`; }).join("")}</div></div>`; }).join("");
+    h += `<div class="bol">⚙️ Üretim hatları</div>` + (hBlok || `<div class="msg">${MAK.length ? "Filtreye uyan makine yok." : "Makinalar sekmesi boş – Düzenleme → Makine listesini yükle."}</div>`);
+  }
+  if(FILTRE !== "mak"){   // laboratuvar → içinde kategori sütunları → kodlar
+    const labAd = y => { const t = String(y || "").toLocaleUpperCase("tr").split(/[-\s]+/).filter(Boolean); return t[0] === "LAB" ? (t[1] ? "LAB-" + t[1] : "LAB") : ""; };
+    const labs = {}, diger = {};
+    kalan.forEach(c => { const l = labAd(c.yer); if(l) (labs[l] = labs[l] || []).push(c); else (diger[c.yer || "Yeri belirtilmemiş"] = diger[c.yer || "Yeri belirtilmemiş"] || []).push(c); });
+    const kutu = (ad, L, ikon) => {
+      L = L.filter(c => (FILTRE !== "kir" || c.renk === "k") && uy(c.id + " " + c.ad + " " + c.yer)); if(!L.length) return ""; const s = say(L), kat = {};
+      L.forEach(c => { const k = kategori(c.ad, c.model); (kat[k] = kat[k] || []).push(c); });
+      const sut = KATEGORI.map(x => x[0]).concat(["Diğer"]).filter(k => kat[k]).map(k => `<div class="ks"><div class="kb">${(KATEGORI.find(x => x[0] === k) || [0, 0, "🔹"])[2]} ${esc(k)} <small>${kat[k].length}</small></div>
+        <div class="lks">${kat[k].sort((a, b) => a.id.localeCompare(b.id, "tr", { numeric:true })).map(labKart).join("")}</div></div>`).join("");
+      return `<div class="grup"><div class="gb"><span>${ikon} ${esc(ad)}</span><small>${L.length} cihaz · <span class="nok t" style="width:9px;height:9px"></span> ${s.g} · 🟡 ${s.s} · 🔴 ${s.k}</small></div><div class="kgrid">${sut}</div></div>`; };
+    const lBlok = Object.keys(labs).sort((a, b) => a.localeCompare(b, "tr", { numeric:true })).map(l => kutu(l, labs[l], "🔬")).join("");
+    h += `<div class="bol">🔬 Laboratuvarlar</div>` + (lBlok || `<div class="msg">Filtreye uyan laboratuvar cihazı yok.</div>`);
+    const dBlok = Object.keys(diger).sort((a, b) => a.localeCompare(b, "tr")).map(y => kutu(y, diger[y], "📍")).join("");
+    if(dBlok) h += `<details class="dg" ${q || FILTRE === "kir" ? "open" : ""}><summary class="bol" style="cursor:pointer">📍 Diğer yerler (stok, sevkiyat, üretim alanı…)</summary>${dBlok}</details>`;
+  }
+  h += `<div class="msg">🗺️ Fabrika yerleşim haritası: kat planı görseli gelince makineler ve laboratuvarlar harita üzerinde aynı renklerle gösterilecek.</div>`;
+  $("#app").innerHTML = h;
+  $("#ara").oninput = () => { const p = $("#ara").selectionStart; ciz(); $("#ara").focus(); $("#ara").setSelectionRange(p, p); };
+  document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { FILTRE = b.dataset.f; ciz(); });
+}
+
+// ===================== FABRİKA HARİTASI (3B eğik görünüm) =====================
+const HS = 15, HDX = -0.22, HDY = 0.5;   // izdüşüm: derinlik (y) ekranda aşağı-sola
+const HP = (x, y, z) => [60 + (x + y * HDX + 30) * HS, 40 + (y * HDY - z) * HS];
+const hpt = L => L.map(q => q.map(n => n.toFixed(1)).join(",")).join(" ");
+const hton = (h, k) => { const n = parseInt(h.slice(1), 16), f = c => Math.max(0, Math.min(255, Math.round(c * k))); return "#" + [f(n >> 16), f(n >> 8 & 255), f(n & 255)].map(c => c.toString(16).padStart(2, "0")).join(""); };
+function hkutu(x, y, z, w, d, h, r, op){ const st = `stroke="${hton(r, .6)}" stroke-width=".6"${op ? ` fill-opacity="${op}"` : ""}`;
+  return `<polygon points="${hpt([HP(x, y + d, z), HP(x + w, y + d, z), HP(x + w, y + d, z + h), HP(x, y + d, z + h)])}" fill="${hton(r, .82)}" ${st}/>` +
+         `<polygon points="${hpt([HP(x, y, z), HP(x, y + d, z), HP(x, y + d, z + h), HP(x, y, z + h)])}" fill="${hton(r, .68)}" ${st}/>` +
+         `<polygon points="${hpt([HP(x, y, z + h), HP(x + w, y, z + h), HP(x + w, y + d, z + h), HP(x, y + d, z + h)])}" fill="${hton(r, 1.12)}" ${st}/>`; }
+const HRENK = { g:"#16a34a", s:"#eab308", k:"#dc2626" };
+const FPLAN = {
+  bina:[[385, 340, 2072, 1405], [135, 245, 400, 676], [2082, 540, 2215, 696]], koridor:[[400, 692, 2040], [400, 1050, 2050]],
+  m:{ "AK-04":[434,372,512,390],"AK-03":[434,395,512,412],"AK-08":[434,418,512,436],"AK-01":[434,441,512,458],"AK-10":[434,471,512,489],"AK-05":[434,500,512,517],
+    "KN-03":[528,401,605,419],"KN-07":[526,432,603,450],"KN-01":[694,384,768,403],"KN-06":[694,412,761,452],"KN-02":[816,369,890,386],"KN-10":[816,390,890,408],"KN-11":[816,413,890,431],"KN-09":[816,435,890,453],
+    "KN-12":[1010,365,1080,383],"KN-05":[1010,388,1080,406],"KN-08":[1010,411,1080,429],"KN-13":[1010,434,1080,452],
+    "EK-16":[1143,373,1346,391],"EK-19":[1157,399,1366,417],"EK-11":[1135,426,1343,445],"EK-20":[1408,368,1659,386],"EK-15":[1520,395,1661,412],"EK-07":[1391,421,1659,440],"EK-25":[1281,452,1641,471],
+    "EK-12":[1235,493,1598,514],"EK-24":[1215,521,1658,544],"EK-21":[1287,562,1600,582],"EK-10":[1230,591,1600,610],"EK-03":[1288,618,1603,638],"EK-08":[736,570,988,589],
+    "RJ-08":[455,729,618,749],"ZR-08":[731,726,979,749],"ZR-11":[1119,719,1462,739],"ZR-05":[1688,707,1972,727],"ZR-06":[672,786,841,804],"ZR-09":[886,781,1057,800],"ZR-10":[1234,776,1461,796],
+    "PLANET":[1520,773,1688,792],"ZR-12":[1801,769,1978,787],"EK-04":[843,818,1064,837],"BK-07":[1238,811,1516,831],"BK-09":[1539,809,1692,828],"RJ-02":[1530,834,1692,852],"EK-14":[786,849,1065,869],
+    "RJ-04":[1296,851,1519,871],"RJ-01":[1530,856,1692,875],"RJ-07":[1243,882,1692,902],"CT-03":[1522,922,1697,941],"KT-02":[1813,919,1985,938],"EK-05":[676,930,841,948],"EK-06":[676,953,841,971],
+    "EK-02":[676,975,841,993],"EK-22":[675,998,890,1016],"EK-13":[953,940,1125,959],"EK-18":[953,965,1125,984],"EK-23":[953,992,1125,1011],"CT-02":[1522,952,1697,971],"CT-04":[1233,989,1459,1009],
+    "CT-01":[1522,985,1697,1004],"KT-03":[1828,953,1993,972],"KT-01":[1817,985,1985,1004],"BK-05":[406,954,501,972],"BK-06":[406,979,501,997],"BK-03":[406,1004,501,1022],"BK-01":[511,978,604,996],"BK-08":[511,1004,604,1022],
+    "MB-05":[793,1150,888,1168],"MB-01":[793,1188,888,1206] },
+  a:[["Sevkiyat",[175,478,352,512],/sevk/],["Stok alanı",[288,815,365,1088],/stok/],["Gerilim test",[951,461,1079,515],/gerilim test/],["Hammadde depo",[782,260,1000,300],/hammadde/],["HFFR plastik",[1739,341,1866,402],/hffr/],
+    ["PVC plastik",[1880,338,2008,400],/pvc/],["Kablo karantina",[1903,590,2028,648],/karantina/],["Kalay kaplama 2",[1535,1080,1690,1108],/kalay.*2/],["Kalay kaplama 1",[1535,1127,1690,1155],/kalay/],
+    ["Upcast 1",[1782,1081,1960,1157],/upcast/],["Upcast 2",[1787,1198,1965,1273],/upcast\s*2/],["Yazı mak.",[400,1080,474,1097],/yazı mak|yazi mak/],["İdari bölüm",[385,1285,557,1400],/idari/],
+    ["Soyunma",[557,1285,728,1400],/soyunma/],["Yemekhane",[728,1285,900,1400],/yemekhane/],["Sığınak",[1072,1330,1405,1400],/sığınak|siginak/],["Revir",[673,712,727,732],/revir/]],
+  lab:{ "LAB-ARGE":[2088, 546, 2209, 616], "LAB-CPR":[2088, 620, 2209, 690] }   // Ar-Ge binası karantina sahasının yanında: 2. kat LAB-ARGE (depo + etüv odası), alt kat LAB-CPR · diğer laboratuvarların plandaki yeri: örn. "LAB-ARGE":[x1,y1,x2,y2] – kullanıcıdan gelince eklenecek
+};
+// KUZEY HOL kuş bakışı: makine rengi yalnız makinenin durumu (çalışıyor / duruyor-arıza); cihazlarda yalnız sorun noktaları
+// EK hatları yukarıdan hat şeklinde çizilir; akış karantina sahası (doğu) tarafından başlar
+// ===== KUŞ BAKIŞI HAT ÇİZİMİ (Seval Park ve hat sayfası ortak) – yalnız gerçekten kayıtlı cihazların istasyonları; durum noktası cihazın kendi istasyonunda =====
+const KB = {
+  HATEK: {"UR-EK08": ["Boşaltıcı 1600", "Akküm.-70 (kullanılmıyor)", "Boşaltıcı 1250", "UMAC70", "Spark", "UME70", "UMK20", "Pudralama", "UME60", "UME120", "UMK50", "Lazer", "Havuz", "Mürekkepli Markalama", "Kapstan", "Boz. Akküm.-70", "Boz. Toplayıcı 1600", "Boz. Toplayıcı 1600"], "UR-EK21": ["Boz. Boşaltıcı Kule Tip", "Katerpil", "UME120", "Ros 120 Ekstruder", "UME60", "UMCK40-2SD", "Lazer", "Havuz", "Mürekkepli Markalama", "Katerpil", "Boz. Boşaltıcı Kule Tip"], "UR-EK10": ["Boşaltıcı 3000", "Boşaltıcı 3000", "HKY", "Boz. Katerpil", "Pudralama", "UME120", "UMK95", "Lazer", "UME60", "Mail. 120 Ekstruder", "UMK130", "Lazer", "Havuz", "Spark", "Lazer Markalama", "Boz. Katerpil", "Toplayıcı", "Toplayıcı"], "UR-EK03": ["Boşaltıcı 3000", "Boşaltıcı 3000", "HKY", "Boşaltıcı 1600", "UMKY", "Fre. Katerpillar 1200", "UME120", "UMK130", "Lazer", "Ara Havuz", "Pudralama", "Mail. 120 Ekstruder", "UME60", "Mail120 Kalıp", "Lazer", "Havuz", "Metrejlama", "Merkezleme", "Fre. Katerpil 1200", "Toplayıcı 3000", "Toplayıcı 3000"], "UR-EK25": ["Boşaltıcı 2000", "Boşaltıcı 2000", "Katerpil (kullanılmıyor)", "UME120", "UME60", "UMK50-1SD2S", "Lazer", "Havuz", "Mürekkepli Markalama", "Mini Kapstan (kullanılmıyor)", "Sikora Spark", "Katerpil", "SKY", "Toplayıcı 2000", "Toplayıcı 2000"], "UR-EK12": ["Boz. Boşal. 1250", "Boz. Akküm.-70", "UME60", "UME120", "UME120", "UMCT40", "Lazer", "Havuz", "Katerpil", "Lazer Marka", "Boz. Akküm.-70", "Toplayıcı 1600", "Toplayıcı 1600"], "UR-EK24": ["UMDFP800", "UMTD", "UMKF", "UMTD", "UME60", "UME80", "UMK6", "Sikora Lazer 2010 XY", "MCT600 Havuz", "ECOCONTROL Soğut Çap Lazer", "Sikora Spark", "UMAC70", "Seyyar Toplayıcı", "Pudralama", "UME150", "UME100", "UMK50", "Sıcak Baskı Metreleme", "Sikora Lazer 2030 FR", "MCT800 Havuz", "UMCAP800", "UMAC70", "Fre. UMDTU1600"], "UR-EK20": ["UMDFP800", "KF", "TD", "UME80", "UME45", "UMK20", "Sikora Çap Ölçer", "Havuz", "Akküm.-70", "Sikora Spark", "UMFTT1250", "UMFTT1250"], "UR-EK19": ["SF1200", "SF1200", "SF1200", "DF800", "Boyut Spark", "KF", "UME120", "UME45", "UMK50", "Sıcak Baskı", "Çap Ölçer", "Havuz", "Boz. Capstan 800", "Akküm.-70", "Boyut Spark", "Kablo Yönlendirici", "UMFTT1600", "UMFTT1600"], "UR-EK16": ["Boz. DF800", "Boz. DF1600", "Boz. KF", "Pudralama", "UME120", "UME60", "UMK50", "Çap Ölçer", "Havuz", "Boz. Capstan800", "Akküm.-70", "UMFTT1600", "UMFTT1600"], "UR-EK15": ["Boz. DF", "Boz. KF", "Preheater", "TD", "UME80", "Mail. 45", "UMK20", "Sikora", "Havuz", "Capstan800", "Boyut Spark", "Akküm.-70", "UMFTT1250"], "UR-EK11": ["SF1250", "SF1250", "SF1250", "DF800", "Boyut Spark", "KF", "Pudralama", "UME120", "UME45", "UMK50", "Sıcak Baskı", "Çap Ölçer", "Havuz", "Boz. Capstan800", "IPS", "Boz. Akküm.-70", "Boyut Spark", "Kablo Yönlendirici", "UMFTT1600", "UMFTT1600"], "UR-EK07": ["Bozdemir DF", "Bozdemir DF", "TD", "Mail 80", "UME45", "UMK20", "Sikora", "Havuz", "Capstan800", "Akküm.-70", "Unity Spartk", "TD", "Çatal Tip 1250", "Çatal Tip 1250"], "UR-EK22": ["Fre. 800 Double Flyer", "Fre. Tel Doğrultucu", "Fre. Kablo Frenleme", "Preheater Gürfil", "UME70", "UME45", "UMK6", "Sikora Lazer 2030 XY", "Havuz", "Vakum Pompası", "Sikora Spark 2030 UL", "UMAC70", "UMY", "UMFTT1250", "UMFTT1250"], "UR-EK02": ["Boz. Tel Çekme", "Double Flyer 800", "Boz. Kablo Frenleme", "Doğrultucu", "UME60", "UME100", "UMK20", "Sikora 2010 XY", "Havuz", "Kapstan", "Akküm.-70", "UNİTY Spark Tester", "Yönlendirici", "Fre. FTTU1200", "Fre. FTTU1200"], "UR-EK06": ["Fre. Pay Off 1250", "Fre. Pay Off 1250", "Akküm.-70", "UMDFP630", "UMKY", "TD", "Mail100 Ekstruder", "Mail45 Ekstruder", "Mail20 Kalıp", "Beta Lazer AccuScan5000", "Havuz", "Boz. Kapstan 900", "Akküm.-70", "Boyut Spark Tester", "Yönlendirici", "Frekans Take-Up1600", "Frekans Take-Up1600"], "UR-EK05": ["Fre. Pay-Off 1250", "Akküm.-70", "Doğrutucu", "Double flyer Pay-Off 800", "Kablo Frenleme", "Preheater Gürfil", "Kablo Doğrultucu", "SAMP45 Ekstruder", "SAMP100 Ekstruder", "Kalıp", "Çap Ölçer ULD-25AL UNİTY", "Havuz", "Vakum Pompası", "Kapstan 800", "Akküm.-70", "Spark 2030 UL", "Yönlendirici", "Fre. 1600 Fork Type Take-Up", "Fre. 1600 Fork Type Take-Up"], "UR-EK14": ["Boz. Self Travers Pay-Off 2000", "Boz. Self Travers Pay-Off 2000", "Boz. HKY", "Boz. Akküm.-70", "Boz. Katerpillar 800", "SAMP120 Ekstruder", "UME60", "UMK50", "Sikora Lazer 2100 XY", "Havuz", "İnjet Metre Kasnağı", "Ana Ekran Metre Ölçer", "Spartk Tester Boyut", "Boz. Katerpillar", "Boz. SKY", "Boz. Take-Up 2000", "Boz. Take-Up 2000"], "UR-EK04": ["Boz. Self Travers Pay-Off 2000", "Akküm.-70", "Katerpillar 800", "Mail100 Ekstruder", "Mail60 Ekstruder", "UMK50-1SD1S", "Sikora Lazer 2100 XY", "Havuz", "Metre Sayacı", "Metre Sayacı", "Boyut Spark Tester", "Katerpil 800", "Berkand Makine Self Travers Take-Up 800"], "UR-EK23": ["Pintle Type Pay Off", "Fre.Kablo Frenleme", "UME80", "Mail80 Ekstruder", "UMT14-2S", "Sikora 2030 XY", "Plusmak Doğrultucu", "Havuz", "Fre. Akküm.-70", "UMFTT1600", "UMFTT1600"], "UR-EK18": ["Boz. DFP630", "Boz. Kablo Frenleme", "Ön Isıtıcı", "Doğrultucu", "UME70", "UME45", "UMK6", "Çap Ölçer", "Plusmak Doğrultucu", "Havuz", "Vakum Pompası", "Spark Boyut", "Akküm.-70", "Yönlendirici", "UMFTT1200", "UMFTT1200"]},
+  tur: c => { const n = String(c.ad || "").toLocaleLowerCase("tr"); return /çap|cap ölç/.test(n) ? "cap" : /spark/.test(n) ? "spark" : /yazı makina|yazi makina|metre göster/.test(n) ? "yazi" : /metre sayac|metre disk/.test(n) ? "metre"
+    : /ısı göster|isi göster|termokupl/.test(n) ? (/dolgu/.test(n) ? "dolgu" : "ana") : "diger"; },
+  renk: c => { if(c.renk === "k") return "k"; const g = new Date(); g.setHours(0, 0, 0, 0); const y = d => d && d >= g && (d - g) / 864e5 <= 30;
+    return /kalibrasyonda/i.test(c.neden || "") || y(c.kn) || y(c.dn) ? "s" : "g"; },
+  neden: c => { const g = new Date(); g.setHours(0, 0, 0, 0); const y = d => d && d >= g && (d - g) / 864e5 <= 30;
+    return c.renk === "k" ? c.neden : /kalibrasyonda/i.test(c.neden || "") ? c.neden : y(c.kn) ? "kalibrasyon " + c.kn.toLocaleDateString("tr-TR") + " (yaklaşıyor)" : y(c.dn) ? "doğrulama " + c.dn.toLocaleDateString("tr-TR") + " (yaklaşıyor)" : (/raporuna/i.test(c.neden || "") ? "kullanıma hazır · ölçüm raporuna bakınız" : "kullanıma hazır"); },
+  RENK: { g:"#16a34a", s:"#eab308", k:"#dc2626" },
+  en: L => L.some(c => KB.renk(c) === "k") ? "k" : L.some(c => KB.renk(c) === "s") ? "s" : "g",
+  // ekipman adı → tür (fabrika makine listesindeki adlar: Boşaltıcı, UME120, UMK130, Lazer, Havuz, Katerpil, Toplayıcı, HKY …)
+  ekTur(ad){ const n = String(ad).toLocaleLowerCase("tr");
+    if(/spark|spartk/.test(n)) return "spark";
+    if(/markalama|marka\b|metrej|metrele|sıcak baskı|sicak baski|injet|inkjet|metre sayac|metre kasna|metre ölç/.test(n)) return "yazi";
+    if(/lazer|sikora|çap ölç|cap olc|accuscan|ecocontrol|uld-/.test(n)) return "cap";
+    if(/havuz/.test(n)) return "havuz";
+    if(/toplayıcı|toplayici|take[- ]?up|umftt|ftt|çatal tip|catal tip|fork type|umdtu/.test(n)) return "topla";
+    if(/boşaltıcı|bosaltici|boşal\.|bosal\.|pay[- ]?off|umdfp|\bdfp?\d*\b|double flyer|\bsf\d|self travers pay|pintle/.test(n)) return "verici";
+    if(/\bume\d|ekstruder|ekstrüder|\bsamp\d|\bmail\.? ?\d+$/.test(n)) return "ekstr";
+    if(/\bumk\d|\bumk\b|kalıp|kalip|\bumct|\bumt\d|\bumck/.test(n)) return "kalip";
+    if(/katerpil|katarpil|kapstan|capstan|\bumcap/.test(n)) return "katarpil";
+    if(/akküm|akkum|\bumac|dancer/.test(n)) return "akum";
+    return "yard";   // HKY, SKY, UMKY, KF, TD, doğrultucu, merkezleme, pudralama, ön ısıtıcı, vakum, yönlendirici
+  },
+  istasyonlar(ek, cc, kod){
+    const by = t => cc.filter(c => KB.tur(c) === t), cap = by("cap"), sp = by("spark"), yz = by("yazi"), mt = by("metre"), L = [];
+    const liste = kod && KB.HATEK[kod];
+    if(liste){   // fabrikanın makine listesindeki gerçek dizilim (boşaltıcıdan toplayıcıya)
+      liste.forEach(ad => L.push([KB.ekTur(ad), ad, [], /kullanılmıyor/i.test(ad)]));
+      const ist = t => L.filter(x => x[0] === t), ekle = (t, ad, c, sonraTip) => { let i = -1; for(let k = L.length - 1; k >= 0; k--) if(sonraTip.includes(L[k][0])){ i = k; break; } L.splice(i < 0 ? L.length : i + 1, 0, [t, ad, c, false]); };   // listede yoksa: verilen türlerin sonuncusundan hemen sonra
+      // çap ölçerler sırayla; fazlası son çap ölçere
+      cap.forEach((c, i) => { const s = ist("cap"); if(s.length) s[Math.min(i, s.length - 1)][2].push(c); else ekle("cap", "Çap ölçer", [c], ["kalip", "ekstr"]); });
+      sp.forEach((c, i) => { const s = ist("spark"); if(s.length) s[Math.min(i, s.length - 1)][2].push(c); else ekle("spark", "Spark tester", [c], ["havuz"]); });   // havuz çıkışında, yazıdan önce
+      yz.concat(mt).forEach((c, i) => { const s = ist("yazi"); if(s.length) s[Math.min(i, s.length - 1)][2].push(c); else ekle("yazi", "Metre / yazı", [c], ["spark", "havuz"]); });
+      const ex = ist("ekstr").filter(x => !x[3]); if(ex.length){ by("dolgu").forEach(c => ex[0][2].push(c)); by("ana").forEach(c => (/renk/i.test(c.ad) ? ex[ex.length - 1] : ex[Math.min(1, ex.length - 1)])[2].push(c)); }
+      else L.filter(x => x[0] === "yard").slice(0, 1).forEach(x => x[2].push(...by("dolgu"), ...by("ana")));
+    } else if(ek){ L.push(["verici", "Verici 1", []], ["verici", "Verici 2", []], ["ekstr", "Dolgu ekstr.", by("dolgu")]);
+      if(cap[0]) L.push(["cap", "Çap ölçer 1", [cap[0]]]);
+      L.push(["ekstr", "Ana ekstr.", by("ana")]);
+      cap.slice(1).forEach((c, i) => L.push(["cap", "Çap ölçer " + (i + 2), [c]]));
+      L.push(["havuz", "Soğutma havuzu", []]);
+      sp.forEach((c, i) => L.push(["spark", "Spark" + (sp.length > 1 ? " " + (i + 1) : ""), [c]]));
+      yz.forEach((c, i) => L.push(["yazi", "Yazı mak." + (yz.length > 1 ? " " + (i + 1) : ""), [c]]));
+      L.push(["katarpil", "Katarpil", mt], ["topla", "Toplayıcı 1", []], ["topla", "Toplayıcı 2", []]);
+    } else { L.push(["verici", "Verici", []], ["govde", "Makine", by("diger").concat(by("dolgu"), by("ana"))]);
+      cap.forEach(c => L.push(["cap", "Çap ölçer", [c]])); sp.forEach(c => L.push(["spark", "Spark", [c]])); yz.forEach(c => L.push(["yazi", "Yazı mak.", [c]])); mt.forEach(c => L.push(["metre", "Metre sayacı", [c]]));
+      L.push(["topla", "Toplayıcı", []]); }
+    const W = { verici:5, ekstr:4, kalip:2, cap:2.4, havuz:16, spark:3.6, yazi:2.8, katarpil:5, topla:6, govde:28, metre:2.8, akum:3.4, yard:2.2 }, gap = 1.4;
+    const gen = x => x[0] === "havuz" && /ara/i.test(x[1]) ? 7 : W[x[0]] || 2.2;
+    const top = L.reduce((s, x) => s + gen(x), 0) + gap * (L.length - 1); let t = 0;
+    return L.map(x => { const a = t / top, b = (t + gen(x)) / top; t += gen(x) + gap; return { tip:x[0], ad:x[1], cihaz:x[2], kapali:!!x[3], a, b }; });
+  },
+  ciz(x1, y, x2, h, L, etiketli, ek){   // akış sağdan (doğu, karantina tarafı) sola
+    const cy = y + h / 2, W = x2 - x1, px = t => x2 - t * W, f = n => +n.toFixed(1);
+    let pn = false, s = `<line x1="${f(x2)}" y1="${f(cy)}" x2="${f(x1)}" y2="${f(cy)}" stroke="#334155" stroke-width="${f(Math.max(.8, h * .1))}"/>`, nok = "";
+    L.forEach((st, k) => { const xa = px(st.b), w = f(px(st.a) - px(st.b)), tip = st.tip;
+      let r;
+      if(!etiketli && (tip === "ekstr" || tip === "yazi")) r = `<rect x="${f(xa)}" y="${f(y + h * .04)}" width="${w}" height="${f(h * .92)}" rx="1" fill="${tip === "ekstr" ? "#2563eb" : "#a78bfa"}" stroke="${tip === "ekstr" ? "#1e3a8a" : "#6d28d9"}" stroke-width=".5"/>`;
+      else r = { verici:`<rect x="${f(xa)}" y="${f(y + h * .12)}" width="${w}" height="${f(h * .76)}" rx="${f(h * .15)}" fill="#f59e0b" stroke="#b45309" stroke-width=".5"/>`,
+        topla:`<rect x="${f(xa)}" y="${f(y + h * .08)}" width="${w}" height="${f(h * .84)}" rx="${f(h * .15)}" fill="#f59e0b" stroke="#b45309" stroke-width=".5"/><rect x="${f(xa + w * .35)}" y="${f(y + h * .3)}" width="${f(w * .3)}" height="${f(h * .4)}" fill="#78350f"/>`,
+        ekstr:`<rect x="${f(xa)}" y="${f(y - h * 1.3)}" width="${w}" height="${f(h * 1.8)}" rx="1" fill="#2563eb" stroke="#1e3a8a" stroke-width=".5"/><circle cx="${f(xa + w / 2)}" cy="${f(y - h * .7)}" r="${f(Math.min(w, h) * .32)}" fill="#93c5fd" stroke="#1e3a8a" stroke-width=".4"/>`,
+        cap:`<rect x="${f(xa)}" y="${f(y + h * .15)}" width="${w}" height="${f(h * .7)}" fill="#e2e8f0" stroke="#475569" stroke-width=".5"/><line x1="${f(xa + w / 2)}" y1="${f(y + h * .15)}" x2="${f(xa + w / 2)}" y2="${f(y + h * .85)}" stroke="#ef4444" stroke-width=".7"/>`,
+        havuz:`<rect x="${f(xa)}" y="${f(y + h * .22)}" width="${w}" height="${f(h * .56)}" rx="1" fill="#93c5fd" stroke="#1e40af" stroke-width=".5" fill-opacity=".85"/>`,
+        spark:`<rect x="${f(xa)}" y="${f(y + h * .12)}" width="${w}" height="${f(h * .76)}" fill="#cbd5e1" stroke="#475569" stroke-width=".5"/><circle cx="${f(xa + w / 2)}" cy="${f(cy)}" r="${f(h * .2)}" fill="#f59e0b"/>`,
+        yazi:`<rect x="${f(xa)}" y="${f(y - h * .55)}" width="${w}" height="${f(h * .75)}" fill="#d1d5db" stroke="#6b7280" stroke-width=".5"/><rect x="${f(xa + w * .2)}" y="${f(y - h * .45)}" width="${f(w * .6)}" height="${f(h * .25)}" fill="#7c3aed"/>`,
+        katarpil:`<rect x="${f(xa)}" y="${f(y + h * .05)}" width="${w}" height="${f(h * .9)}" fill="#cbd5e1" stroke="#475569" stroke-width=".5"/><rect x="${f(xa + w * .08)}" y="${f(y + h * .2)}" width="${f(w * .84)}" height="${f(h * .18)}" fill="#1f2937"/><rect x="${f(xa + w * .08)}" y="${f(y + h * .62)}" width="${f(w * .84)}" height="${f(h * .18)}" fill="#1f2937"/>`,
+        metre:`<rect x="${f(xa)}" y="${f(y + h * .15)}" width="${w}" height="${f(h * .7)}" fill="#0f172a" stroke="#334155" stroke-width=".5"/>`,
+        govde:`<rect x="${f(xa)}" y="${f(y + h * .15)}" width="${w}" height="${f(h * .7)}" rx="1" fill="#94a3b8" stroke="#475569" stroke-width=".5"/>`,
+        kalip:`<rect x="${f(xa)}" y="${f(y + h * .1)}" width="${w}" height="${f(h * .8)}" rx="1" fill="#1e3a8a" stroke="#0f172a" stroke-width=".5"/>`,
+        akum:`<rect x="${f(xa)}" y="${f(y + h * .05)}" width="${w}" height="${f(h * .9)}" fill="#e2e8f0" stroke="#64748b" stroke-width=".5"/><line x1="${f(xa + w * .3)}" y1="${f(y + h * .1)}" x2="${f(xa + w * .3)}" y2="${f(y + h * .9)}" stroke="#64748b" stroke-width=".6"/><line x1="${f(xa + w * .7)}" y1="${f(y + h * .1)}" x2="${f(xa + w * .7)}" y2="${f(y + h * .9)}" stroke="#64748b" stroke-width=".6"/>`,
+        yard:`<rect x="${f(xa)}" y="${f(y + h * .25)}" width="${w}" height="${f(h * .5)}" rx="1" fill="#cbd5e1" stroke="#64748b" stroke-width=".4"/>` }[tip];
+      if(tip === "havuz" && etiketli && ek && !/ara/i.test(st.ad) && !pn){ pn = true; r += `<rect x="${f(xa + w * .25)}" y="${f(y - h * 1.15)}" width="${f(w * .4)}" height="${f(h * .7)}" fill="#cbd5e1" stroke="#64748b" stroke-width=".5"/><text x="${f(xa + w * .45)}" y="${f(y - h * 1.3)}" font-size="${f(h * .38)}" text-anchor="middle" fill="#14305e" font-weight="700">Pano</text>` ; }   // pano yalnız ilk ana havuzun arkasında
+      if(st.kapali) r = `<g opacity=".35">${r}</g>`;
+      s += r;
+      if(etiketli) s += `<text x="${f(xa + w / 2)}" y="${f(tip === "ekstr" || tip === "yazi" ? y - h * 1.45 - (k % 2) * h * .5 : y + h * 1.7 + (k % 2) * h * .55)}" font-size="${f(h * (L.length > 14 ? .3 : .38))}" text-anchor="middle" fill="${st.kapali ? "#94a3b8" : "#14305e"}" font-weight="700">${st.ad}</text>`;   // komşu adlar iki sıraya
+      if(st.cihaz.length){ const rk = KB.en(st.cihaz), ny = etiketli ? (tip === "ekstr" ? y - h * 1.3 : tip === "yazi" ? y - h * .55 : y + h * .05) : y;
+        nok += `<circle cx="${f(xa + w / 2)}" cy="${f(ny)}" r="${etiketli ? f(h * .26) : f(Math.max(2.2, h * .28))}" fill="${KB.RENK[rk]}" stroke="#fff" stroke-width="${etiketli ? 1.4 : .8}"><title>${st.cihaz.map(c => c.id + " " + c.ad + " – " + KB.neden(c)).join("\n")}</title></circle>`; } });
+    return s + nok;   // noktalar en üstte
+  }
+};
+
+const HOL = [385, 340, 2222, 700];
+const IST_EK = [["verici", 0, .05, "Verici 1"], ["verici", .065, .115, "Verici 2"], ["ekstr", .14, .17, "Dolgu ekstr."], ["cap", .19, .21, "Çap ölçer 1"], ["ekstr", .23, .275, "Ana ekstr."], ["cap", .3, .32, "Çap ölçer 2"],
+  ["havuz", .34, .6, "Soğutma havuzu"], ["pano", .41, .52, "Pano"], ["spark", .615, .65, "Spark tester"], ["yazi", .67, .695, "Yazı mak. 1"], ["yazi", .715, .74, "Yazı mak. 2"], ["katarpil", .76, .82, "Katarpil"], ["topla", .85, .91, "Toplayıcı 1"], ["topla", .93, .99, "Toplayıcı 2"]];
+const IST_GENEL = [["verici", 0, .12, "Verici"], ["govde", .18, .8, "Makine"], ["topla", .86, 1, "Toplayıcı"]];
+function ustten(x1, y, x2, h, ek, etiketli){   // akış sağdan (doğu) sola; x1 < x2
+  const L = ek ? IST_EK : IST_GENEL, cy = y + h / 2, W = x2 - x1, px = t => x2 - t * W, f = n => +n.toFixed(1);
+  let s = `<line x1="${f(x2)}" y1="${f(cy)}" x2="${f(x1)}" y2="${f(cy)}" stroke="#334155" stroke-width="${f(Math.max(.8, h * .1))}"/>`;
+  L.forEach(([tip, a, b, ad]) => { const xa = px(b), w = f(px(a) - px(b));
+    if(!etiketli && tip === "pano") return;   // haritada (kompakt) pano çizilmez, her şey çubuğun içinde kalır
+    if(!etiketli && (tip === "ekstr" || tip === "yazi")){ s += `<rect x="${f(xa)}" y="${f(y + h * .04)}" width="${w}" height="${f(h * .92)}" rx="1" fill="${tip === "ekstr" ? "#2563eb" : "#a78bfa"}" stroke="${tip === "ekstr" ? "#1e3a8a" : "#6d28d9"}" stroke-width=".5"/>`; return; }
+    const r = { verici:`<rect x="${f(xa)}" y="${f(y + h * .12)}" width="${w}" height="${f(h * .76)}" rx="${f(h * .15)}" fill="#f59e0b" stroke="#b45309" stroke-width=".5"/>`,
+      topla:`<rect x="${f(xa)}" y="${f(y + h * .08)}" width="${w}" height="${f(h * .84)}" rx="${f(h * .15)}" fill="#f59e0b" stroke="#b45309" stroke-width=".5"/><rect x="${f(xa + w * .35)}" y="${f(y + h * .3)}" width="${f(w * .3)}" height="${f(h * .4)}" fill="#78350f"/>`,
+      ekstr:`<rect x="${f(xa)}" y="${f(y - h * 1.3)}" width="${w}" height="${f(h * 1.8)}" rx="1" fill="#2563eb" stroke="#1e3a8a" stroke-width=".5"/><circle cx="${f(xa + w / 2)}" cy="${f(y - h * .7)}" r="${f(Math.min(w, h) * .32)}" fill="#93c5fd" stroke="#1e3a8a" stroke-width=".4"/>`,
+      cap:`<rect x="${f(xa)}" y="${f(y + h * .15)}" width="${w}" height="${f(h * .7)}" fill="#e2e8f0" stroke="#475569" stroke-width=".5"/><line x1="${f(xa + w / 2)}" y1="${f(y + h * .15)}" x2="${f(xa + w / 2)}" y2="${f(y + h * .85)}" stroke="#ef4444" stroke-width=".7"/>`,
+      havuz:`<rect x="${f(xa)}" y="${f(y + h * .22)}" width="${w}" height="${f(h * .56)}" rx="1" fill="#93c5fd" stroke="#1e40af" stroke-width=".5" fill-opacity=".85"/>`,
+      pano:`<rect x="${f(xa)}" y="${f(y - h * 1.15)}" width="${w}" height="${f(h * .7)}" fill="#cbd5e1" stroke="#64748b" stroke-width=".5"/>`,
+      spark:`<rect x="${f(xa)}" y="${f(y + h * .12)}" width="${w}" height="${f(h * .76)}" fill="#cbd5e1" stroke="#475569" stroke-width=".5"/><circle cx="${f(xa + w / 2)}" cy="${f(cy)}" r="${f(h * .2)}" fill="#f59e0b"/>`,
+      yazi:`<rect x="${f(xa)}" y="${f(y - h * .55)}" width="${w}" height="${f(h * .75)}" fill="#d1d5db" stroke="#6b7280" stroke-width=".5"/><rect x="${f(xa + w * .2)}" y="${f(y - h * .45)}" width="${f(w * .6)}" height="${f(h * .25)}" fill="#7c3aed"/>`,
+      katarpil:`<rect x="${f(xa)}" y="${f(y + h * .05)}" width="${w}" height="${f(h * .9)}" fill="#cbd5e1" stroke="#475569" stroke-width=".5"/><rect x="${f(xa + w * .08)}" y="${f(y + h * .2)}" width="${f(w * .84)}" height="${f(h * .18)}" fill="#1f2937"/><rect x="${f(xa + w * .08)}" y="${f(y + h * .62)}" width="${f(w * .84)}" height="${f(h * .18)}" fill="#1f2937"/>`,
+      govde:`<rect x="${f(xa)}" y="${f(y + h * .15)}" width="${w}" height="${f(h * .7)}" rx="1" fill="#94a3b8" stroke="#475569" stroke-width=".5"/>` }[tip];
+    s += r + (etiketli ? `<text x="${f(xa + w / 2)}" y="${f(tip === "ekstr" || tip === "pano" || tip === "yazi" ? y - h * 1.45 : y + h * 1.75)}" font-size="${f(h * .38)}" text-anchor="middle" fill="#14305e" font-weight="700">${ad}</text>` : ""); });
+  return s;
+}
+function cihazSorun(c){ const g = new Date(); g.setHours(0, 0, 0, 0); const yak = d => d && d >= g && (d - g) / 864e5 <= 30;
+  if(c.renk === "k") return ["k", c.neden]; if(/kalibrasyonda/i.test(c.neden)) return ["s", c.neden];
+  if(yak(c.kn)) return ["s", "kalibrasyon " + c.kn.toLocaleDateString("tr-TR") + " (yaklaşıyor)"]; if(yak(c.dn)) return ["s", "doğrulama " + c.dn.toLocaleDateString("tr-TR") + " (yaklaşıyor)"]; return null; }
+let HAT_ON = {};
+function harita(makCih, kalan){
+  const [X0, Y0, X1, Y1] = HOL, K = 1000 / (X1 - X0), X = x => +((x - X0) * K).toFixed(1), Y = y => +((y - Y0) * K).toFixed(1), Wd = (a, b) => +((b - a) * K).toFixed(1), H = Math.ceil((Y1 - Y0) * K);
+  const planKod = m => m.kod.replace(/^UR-/, "").replace(/^([A-Z]{2})(\d+)$/, (t, a, b) => a + "-" + b.padStart(2, "0"));
+  const kuzey = Object.fromEntries(Object.entries(FPLAN.m).filter(([k, b]) => b[1] >= Y0 && b[3] <= Y1));
+  const planda = new Set(); HAT_ON = {};
+  let svg = `<rect x="0" y="0" width="${X(2072)}" height="${Y(690)}" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.6"/>`;
+  svg += FPLAN.a.filter(a => a[1][1] >= Y0 && a[1][3] <= Y1 + 5).map(a => `<rect x="${X(a[1][0])}" y="${Y(a[1][1])}" width="${Wd(a[1][0], a[1][2])}" height="${Wd(a[1][1], a[1][3])}" fill="#e2e8f0" stroke="#cbd5e1"/><text x="${(X(a[1][0]) + X(a[1][2])) / 2}" y="${(Y(a[1][1]) + Y(a[1][3])) / 2 + 3}" font-size="8.5" text-anchor="middle" fill="#64748b">${esc(a[0])}</text>`).join("");
+  MAK.forEach(m => { const b = kuzey[planKod(m)]; if(!b) return; planda.add(m.kod);
+    const cc = (makCih[key(m.kod)] || []).filter(c => c.id), sor = cc.map(c => [c, cihazSorun(c)]).filter(x => x[1]), calis = m.renk === "g";
+    const x = X(b[0]), y = Y(b[1]), w = Wd(b[0], b[2]), h = Math.max(9, Wd(b[1], b[3])), ek = /^UR-EK/.test(m.kod), cz = calis ? "#16a34a" : "#dc2626";
+    HAT_ON[m.kod] = { m, ek, sor, cc };
+    svg += `<g class="hm" data-kod="${esc(m.kod)}"><rect x="${x - 1.5}" y="${y - 1.5}" width="${w + 3}" height="${h + 3}" fill="transparent"/>
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="${calis ? "#f0fdf4" : "#fef2f2"}" stroke="${cz}" stroke-width="1.4"/>
+      ${w >= 70 ? KB.ciz(x + 2, y + 1, x + w - 2, h - 2, KB.istasyonlar(ek, cc, m.kod), false, ek) : ""}
+      <text x="${w >= 70 ? x - 3 : x + 3}" y="${y + h / 2 + 3}" font-size="8" font-weight="800" fill="${cz}" text-anchor="${w >= 70 ? "end" : "start"}">${esc(planKod(m))}</text>
+      ${w < 70 && cc.length ? `<circle cx="${(x + w - 5).toFixed(1)}" cy="${(y + h / 2).toFixed(1)}" r="3" fill="${KB.RENK[KB.en(cc)]}" stroke="#fff" stroke-width=".8"><title>${esc(cc.map(c => c.id + " " + c.ad + " – " + KB.neden(c)).join("\n"))}</title></circle>` : ""}</g>`; });   // kısa makine: cihazların özet durumu
+  // Ar-Ge binası (karantina sahasının yanında, 2 kat): durum rengi o laboratuvarın en kötü cihazı
+  const labCih = l => kalan.filter(c => { const t = String(c.yer || "").toLocaleUpperCase("tr").split(/[-\s]+/); return (t[1] ? "LAB-" + t[1] : t[0]) === l; });
+  svg += `<rect x="${X(2082)}" y="${Y(540)}" width="${Wd(2082, 2215)}" height="${Wd(540, 696)}" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.6"/><text x="${(X(2082) + X(2215)) / 2}" y="${Y(540) - 3}" font-size="8" text-anchor="middle" fill="#64748b" font-weight="700">Ar-Ge binası</text>`;
+  Object.entries(FPLAN.lab).forEach(([l, b]) => { const L = labCih(l), r = L.some(c => c.renk === "k") ? "#dc2626" : L.some(c => c.renk === "s") ? "#eab308" : "#16a34a";
+    svg += `<g class="hlab" data-lab="${l}" style="cursor:pointer"><title>${l} · ${l === "LAB-ARGE" ? "2. kat: depo + etüv odası" : "alt kat"} · ${L.length} cihaz</title><rect x="${X(b[0])}" y="${Y(b[1])}" width="${Wd(b[0], b[2])}" height="${Wd(b[1], b[3])}" rx="3" fill="#fff" stroke="${r}" stroke-width="1.6"/>
+      <text x="${(X(b[0]) + X(b[2])) / 2}" y="${Y(b[1]) + 13}" font-size="8.5" font-weight="800" text-anchor="middle" fill="#14305e">${l.replace("LAB-", "")}</text><text x="${(X(b[0]) + X(b[2])) / 2}" y="${Y(b[1]) + 24}" font-size="7" text-anchor="middle" fill="#64748b">${l === "LAB-ARGE" ? "2. kat" : "alt kat"} · ${L.length} cihaz</text>
+      <circle cx="${X(b[2]) - 6}" cy="${Y(b[1]) + 6}" r="3.2" fill="${r}"/></g>`; });
+  const disari = MAK.filter(m => !planda.has(m.kod));
+  const labs = {}; kalan.forEach(c => { const t = String(c.yer || "").toLocaleUpperCase("tr").split(/[-\s]+/); if(t[0] === "LAB") { const l = t[1] ? "LAB-" + t[1] : "LAB"; (labs[l] = labs[l] || []).push(c); } });
+  const kot = L => L.some(x => x.renk === "k") ? "k" : L.some(x => x.renk === "s") ? "s" : "g";
+  const nc = MAK.filter(m => planda.has(m.kod)), say = { g:nc.filter(m => m.renk === "g").length, d:nc.filter(m => m.renk !== "g").length };
+  return `<div class="bol" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>🗺️ Fabrika haritası · kuzey hol <small style="font-weight:600;color:#64748b;text-transform:none;letter-spacing:0">· kuş bakışı · makinenin üzerine gelin: hat görünümü · tıklayın: 3B hat</small></span><a href="harita3d.html" style="background:#14305e;color:#fff;border-radius:18px;padding:7px 14px;font-size:13px;text-decoration:none;text-transform:none;letter-spacing:0">🚁 3B / 360°</a></div>
+    <div class="harita" style="position:relative"><svg viewBox="-6 -10 1040 ${H + 16}" xmlns="http://www.w3.org/2000/svg">${svg}</svg><div id="hatOn" style="display:none"></div></div>
+    <div class="msg">Kuzey hol: ${nc.length} makine · <b style="color:#16a34a">${say.g} çalışıyor</b> · <b style="color:#dc2626">${say.d} duruyor / arızada</b> · Noktalar cihazın kendi istasyonunda: 🟢 hazır · 🟡 tarihi yaklaşan (30 gün) / kalibrasyonda · 🔴 ölçüm uygunsuz / tarihi geçmiş. Yalnız kayıtlı cihazların istasyonu çizilir. Hatlarda akış karantina sahası tarafından başlar.</div>
+    ${disari.length ? `<div class="bol" style="margin-top:6px">⚙️ Planda tanımlanmamış makineler (${disari.length}) <small style="font-weight:600;color:#64748b;text-transform:none;letter-spacing:0">· onaydan sonra haritaya işlenecek</small></div><div class="cips" style="margin-bottom:8px">${disari.map(m => `<a class="cip hm" data-kod="${esc(m.kod)}" href="#" title="${esc(m.neden)}"><span class="nok ${m.renk === "g" ? "g" : "k"}"></span>${esc(m.kod)}</a>`).join("")}</div>` : ""}
+    <div class="bol" style="margin-top:6px">🔬 Laboratuvarlar <small style="font-weight:600;color:#64748b;text-transform:none;letter-spacing:0">· tıklayın: laboratuvar sayfası · Ar-Ge binası (ARGE, CPR) haritada karantina sahasının yanında</small></div>
+    <div class="cips">${Object.keys(labs).sort((a, b) => labs[b].length - labs[a].length).map(l => { const L = labs[l], s = { g:0, s:0, k:0 }; L.forEach(c => s[c.renk]++);
+      return `<a class="cip hl" data-lab="${esc(l)}" href="#" style="padding:6px 10px;font-size:12px"><span class="nok ${kot(L)}"></span>${esc(l)} · ${L.length} <small style="color:#64748b;font-weight:600">🟢${s.g} 🟡${s.s} 🔴${s.k}</small></a>`; }).join("")}</div>`;
+}
+function hatOnizle(kod, ev){
+  const o = HAT_ON[kod], el = $("#hatOn"); if(!o || !el) return;
+  const W = 1000, H = 150, kod2 = kod.replace(/^UR-/, "");
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b style="color:#14305e;font-size:15px">${esc(kod)} · ${esc(o.m.ad || "")}</b><span style="font-weight:800;font-size:12px;color:${o.m.renk === "g" ? "#16a34a" : "#dc2626"}">${o.m.renk === "g" ? "● ÇALIŞIYOR" : "● " + esc(o.m.neden).toLocaleUpperCase("tr")}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;margin:6px 0"><rect x="0" y="0" width="${W}" height="${H}" rx="8" fill="#f8fafc"/>${KB.ciz(30, 66, W - 30, 22, KB.istasyonlar(o.ek, o.cc, o.m.kod), true, o.ek)}
+      <text x="${W - 26}" y="${H - 8}" font-size="10" text-anchor="end" fill="#64748b">← akış (karantina sahası tarafından)</text></svg>
+    ${o.cc.length ? o.cc.map(c => `<div style="font-size:12px;padding:2px 0"><span class="nok ${KB.renk(c)}"></span> <b>${esc(c.id)}</b> ${esc(c.ad)} – ${esc(KB.neden(c))}</div>`).join("") : '<div style="font-size:12px;color:#64748b">Bu makinede kayıtlı ölçüm cihazı yok.</div>'}
+    <div style="font-size:11px;color:#64748b;margin-top:4px">Tıklayın: 3B hat görünümü</div>`;
+  const kap = el.parentNode.getBoundingClientRect(); let x = ev.clientX - kap.left + 14, y = ev.clientY - kap.top + 14;
+  el.style.cssText = `display:block;position:absolute;z-index:20;width:min(820px,94vw);background:#fff;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 12px 30px rgba(15,23,42,.25);padding:10px 12px;pointer-events:none`;
+  if(x + el.offsetWidth > kap.width) x = Math.max(4, ev.clientX - kap.left - el.offsetWidth - 14); if(y + el.offsetHeight > kap.height) y = Math.max(4, ev.clientY - kap.top - el.offsetHeight - 14);
+  el.style.left = x + "px"; el.style.top = y + "px";
+}
+function baglaHarita(){
+  document.querySelectorAll("svg .hm").forEach(g => { g.addEventListener("mousemove", e => hatOnizle(g.dataset.kod, e)); g.addEventListener("mouseleave", () => { const o = $("#hatOn"); if(o) o.style.display = "none"; }); });
+  document.querySelectorAll(".hm").forEach(g => g.onclick = e => { if(e) e.preventDefault(); const k = g.dataset.kod; location.href = (/^UR-EK/i.test(k) ? "hat.html?id=" : "makine.html?id=") + encodeURIComponent(k); });
+  document.querySelectorAll(".hlab").forEach(g => g.onclick = () => location.href = "lab.html?id=" + encodeURIComponent(g.dataset.lab));
+  document.querySelectorAll(".hl").forEach(g => g.onclick = e => { if(e) e.preventDefault(); location.href = "lab.html?id=" + encodeURIComponent(g.dataset.lab); return; FILTRE = "lab"; ciz(); const a = $("#ara"); a.value = g.dataset.lab; a.dispatchEvent(new Event("input")); });
+}
+yukle();
+</script></body></html>
