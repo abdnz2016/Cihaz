@@ -1,11 +1,11 @@
-/***** AJAN_CLAUDE 1.3 (yapılandırılmış çıktı) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
+/***** AJAN_CLAUDE 1.4 (yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
  * AJAN_GENEL'e DOKUNMAZ ve Yönlendirici'ye bağlanmaz (okuma anahtarı yok): yalnızca menüden çalışır.
  * Hedef: GN_BASARISIZ listesindeki (Genel okuyucunun okuyamadığı) cihazlar ya da seçili satırdaki cihaz. Daha önce okunmuş sertifikalar atlanır.
  * Sayılar sertifikada yazıldığı gibi (metin) alınır; hata = ölçülen − referans her noktada yeniden doğrulanır; tutmayan hata uyarı olarak yazılır.
- * Karar varsayılan olarak YAPILMAZ ("—"). Script Properties: CLAUDE_KARAR = "açık" yazılırsa Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) karar verilir.
+ * Karar Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) verilir ve Cihazlar özet sütunları yazılır. Kapatmak için Script Properties: CLAUDE_KARAR = kapalı.
  * Gerekenler: Script Properties → ANTHROPIC_API_KEY (menüden kaydedilir). İsteğe bağlı: CLAUDE_MODEL (varsayılan claude-sonnet-5-5). *****/
 function ajanKimlik_Claude() {
-  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.3", sira: 95,
+  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.4", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
            menu: [["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını Kalibrasyon_Noktalari'na aktar", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satırdaki cihazı Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
            gunluk: null, web: {} };
@@ -43,21 +43,37 @@ function clNoktaDogrula_(p) {
   const dar = 0.5 * Math.pow(10, -Math.max(dr, dO)), genis = 0.5 * Math.pow(10, -Math.min(dr, dO));   // aynı birimde: ince basamak; ölçek değişiminde (µm↔mm) yazılı hata yuvarlanmamış değerden hesaplanır: kaba basamak
   r.ref = ref; r.olc = olc; r.u = isNaN(u) ? null : u; r.birim = birim;
   if (!isNaN(hy)) {
-    const adaylar = [[hesap, "", 1], [-hesap, "işaret ters (hata = referans − cihaz)", 1], [hesap * 1000, "ölçek ×1000", 1000], [-hesap * 1000, "işaret ters, ×1000", 1000], [hesap / 1000, "ölçek ÷1000", 0.001], [-hesap / 1000, "işaret ters, ÷1000", 0.001]];
-    const es = adaylar.find(a => Math.abs(a[0] - hy) <= (a[2] === 1 ? dar : genis * a[2]) + hataAdim + 1e-12);
-    if (es) { r.hata = hy; r.hataYazi = String(p.hata).trim(); if (es[1]) r.notlar.push("sertifikada " + es[1]); }
+    // [işaret, ölçek, not]: sertifikadaki hata = işaret × ölçek × (ölçülen − referans)
+    const adaylar = [[1, 1, ""], [-1, 1, "işaret ters (hata = referans − cihaz)"], [1, 1000, "ölçek ×1000"], [-1, 1000, "işaret ters, ×1000"], [1, 0.001, "ölçek ÷1000"], [-1, 0.001, "işaret ters, ÷1000"]];
+    const es = adaylar.find(a => Math.abs(a[0] * a[1] * hesap - hy) <= (a[1] === 1 ? dar : genis * a[1]) + hataAdim + 1e-12);
+    if (es) {   // Hata sütunu her zaman ölçülen − referans yönünde ve referansın biriminde yazılır (işaret/ölçek farkı nota düşer)
+      r.hata = hy / (es[0] * es[1]); const hd = Math.max(0, clOnd_(p.hata) + Math.round(Math.log10(es[1])));
+      r.hataYazi = (es[0] === 1 && es[1] === 1) ? String(p.hata).trim() : r.hata.toFixed(hd).replace(".", ",").replace(/^-(0,?0*)$/, "$1");
+      if (es[2]) r.notlar.push("sertifikada hata " + String(p.hata).trim() + " (" + es[2] + ")");
+    }
     else {   // yazılı hata hesapla tutmuyor: hesaplanan yazılır, fark işaretlenir (rakamı sessizce değiştirmeyiz)
       r.hata = hesap; r.hataYazi = String(+hesap.toFixed(Math.min(dec + 1, 8))).replace(".", ","); r.uyari.push("sertifikadaki hata (" + p.hata + ") ölçülen − referans (" + r.hataYazi + ") ile tutmuyor");
     }
   } else { r.hata = hesap; r.hataYazi = String(+hesap.toFixed(Math.min(dec + 1, 8))).replace(".", ","); r.notlar.push("hata sertifikada yok, hesaplandı"); }
   if (r.u !== null && r.u < 0) { r.uyari.push("negatif belirsizlik"); r.u = Math.abs(r.u); }
+  r.uYazi = r.u === null ? "" : String(p.belirsizlik).trim();
+  const ub = clBirim_(p.belirsizlik_birimi);
+  if (r.u !== null && ub && ub !== birim) {   // U başka birimde (ör. µm, değerler mm): referansın birimine çevrilir
+    const k = clCarpan_(ub, birim);
+    if (isNaN(k)) r.uyari.push("U birimi (" + ub + ") değer birimiyle (" + birim + ") uyuşmuyor");
+    else { r.u = r.u * k; r.uYazi = String(+r.u.toPrecision(4)).replace(".", ","); r.notlar.push("U sertifikada " + String(p.belirsizlik).trim() + " " + ub); }
+  }
   if (r.u === null) r.notlar.push("U yok");
   r.gecerli = true; return r;
 }
 // Tüm yanıtı doğrular: { satirlar: [...], uyari: [...] }
-function clYanitDogrula_(o) {
+// Sizin sisteminizdeki kural (kalkontrol / rapor): AYAR cihazında Referans sütunu = cihaza girilen (set), Ölçülen = gerçek; ÖLÇÜ aletinde Referans = gerçek, Ölçülen = cihaz okuması
+const CL_AYAR_RE = /etüv|etuv|su banyosu|dondurucu|kül fırını|kul firini|termoreaktör|flowmetre|debimetre|akış|akis|hava değişimi/i, CL_AYAR_DEGIL = /resistomat|spark|yüksek gerilim|oto trafo/i;
+const clAyarMi_ = ad => { const n = String(ad || "").toLocaleLowerCase("tr"); return CL_AYAR_RE.test(n) && !CL_AYAR_DEGIL.test(n); };
+function clYanitDogrula_(o, ayar) {
   const satir = [], uyari = [];
   (o.noktalar || []).forEach((p, i) => {
+    if (p.referans_degeri !== undefined || p.cihaz_degeri !== undefined) { p = Object.assign({}, p); p.referans = ayar ? p.cihaz_degeri : p.referans_degeri; p.olculen = ayar ? p.referans_degeri : p.cihaz_degeri; }
     const d = clNoktaDogrula_(p);
     if (!d.gecerli) { d.uyari.forEach(x => uyari.push("nokta " + (i + 1) + ": " + x)); return; }
     d.uyari.forEach(x => uyari.push("nokta " + (i + 1) + ": " + x));
@@ -72,22 +88,25 @@ function clYanitDogrula_(o) {
 const CL_ISTEM = "Bu bir kalibrasyon sertifikasıdır. Ölçüm sonuçları tablolarındaki HER satırı verilen JSON şemasına göre ver.\n" +
   "KURALLAR:\n" +
   "1. Sayıları sertifikada yazıldığı gibi, metin olarak kopyala (ondalık virgül, sondaki sıfırlar, E-notasyonu aynen). Hiçbir sayıyı hesaplama, yuvarlama, tamamlama, düzeltme.\n" +
-  "2. `referans` = referans/standart/uygulanan/set/nominal değer. `olculen` = test edilen cihazın okuması (ya da sertifikada 'ölçülen/okunan/gösterge' sütunu). Etüv/kabin gibi cihazlarda referans = set değeri, ölçülen = kabin ortalaması.\n" +
-  "3. `hata`: sertifikada yazılı hata/sapma sütunu; yoksa null. `belirsizlik`: genişletilmiş belirsizlik (U) o satır için; yoksa null. Birim sütun başlığında ya da hücrede olabilir; her noktaya yaz (µΩ, mΩ, kV, mm, °C …).\n" +
+  "2. Her nokta için iki değeri sütun BAŞLIĞINA bakarak ayır (sütun sırasına değil):\n" +
+  "   `cihaz_degeri` = KALİBRE EDİLEN (test edilen) cihaza ait değer: cihazın göstergesi/okuması ya da cihaza girilen/ayarlanan set değeri (başlıklar: 'Test Değeri', 'Test Cihazından', 'Gösterge', 'Okunan', 'Set', 'Kalibre Edilen Cihaz').\n" +
+  "   `referans_degeri` = REFERANS (standart) cihazın ölçtüğü/uyguladığı gerçek değer (başlıklar: 'Referans', 'Reference', 'Standart', 'Uygulanan', 'Nominal', 'Girilen', 'Test Ağırlığı').\n" +
+  "   Etüv/su banyosu/fırın gibi kabinlerde: cihaz_degeri = set sıcaklığı, referans_degeri = kabin ortalaması.\n" +
+  "3. `hata`: sertifikada yazılı hata/sapma sütunu; yoksa null. `belirsizlik`: genişletilmiş belirsizlik (U) o satır için; yoksa null. `birim` = referans ve cihaz değerlerinin birimi; `hata_birimi` ve `belirsizlik_birimi` farklıysa (ör. değerler mm, sapma µm) ayrıca yaz, aynıysa `birim` ile aynısını yaz. Birim sütun başlığında ya da hücrede olabilir (µΩ, mΩ, kV, mm, °C …). Belirsizlik tek bir genel değer olarak verilmişse (ör. 'Ölçüm Belirsizliği: ± 7,0 µm') her noktaya o değeri yaz.\n" +
   "4. `tablo`: satırın ait olduğu tablonun/testin adı (ör. 'Doğrusallık', 'DC Direnç Doğruluk Testi'). `aralik`: ölçüm aralığı ya da kademe (ör. '0-200 mΩ'), yoksa boş.\n" +
   "5. Tekrarlanabilirlik, köşe yükü, histerezis gibi testlerin satırlarını da ver ama `tablo` alanında test adını belirt; birden çok ölçüm sütunu varsa (ön/arka, artan/azalan) her sütun için ayrı nokta ver ve `not` alanına sütunu yaz.\n" +
   "6. Okuyamadığın ya da emin olmadığın bir yer varsa uydurma: o noktayı atla ve `okunamayan` listesine nerede olduğunu yaz.\n" +
-  "7. Sertifika no, kalibrasyon tarihi (GG.AA.YYYY) ve cihaz adını da doldur.";
+  "7. Sertifika no, kalibrasyon tarihi (GG.AA.YYYY) ve cihaz adını doldur. `olcum_araligi`: kalibre edilen cihazın ölçme sahası/aralığı (ör. '0-10 l/min'); `cozunurluk`: cihazın çözünürlüğü birimiyle (ör. '0,01 l/min'). Sertifikada yoksa boş bırak; birden çok aralık ve çözünürlük varsa hepsini '; ' ile yaz.";
 // Yapılandırılmış çıktı şeması (output_config.format): yanıt bu şemaya UYMAK ZORUNDA (her nesnede additionalProperties: false, tüm alanlar zorunlu; boş olabilenler null)
 const CL_NULL_STR = { anyOf: [{ type: "string" }, { type: "null" }] };
 const CL_SEMA = { type: "object", additionalProperties: false,
-  required: ["sertifika_no", "kalibrasyon_tarihi", "cihaz", "noktalar", "okunamayan", "notlar"],
+  required: ["sertifika_no", "kalibrasyon_tarihi", "cihaz", "olcum_araligi", "cozunurluk", "noktalar", "okunamayan", "notlar"],
   properties: {
-    sertifika_no: { type: "string" }, kalibrasyon_tarihi: { type: "string" }, cihaz: { type: "string" },
+    sertifika_no: { type: "string" }, kalibrasyon_tarihi: { type: "string" }, cihaz: { type: "string" }, olcum_araligi: { type: "string" }, cozunurluk: { type: "string" },
     noktalar: { type: "array", items: { type: "object", additionalProperties: false,
-      required: ["tablo", "aralik", "buyukluk", "birim", "referans", "olculen", "hata", "belirsizlik", "not"],
+      required: ["tablo", "aralik", "buyukluk", "birim", "referans_degeri", "cihaz_degeri", "hata", "hata_birimi", "belirsizlik", "belirsizlik_birimi", "not"],
       properties: { tablo: { type: "string" }, aralik: { type: "string" }, buyukluk: { type: "string" }, birim: { type: "string" },
-        referans: { type: "string" }, olculen: { type: "string" }, hata: CL_NULL_STR, belirsizlik: CL_NULL_STR, not: { type: "string" } } } },
+        referans_degeri: { type: "string" }, cihaz_degeri: { type: "string" }, hata: CL_NULL_STR, hata_birimi: { type: "string" }, belirsizlik: CL_NULL_STR, belirsizlik_birimi: { type: "string" }, not: { type: "string" } } } },
     okunamayan: { type: "array", items: { type: "string" } }, notlar: { type: "string" } } };
 function clIstek_(dosya, anahtar, model) {   // UrlFetchApp.fetchAll için istek nesnesi
   const baytlar = dosya.getBlob().getBytes(); if (baytlar.length > 30 * 1024 * 1024) throw new Error("PDF 30 MB'tan büyük");
@@ -119,6 +138,29 @@ function clApi_(dosya) {
   throw new Error("API yoğun, sonra tekrar deneyin");
 }
 
+// 1.4: Cihazlar özet sütunları (Ajan_Genel ile aynı biçim)
+const clGenel_ = (S, kr) => !kr ? "Kriter tanımlı değil (Kabul_Kriterleri)" : (typeof genelKarar_ === "function" ? genelKarar_(S.map(x => x.kk.karar)) : S.map(x => x.kk.karar).join(","));
+function clOzetYaz_(sh, r, S, kr) {
+  if (typeof sutunGaranti_ !== "function") return;
+  let enk = null; S.forEach(x => { if (!enk || Math.abs(x.d.hata) > Math.abs(enk.d.hata)) enk = x; });
+  const yaz = (adi, deger) => { const c = sutunGaranti_(sh, adi); sh.getRange(r + 1, c + 1).setNumberFormat("@").setValue(deger); };
+  yaz("Kabul Kriteri", kr && typeof gnKriterYazi_ === "function" ? gnKriterYazi_(kr) : "");
+  yaz("Max Hata", enk ? (enk.d.hata > 0 ? "+" : "") + String(enk.d.hataYazi).replace(/^\+/, "") + " " + enk.d.birim + " (" + String(enk.p.referans).trim() + ")" : "");
+  yaz("Kal. Kontrol Sonucu", clGenel_(S, kr));
+  const ct = sutunGaranti_(sh, "Kal. Kontrol Tarihi"); sh.getRange(r + 1, ct + 1).setValue(new Date());
+}
+// 1.4: ölçüm aralığı ve çözünürlük. Boş hücreye yazılır. Çözünürlük, aralığın üst sınırına eşit ya da büyükse (ör. "0-10 l/min" için "10 l/min") açıkça yanlıştır → sertifikadaki değerle düzeltilir. Döner: rapor notu
+function clAralikCozYaz_(sh, v, r, iAr, iCz, sonuc) {
+  const notlar = [], ar = String(sonuc.olcum_araligi || "").trim(), cz = String(sonuc.cozunurluk || "").trim();
+  if (iAr >= 0 && ar && !String(v[r][iAr]).trim()) { sh.getRange(r + 1, iAr + 1).setValue(ar); v[r][iAr] = ar; notlar.push("aralık yazıldı: " + ar); }
+  if (iCz >= 0 && cz && !/;/.test(cz)) {
+    const eski = String(v[r][iCz]).trim(), ust = Math.max(0, ...(String(v[r][iAr] || ar).match(/\d+(?:[.,]\d+)?/g) || ["0"]).map(clSayi_)), ev = clSayi_(eski);
+    if (!eski) { sh.getRange(r + 1, iCz + 1).setValue(cz); v[r][iCz] = cz; notlar.push("çözünürlük yazıldı: " + cz); }
+    else if (ust && !isNaN(ev) && ev >= ust && clSayi_(cz) < ust) { sh.getRange(r + 1, iCz + 1).setValue(cz); v[r][iCz] = cz; notlar.push("çözünürlük düzeltildi: " + eski + " → " + cz); }
+    else if (eski.replace(/\s/g, "") !== cz.replace(/\s/g, "")) notlar.push("⚠ çözünürlük Cihazlar'da " + eski + ", sertifikada " + cz + " (kontrol edin)");
+  }
+  return notlar.join(" · ");
+}
 // ---------- ana işlev ----------
 const clCertDosyadan_ = ad => (String(ad).replace(/\.pdf$/i, "").match(/_([^_]+)$/) || [])[1] || "";
 // sadece: { "KK-05": 1 } verilirse yalnız o cihazlar (daha önce okunmuş olsa da yeniden); verilmezse GN_BASARISIZ listesindeki ve henüz okunmamış cihazlar. Döner: rapor metni
@@ -126,8 +168,9 @@ function claudeOku(sadece) {
   if (sadece && typeof sadece !== "object") sadece = null;
   const ss = SpreadsheetApp.openById(SHEET_ID), sh = ss.getSheetByName(AYAR.SEKME), v = sh.getDataRange().getValues(), h = v[0], idx = dosyaIndeksi_();
   const iId = sutun_(h, AYAR.KAYIT_BASLIK), iAd = sutun_(h, "Cihaz Adı"), iMa = bul_(h, ["Marka"]), iMo = bul_(h, ["Model"]), iKt = bul_(h, ["Kalibrasyon Tarihi"]);
+  const iAr = bul_(h, ["Ölçüm Aralığı", "Ölçüm Aralığı (Kapasite)", "Kapasite", "Ölçüm Aralığı - Kapasite"]), iCz = bul_(h, ["Çözünürlük"]);
   let ns = ss.getSheetByName(NOKTA_SEKME); if (!ns) { ns = ss.insertSheet(NOKTA_SEKME); ns.getRange(1, 1, 1, NOKTA_BASLIK.length).setValues([NOKTA_BASLIK]).setFontWeight("bold"); ns.setFrozenRows(1); }
-  const P = PropertiesService.getScriptProperties(), karar = /a[çc][ıi]k/i.test(P.getProperty("CLAUDE_KARAR") || ""), bas = Date.now(), model = P.getProperty("CLAUDE_MODEL") || "claude-sonnet-5-5";
+  const P = PropertiesService.getScriptProperties(), karar = !/kapal/i.test(P.getProperty("CLAUDE_KARAR") || ""), bas = Date.now(), model = P.getProperty("CLAUDE_MODEL") || "claude-sonnet-5-5";
   const basarisiz = JSON.parse(P.getProperty("GN_BASARISIZ") || "{}");   // "KK-05|sertNo" → neden/tarih  (Genel okuyucunun okuyamadıkları)
   let tum = ns.getDataRange().getValues().slice(1).filter(r => String(r[0]).trim() !== "").map(r => { const s = r.slice(0, NOKTA_BASLIK.length); while (s.length < NOKTA_BASLIK.length) s.push(""); return s; });
   const okunmus = {}; tum.forEach(r => { okunmus[anahtar_(r[0]) + "|" + String(r[1]).trim()] = 1; });
@@ -140,20 +183,23 @@ function claudeOku(sadece) {
     if (Date.now() - bas > 170000) { kaldi++; continue; }
     let sonuc; const dosyaId = (/\/d\/([\w-]+)/.exec(d.url) || [0, ""])[1];
     try { sonuc = clApi_(DriveApp.getFileById(dosyaId)); } catch (e) { sorunlu.push(id + ": " + e.message); continue; }
-    const dog = clYanitDogrula_(sonuc), certYaz = String(sonuc.sertifika_no || cert || "").trim() || cert, ad = String(v[r][iAd]);
+    const ad = String(v[r][iAd]), ayar = clAyarMi_(ad), dog = clYanitDogrula_(sonuc, ayar), certYaz = String(sonuc.sertifika_no || cert || "").trim() || cert;
     if (!dog.satirlar.length) { sorunlu.push(id + ": nokta okunamadı" + (dog.uyari.length ? " (" + dog.uyari.slice(0, 2).join("; ") + ")" : "")); continue; }
-    const kr = karar ? gnKriterBul_(ss, ad, iMa >= 0 ? v[r][iMa] : "", iMo >= 0 ? v[r][iMo] : "") : null;
+    const arNot = clAralikCozYaz_(sh, v, r, iAr, iCz, sonuc);   // ölçüm aralığı / çözünürlük sertifikadan (boşsa yazılır; çözünürlük aralığın üst sınırına eşit ya da büyükse düzeltilir)
+    const fs = iAr >= 0 ? Math.max(0, ...(String(v[r][iAr]).match(/\d+(?:[.,]\d+)?/g) || ["0"]).map(clSayi_)) || null : null;
+    const kr = karar && typeof gnKriterBul_ === "function" ? gnKriterBul_(ss, ad, iMa >= 0 ? v[r][iMa] : "", iMo >= 0 ? v[r][iMo] : "") : null;
     const yeni = dog.satirlar.map(x => {
-      const d2 = x.d, top = Math.abs(d2.hata) + (d2.u || 0), kk = karar ? (kr ? gnKarar_(d2.ref, d2.hata, d2.u, kr, d2.birim, null) : { lim: null, karar: "KRİTER YOK" }) : { lim: null, karar: "—" };
-      const not = [CL_NOT + " (" + model + ")"].concat(x.p.not ? [String(x.p.not)] : [], d2.notlar, d2.uyari).join("; ");
-      return [id, certYaz, iKt >= 0 ? v[r][iKt] : (sonuc.kalibrasyon_tarihi || ""), x.buyukluk, x.aralik, String(x.p.referans).trim(), String(x.p.olculen).trim(), d2.hataYazi, d2.u === null ? "" : String(x.p.belirsizlik).trim(), d2.birim,
+      const d2 = x.d, top = Math.abs(d2.hata) + (d2.u || 0), kk = karar ? (kr ? gnKarar_(d2.ref, d2.hata, d2.u, kr, d2.birim, fs) : { lim: null, karar: "KRİTER YOK" }) : { lim: null, karar: "—" };
+      const not = [CL_NOT + " (" + model + ")", ayar ? "ayar cihazı: Referans = cihaza girilen, Ölçülen = gerçek" : ""].filter(Boolean).concat(x.p.not ? [String(x.p.not)] : [], d2.notlar, d2.uyari).join("; ");
+      x.kk = kk; return [id, certYaz, iKt >= 0 ? v[r][iKt] : (sonuc.kalibrasyon_tarihi || ""), x.buyukluk, x.aralik, String(x.p.referans).trim(), String(x.p.olculen).trim(), d2.hataYazi, d2.u === null ? "" : d2.uYazi, d2.birim,
         kk.lim === null || kk.lim === undefined ? "" : String(+kk.lim.toPrecision(4)).replace(".", ","), String(+top.toPrecision(5)).replace(".", ","), kk.karar, not, new Date()];
     });
     tum = tum.filter(x => anahtar_(x[0]) !== k).concat(yeni);   // bu cihazın eski satırları yenileriyle değişir
     const son = ns.getLastRow(); if (son > 1) ns.getRange(2, 1, son - 1, Math.max(ns.getLastColumn(), NOKTA_BASLIK.length)).clearContent();
     ns.getRange(2, 6, tum.length, 7).setNumberFormat("@"); ns.getRange(2, 1, tum.length, NOKTA_BASLIK.length).setValues(tum);   // her cihazdan sonra yazılır; süre dolsa da kayıp olmaz
+    if (karar) clOzetYaz_(sh, r, dog.satirlar, kr);   // Cihazlar: Kabul Kriteri · Max Hata · Kal. Kontrol Sonucu · Kal. Kontrol Tarihi (diğer ajanlarla aynı)
     okunmus[k + "|" + certYaz] = 1; okunmus[anah] = 1; delete basarisiz[anah]; yapilan++;
-    rapor.push(id + " (" + certYaz + "): " + yeni.length + " nokta" + (dog.uyari.length ? " · ⚠ " + dog.uyari.length + " uyarı: " + dog.uyari.slice(0, 3).join("; ") : " · uyarı yok"));
+    rapor.push(id + " (" + certYaz + "): " + yeni.length + " nokta" + (karar ? " → " + clGenel_(dog.satirlar, kr) : "") + (arNot ? " · " + arNot : "") + (dog.uyari.length ? " · ⚠ " + dog.uyari.length + " uyarı: " + dog.uyari.slice(0, 3).join("; ") : " · uyarı yok"));
   }
   P.setProperty("GN_BASARISIZ", JSON.stringify(basarisiz));   // Claude'un okuduğu cihazlar Genel okuyucunun "okunamayan" listesinden çıkar
   const metin = "Yedek okuyucu (Claude):\n" + (rapor.join("\n") || "okunan cihaz yok") + (sorunlu.length ? "\n\nOkunamadı (" + sorunlu.length + "):\n" + sorunlu.join("\n") : "") + (atlandi ? "\n\nBu arada okunmuş (atlandı): " + atlandi : "") + (kaldi ? "\n⏱ Süre doldu, kalan " + kaldi + " cihaz – sonraki tur okur." : "");
@@ -268,10 +314,10 @@ function claudeTumOku_() {
     yanitlar.forEach((y, j) => {
       const g = gecerli[j], c = clYanitCoz_(y.getResponseCode(), y.getContentText());
       if (c.tekrar) return;   // sonraki tur yeniden dener
-      const dog = c.input ? clYanitDogrula_(c.input) : { satirlar: [], uyari: [c.hata] };
+      const dog = c.input ? clYanitDogrula_(c.input, clAyarMi_(g.ad)) : { satirlar: [], uyari: [c.hata] };
       if (!dog.satirlar.length) { hatalar[g.anah] = (hatalar[g.anah] || 0) + 1; if (hatalar[g.anah] >= 2) kars = kars.filter(x => !(anahtar_(x[0]) === g.k && String(x[2]) === g.cert)).concat([[g.id, g.ad, g.cert, 0, (mev[g.anah] || []).length, "", "", "", "", "✗ Claude okuyamadı", "", dog.uyari.slice(0, 3).join("; "), new Date()]]); return; }
       const certYaz = String(c.input.sertifika_no || g.cert).trim() || g.cert;
-      const satir = dog.satirlar.map(x => { const d2 = x.d; const row = [g.id, certYaz, iKt >= 0 ? v[g.r][iKt] : (c.input.kalibrasyon_tarihi || ""), x.buyukluk, x.aralik, String(x.p.referans).trim(), String(x.p.olculen).trim(), d2.hataYazi, d2.u === null ? "" : String(x.p.belirsizlik).trim(), d2.birim, "", String(+(Math.abs(d2.hata) + (d2.u || 0)).toPrecision(5)).replace(".", ","), "—", [CL_NOT + " (" + model + ")"].concat(x.p.not ? [String(x.p.not)] : [], d2.notlar, d2.uyari).join("; "), new Date()]; while (row.length < 19) row.push(""); row.push(g.cert); return row; });
+      const satir = dog.satirlar.map(x => { const d2 = x.d; const row = [g.id, certYaz, iKt >= 0 ? v[g.r][iKt] : (c.input.kalibrasyon_tarihi || ""), x.buyukluk, x.aralik, String(x.p.referans).trim(), String(x.p.olculen).trim(), d2.hataYazi, d2.u === null ? "" : d2.uYazi, d2.birim, "", String(+(Math.abs(d2.hata) + (d2.u || 0)).toPrecision(5)).replace(".", ","), "—", [CL_NOT + " (" + model + ")"].concat(x.p.not ? [String(x.p.not)] : [], d2.notlar, d2.uyari).join("; "), new Date()]; while (row.length < 19) row.push(""); row.push(g.cert); return row; });
       cn = cn.filter(x => anahtar_(x[0]) !== g.k).concat(satir);
       const K = clKarsilastir_(dog.satirlar.map(x => ({ ref: x.d.ref, olc: x.d.olc, birim: x.d.birim })), mev[g.anah] || []);
       const ayr = K.farkli.slice(0, 4).map(f => "ref " + f.ref + " " + f.birim + ": Claude " + f.claude + " / mevcut " + f.mevcut).concat(K.yalnizMevcut.slice(0, 3).map(b => "yalnız mevcutta: ref " + b.ref + " " + b.birim)).join(" · ");
@@ -307,4 +353,4 @@ function claudeYeniAktar() {
   bildir_("Kalibrasyon_Noktalari'na eklendi: " + ek.length + " nokta, " + Object.keys(ek.reduce((o, r) => (o[anahtar_(r[0])] = 1, o), {})).length + " cihaz.\nKarar sütunu \"—\"; Okuma_Denetimi ile kontrol edin.");
 }
 
-if (typeof module !== "undefined") module.exports = { clYanitCoz_, clKarsilastir_, clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };
+if (typeof module !== "undefined") module.exports = { clAyarMi_, clYanitCoz_, clKarsilastir_, clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };
