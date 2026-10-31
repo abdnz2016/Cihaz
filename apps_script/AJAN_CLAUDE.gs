@@ -7,7 +7,7 @@
 function ajanKimlik_Claude() {
   return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.2", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
-           menu: [["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını Kalibrasyon_Noktalari'na aktar", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satırdaki cihazı Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"]],
+           menu: [["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını Kalibrasyon_Noktalari'na aktar", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satırdaki cihazı Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
            gunluk: null, web: {} };
 }
 const CL_API = "https://api.anthropic.com/v1/messages", CL_NOT = "Claude okuyucu";
@@ -187,6 +187,16 @@ function claudeAnahtarKaydet() {
   PropertiesService.getScriptProperties().setProperty("ANTHROPIC_API_KEY", y.getResponseText().trim()); bildir_("API anahtarı kaydedildi.");
 }
 
+// Anahtar, model ve dış bağlantı izni doğru mu? Küçük bir istek gönderir (maliyeti önemsiz)
+function claudeBaglantiTest() {
+  let anahtar; try { anahtar = clAnahtar_(); } catch (e) { return bildir_("✗ " + e.message); }
+  const model = clModel_(), y = UrlFetchApp.fetch(CL_API, { method: "post", contentType: "application/json", headers: { "x-api-key": anahtar, "anthropic-version": "2023-06-01" },
+    payload: JSON.stringify({ model: model, max_tokens: 20, messages: [{ role: "user", content: "Sadece TAMAM yaz." }] }), muteHttpExceptions: true });
+  const kod = y.getResponseCode(), m = y.getContentText();
+  if (kod === 200) return bildir_("✓ Claude bağlantısı çalışıyor.\nModel: " + model + "\nYanıt: " + ((JSON.parse(m).content || [])[0] || {}).text);
+  const ipucu = kod === 401 ? "API anahtarı geçersiz – menüden yeniden kaydedin." : kod === 404 ? "Model adı bulunamadı – Script Properties'teki CLAUDE_MODEL değerini kontrol edin." : kod === 400 && /credit|balance/i.test(m) ? "Hesapta kredi yok – console.anthropic.com → Billing." : kod === 429 ? "Hız sınırı – birkaç dakika sonra deneyin." : "";
+  bildir_("✗ Bağlantı hatası " + kod + (ipucu ? "\n" + ipucu : "") + "\n\n" + m.slice(0, 300));
+}
 // ===== 1.2: TÜM SERTİFİKALAR – bağımsız okuma ve karşılaştırma (Kalibrasyon_Noktalari'na DOKUNMAZ) =====
 const CL_SEKME = "Claude_Noktalari", CL_KARS = "Claude_Karsilastirma";
 const CL_KARS_BAS = ["Kayıt No", "Cihaz Adı", "Sertifika No", "Claude Nokta", "Mevcut Nokta", "Eşleşen", "Farklı", "Yalnız Claude", "Yalnız Mevcut", "Durum", "Ayrıntı", "Uyarı", "Zaman"];
