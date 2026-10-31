@@ -1,9 +1,9 @@
-/***** AJAN_GENEL 1.7 (1.7: kriter birim çevriminde Ω/mΩ/µΩ/kΩ/MΩ, W, ml · 1.6: çözünürlük aramasında ölçüm aralığı "0-10 l/min" çözünürlük sayılmaz; aralık üst sınırına eşit/büyük çözünürlük düzeltilir · 1.5: bilimsel gösterim, standart direnç; ölçüm aralığı + çözünürlük sertifikadan; noktalı ondalık, sütun dökümü tablolar (METKAL vb.), debimetre; okunamayanlar atlanır, birim cihaz türünden, arka planda okuma; F7.10-02 Rev 1 kriterleri; tipler: mutlak, % okuma, % okuma + sabit, en büyüğü, OIML R35, % tam skala) – Genel kalibrasyon sertifikası okuyucu (özel ajanı olmayan TÜM cihaz türleri: kumpas, mikrometre, YG, sparktester, terazi, manometre…)
+/***** AJAN_GENEL 1.8 (1.8: yazmadan önce sekme yeniden okunur, başka ajanların satırları korunur · 1.7: kriter birim çevriminde Ω/mΩ/µΩ/kΩ/MΩ, W, ml · 1.6: çözünürlük aramasında ölçüm aralığı "0-10 l/min" çözünürlük sayılmaz; aralık üst sınırına eşit/büyük çözünürlük düzeltilir · 1.5: bilimsel gösterim, standart direnç; ölçüm aralığı + çözünürlük sertifikadan; noktalı ondalık, sütun dökümü tablolar (METKAL vb.), debimetre; okunamayanlar atlanır, birim cihaz türünden, arka planda okuma; F7.10-02 Rev 1 kriterleri; tipler: mutlak, % okuma, % okuma + sabit, en büyüğü, OIML R35, % tam skala) – Genel kalibrasyon sertifikası okuyucu (özel ajanı olmayan TÜM cihaz türleri: kumpas, mikrometre, YG, sparktester, terazi, manometre…)
  * Birimden bağımsız: 1) "Referans · Ölçülen · Hata (· U)" tablolarını sütun/satır düzeniyle  2) olmazsa ardışık "referans ölçülen hata" üçlülerini arar.
  * Her nokta hata = ölçülen − referans ile doğrulanır (hata farklı birimde olabilir: mm ↔ µm, ×1000). Tutmayan tablo KABUL EDİLMEZ → tanı dosyası.
  * Kriter: Kabul_Kriterleri (Birim sütunu ile, ölçüm raporunun kriterleriyle başlar). Karar: belirsizlik dahil üç durum. Öncelik 99: özel ajanlardan sonra. *****/
 function ajanKimlik_Genel() {
-  return { kod: "GENEL", ad: "Genel okuyucu", surum: "1.7", aciklama: "Özel ajanı olmayan sertifikaları birimden bağımsız okur",
+  return { kod: "GENEL", ad: "Genel okuyucu", surum: "1.8", aciklama: "Özel ajanı olmayan sertifikaları birimden bağımsız okur",
            menu: [["Arka planda oku (otomatik, önerilen)", "genelArkaPlanBaslat"], ["Arka plan durumunu göster", "genelArkaPlanDurum"], ["Arka planda okumayı durdur", "genelArkaPlanDurdur"], ["Diğer tüm sertifikaları oku (bir tur)", "genelOku"], ["Genel okuyucu satırlarını temizle (yeniden okuma)", "gnSatirlariTemizle"], ["Genel kabul kriterlerini ekle (eksikler)", "gnKriterleriEkle"], ["Kabul kriterlerini F7.10-02 Rev 1'e güncelle", "kriterRev1Uygula"]], gunluk: null, web: {},
            okuma: { desen: ".", islev: "genelOku", oncelik: 99 } };
 }
@@ -434,7 +434,8 @@ function genelOku(sadece) {
   }
   prop.setProperty("GN_BASARISIZ", JSON.stringify(basarisiz));
   if (yeni.length) {
-    const kalan = eski.slice(1).filter(x => String(x[0]).trim() !== "" && !islenen[anahtar_(x[0])]).map(x => { const s = x.slice(0, NOKTA_BASLIK.length); while (s.length < NOKTA_BASLIK.length) s.push(""); return s; });
+    // 1.8: yazmadan hemen önce yeniden okunur – başka ajanların arada yazdığı satırlar silinmez
+    const kalan = ns.getDataRange().getValues().slice(1).filter(x => String(x[0]).trim() !== "" && !islenen[anahtar_(x[0])]).map(x => { const s = x.slice(0, NOKTA_BASLIK.length); while (s.length < NOKTA_BASLIK.length) s.push(""); return s; });
     const tum = kalan.concat(yeni), son = ns.getLastRow();
     if (son > 1) ns.getRange(2, 1, son - 1, Math.max(ns.getLastColumn(), NOKTA_BASLIK.length)).clearContent();
     ns.getRange(2, 6, tum.length, 7).setNumberFormat("@"); ns.getRange(2, 1, tum.length, NOKTA_BASLIK.length).setValues(tum);
