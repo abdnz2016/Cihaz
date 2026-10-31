@@ -1,13 +1,13 @@
-/***** AJAN_CLAUDE 1.4 (yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
+/***** AJAN_CLAUDE 1.5 (eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
  * AJAN_GENEL'e DOKUNMAZ ve Yönlendirici'ye bağlanmaz (okuma anahtarı yok): yalnızca menüden çalışır.
  * Hedef: GN_BASARISIZ listesindeki (Genel okuyucunun okuyamadığı) cihazlar ya da seçili satırdaki cihaz. Daha önce okunmuş sertifikalar atlanır.
  * Sayılar sertifikada yazıldığı gibi (metin) alınır; hata = ölçülen − referans her noktada yeniden doğrulanır; tutmayan hata uyarı olarak yazılır.
  * Karar Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) verilir ve Cihazlar özet sütunları yazılır. Kapatmak için Script Properties: CLAUDE_KARAR = kapalı.
  * Gerekenler: Script Properties → ANTHROPIC_API_KEY (menüden kaydedilir). İsteğe bağlı: CLAUDE_MODEL (varsayılan claude-sonnet-5-5). *****/
 function ajanKimlik_Claude() {
-  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.4", sira: 95,
+  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.5", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
-           menu: [["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını Kalibrasyon_Noktalari'na aktar", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satırdaki cihazı Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
+           menu: [["EKSİK TÜRLER (listedeki) – Claude ile oku ve karşılaştır", "claudeEksikTurler"], ["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını Kalibrasyon_Noktalari'na aktar", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
            gunluk: null, web: {} };
 }
 const CL_API = "https://api.anthropic.com/v1/messages", CL_NOT = "Claude okuyucu";
@@ -228,9 +228,13 @@ function claudeDurum() {
   const d = JSON.parse(PropertiesService.getScriptProperties().getProperty("CL_SON") || "{}"), cal = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === "claudeArkaTur");
   bildir_(!d.zaman ? (cal ? "Başladı, ilk tur 5 dakika içinde." : "Henüz çalışmadı.") : (cal ? "🔄 Sürüyor." : (d.kaldi === 0 ? "✓ Tamamlandı." : "⏸ Durdu.")) + "\nSon tur: " + new Date(d.zaman).toLocaleString("tr-TR") + " · bu turda " + d.yapilan + " cihaz · kalan " + d.kaldi + " · okunamayan " + d.hata + "\n\n" + d.mesaj);
 }
-function claudeSeciliOku() {   // Cihazlar sekmesinde seçili satırın cihazını (okunmuş olsa da) Claude ile yeniden okur
-  const sh = SpreadsheetApp.getActiveSheet(), r = sh.getActiveRange().getRow(); if (r < 2) return bildir_("Cihazlar sekmesinde bir cihaz satırı seçin.");
-  const h = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0], id = sh.getRange(r, sutun_(h, AYAR.KAYIT_BASLIK) + 1).getValue(), o = {}; o[anahtar_(id)] = 1;
+// Cihazlar sekmesinde SEÇİLİ satırların cihazlarını (okunmuş olsalar da) Claude ile yeniden okur. Birden çok satır seçilebilir (Ctrl/Shift ile).
+// Bir çalıştırmada süre yeterli olduğu kadar cihaz okunur (~5-6); kalanlar mesajda yazar, komutu tekrar çalıştırınca okunmuşlar atlanmaz → yalnız seçimi daraltın.
+function claudeSeciliOku() {
+  const sh = SpreadsheetApp.getActiveSheet(), h = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0], iId = sutun_(h, AYAR.KAYIT_BASLIK), o = {};
+  const satirlar = []; (sh.getActiveRangeList() ? sh.getActiveRangeList().getRanges() : [sh.getActiveRange()]).forEach(rg => { for (let r = rg.getRow(); r < rg.getRow() + rg.getNumRows(); r++) if (r >= 2) satirlar.push(r); });
+  if (!satirlar.length) return bildir_("Cihazlar sekmesinde bir ya da daha çok cihaz satırı seçin.");
+  satirlar.forEach(r => { const id = sh.getRange(r, iId + 1).getValue(); if (id) o[anahtar_(id)] = 1; });
   bildir_(claudeOku(o));
 }
 function claudeAnahtarKaydet() {
@@ -269,7 +273,14 @@ function clKarsilastir_(A, B) {
   return sonuc;
 }
 function clSekme_(ss, ad, bas) { let s = ss.getSheetByName(ad); if (!s) { s = ss.insertSheet(ad); s.getRange(1, 1, 1, bas.length).setValues([bas]).setFontWeight("bold").setBackground("#14305e").setFontColor("#ffffff"); s.setFrozenRows(1); } return s; }
-function claudeTumunuKarsilastir() {
+// Dün verilen eksik türler listesi (Cihaz Adı'nda aranır)
+const CL_EKSIK_TURLER = /miliohm|megaohm|mikrometre|standart\s*diren|çelik\s*metre|celik\s*metre|flowmetre|debimetre|ampermetre|wattmetre|yüksek\s*gerilim\s*prob|ph\s*-?\s*metre|yoğunluk\s*filtre|yogunluk\s*filtre|karl|kumpas|kül\s*fırın|kul\s*firin|blok\s*mastar|halka\s*mastar|kısmi\s*deşarj|kismi\s*desarj|komparatör|komparator|çap\s*mastar|cap\s*mastar|bakır\s*çubuk|bakir\s*cubuk|cam\s*filtre|aşındırma|asindirma|basınç|basinc|balon\s*joje|balonjoje|kronometre|ısı\s*kalibratör|isi\s*kalibrator|mezur|sirkometre|çap\s*ölçer|cap\s*olcer|gaz\s*anali|spark|kantar|güç\s*kayna|guc\s*kayna/i;
+function claudeEksikTurler() {   // yalnız listedeki türler: Claude okur ve mevcut okumayla karşılaştırır (Kalibrasyon_Noktalari'na dokunmaz)
+  PropertiesService.getScriptProperties().setProperty("CL_TUM_FILTRE", CL_EKSIK_TURLER.source);
+  claudeTumunuKarsilastir(true);
+}
+function claudeTumunuKarsilastir(filtreli) {
+  if (filtreli !== true) PropertiesService.getScriptProperties().deleteProperty("CL_TUM_FILTRE");
   clAnahtar_(); claudeTumDurdur(true);
   ScriptApp.newTrigger("claudeTumTur").timeBased().everyMinutes(5).create();
   bildir_("Tüm sertifikalar Claude ile arka planda okunuyor (5 dakikada bir tur, her turda " + (Number(PropertiesService.getScriptProperties().getProperty("CLAUDE_PARALEL")) || 4) + " sertifika aynı anda; bitince durur).\n\nKalibrasyon_Noktalari'na DOKUNULMAZ. Sonuçlar:\n• Claude_Noktalari – Claude'un okuduğu noktalar\n• Claude_Karsilastirma – her cihaz için mevcut okumayla karşılaştırma\n\nİlerleme: Karşılaştırma durumunu göster.");
@@ -289,7 +300,7 @@ function claudeTumOku_() {
   const ss = SpreadsheetApp.openById(SHEET_ID), sh = ss.getSheetByName(AYAR.SEKME), v = sh.getDataRange().getValues(), h = v[0], idx = dosyaIndeksi_(), bas = Date.now();
   const iId = sutun_(h, AYAR.KAYIT_BASLIK), iAd = sutun_(h, "Cihaz Adı"), iKt = bul_(h, ["Kalibrasyon Tarihi"]);
   const P = PropertiesService.getScriptProperties(), anahtar = clAnahtar_(), model = clModel_(), paralel = Math.min(8, Math.max(1, Number(P.getProperty("CLAUDE_PARALEL")) || 4));
-  const hatalar = JSON.parse(P.getProperty("CL_TUM_HATA") || "{}");   // "KK-05|sert" → deneme sayısı (2 kez okunamayan atlanır)
+  const hatalar = JSON.parse(P.getProperty("CL_TUM_HATA") || "{}"), filtre = P.getProperty("CL_TUM_FILTRE") ? new RegExp(P.getProperty("CL_TUM_FILTRE"), "i") : null;   // "KK-05|sert" → deneme sayısı (2 kez okunamayan atlanır)
   const cs = clSekme_(ss, CL_SEKME, NOKTA_BASLIK), ks = clSekme_(ss, CL_KARS, CL_KARS_BAS);
   let cn = cs.getDataRange().getValues().slice(1).filter(r => String(r[0]).trim() !== "");
   const yapilmis = {}; cn.forEach(r => { yapilmis[anahtar_(r[0]) + "|" + String(r[19] || r[1]).trim()] = 1; });
@@ -300,6 +311,7 @@ function claudeTumOku_() {
   const hedef = [];
   for (let r = 1; r < v.length; r++) {
     const id = v[r][iId]; if (!id) continue; const k = anahtar_(id), d = idx[k]; if (!d) continue;
+    if (filtre && !filtre.test(String(v[r][iAd])) && !filtre.test(String(v[r][iAd]).toLocaleLowerCase("tr"))) continue;
     const cert = clCertDosyadan_(d.ad), anah = k + "|" + cert; if (yapilmis[anah] || (hatalar[anah] || 0) >= 2) continue;
     hedef.push({ r, id, k, d, cert, anah, ad: String(v[r][iAd]) });
   }
@@ -353,4 +365,4 @@ function claudeYeniAktar() {
   bildir_("Kalibrasyon_Noktalari'na eklendi: " + ek.length + " nokta, " + Object.keys(ek.reduce((o, r) => (o[anahtar_(r[0])] = 1, o), {})).length + " cihaz.\nKarar sütunu \"—\"; Okuma_Denetimi ile kontrol edin.");
 }
 
-if (typeof module !== "undefined") module.exports = { clAyarMi_, clYanitCoz_, clKarsilastir_, clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };
+if (typeof module !== "undefined") module.exports = { CL_EKSIK_TURLER, clAyarMi_, clYanitCoz_, clKarsilastir_, clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };
