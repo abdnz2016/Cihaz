@@ -1,11 +1,11 @@
-/***** AJAN_CLAUDE 1.9 (güvenli yazma: başkalarının satırları korunur; başka sertifika no ile okunmuş cihaza dokunmaz; kredi/anahtar hatasında durur, cihaz işaretlenmez; aralık = en düşük–en yüksek, çözünürlük = en hassas; sertifika → üretici tamamlama; mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
+/***** AJAN_CLAUDE 1.10 (Sertifika No = dosya adındaki numara, diğer ajanlar yeniden okumaz; karşılaştırma sekmeleri de güvenli yazılır; güvenli yazma: başkalarının satırları korunur; başka sertifika no ile okunmuş cihaza dokunmaz; kredi/anahtar hatasında durur, cihaz işaretlenmez; aralık = en düşük–en yüksek, çözünürlük = en hassas; sertifika → üretici tamamlama; mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
  * AJAN_GENEL'e DOKUNMAZ ve Yönlendirici'ye bağlanmaz (okuma anahtarı yok): yalnızca menüden çalışır.
  * Hedef: GN_BASARISIZ listesindeki (Genel okuyucunun okuyamadığı) cihazlar ya da seçili satırdaki cihaz. Daha önce okunmuş sertifikalar atlanır.
  * Sayılar sertifikada yazıldığı gibi (metin) alınır; hata = ölçülen − referans her noktada yeniden doğrulanır; tutmayan hata uyarı olarak yazılır.
  * Karar Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) verilir ve Cihazlar özet sütunları yazılır. Kapatmak için Script Properties: CLAUDE_KARAR = kapalı.
  * Gerekenler: Script Properties → ANTHROPIC_API_KEY (menüden kaydedilir). İsteğe bağlı: CLAUDE_MODEL (varsayılan claude-sonnet-5-5). *****/
 function ajanKimlik_Claude() {
-  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.9", sira: 95,
+  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.10", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
            menu: [["EKSİK TÜRLER (listedeki) – Claude ile oku ve karşılaştır", "claudeEksikTurler"], ["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını işle (Kalibrasyon_Noktalari + karar + özet)", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Ölçüm aralığı / çözünürlük tamamla (sertifika → üretici)", "claudeAralikTamamla"], ["Hata kayıtlarını sıfırla (kredi bitti vb. sonrası)", "claudeHatalariSifirla"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
            gunluk: null, web: {} };
@@ -210,6 +210,9 @@ function clIsle_(ctx, r, id, certYaz, kt, satirlar, ara, ayar) {
   return { yeni: yeni, genel: karar ? clGenel_(satirlar, kr) : "", arNot: arNot };
 }
 // ---------- ana işlev ----------
+// 1.10: Sertifika No sütununa HER ZAMAN dosya adındaki numara yazılır – diğer ajanlar (genel, sıcaklık, direnç, sertifika ajanı) "okunmuş mu" kontrolünü bununla yapar.
+// PDF'teki yazım farklıysa (ör. "0094K - 0226 - 00935") yalnız Okuma Notu'na eklenir; aksi halde sertifika ajanı cihazı "yenilenmiş" sanıp yeniden okutur ve Claude satırlarının yerine yazar.
+const clSertNot_ = (dosya, pdf) => { const a = String(dosya || "").replace(/[\s-]/g, "").toUpperCase(), b = String(pdf || "").replace(/[\s-]/g, "").toUpperCase(); return pdf && a && a !== b ? "PDF'te sertifika no: " + String(pdf).trim() : ""; };
 const clCertDosyadan_ = ad => (String(ad).replace(/\.pdf$/i, "").match(/_([^_]+)$/) || [])[1] || "";
 // sadece: { "KK-05": 1 } verilirse yalnız o cihazlar (daha önce okunmuş olsa da yeniden); verilmezse GN_BASARISIZ listesindeki ve henüz okunmamış cihazlar. Döner: rapor metni
 function claudeOku(sadece) {
@@ -231,8 +234,9 @@ function claudeOku(sadece) {
     if (Date.now() - bas > 170000) { kaldi++; continue; }
     let sonuc; const dosyaId = (/\/d\/([\w-]+)/.exec(d.url) || [0, ""])[1];
     try { sonuc = clApi_(DriveApp.getFileById(dosyaId)); } catch (e) { sorunlu.push(id + ": " + e.message); continue; }
-    const ad = String(v[r][iAd]), ayar = clAyarMi_(ad), dog = clYanitDogrula_(sonuc, ayar), certYaz = String(sonuc.sertifika_no || cert || "").trim() || cert;
+    const ad = String(v[r][iAd]), ayar = clAyarMi_(ad), dog = clYanitDogrula_(sonuc, ayar), certYaz = cert || String(sonuc.sertifika_no || "").trim(), certNot = clSertNot_(cert, sonuc.sertifika_no);
     if (!dog.satirlar.length) { sorunlu.push(id + ": nokta okunamadı" + (dog.uyari.length ? " (" + dog.uyari.slice(0, 2).join("; ") + ")" : "")); continue; }
+    if (certNot) dog.satirlar.forEach(x => { x.d.notlar = (x.d.notlar || []).concat([certNot]); });
     const ctx = { ss, sh, v, iMa, iMo, iAr, iCz, karar, model }, isl = clIsle_(ctx, r, id, certYaz, iKt >= 0 ? v[r][iKt] : (sonuc.kalibrasyon_tarihi || ""), dog.satirlar, sonuc, ayar), yeni = isl.yeni, arNot = isl.arNot;
     const ki = {}; ki[k] = 1; clNoktaGuncelle_(ns, ki, yeni);   // yalnız bu cihazın satırları değişir; her cihazdan sonra yazılır
     okunmus[k + "|" + certYaz] = 1; okunmus[anah] = 1; delete basarisiz[anah]; yapilan++;
@@ -439,7 +443,8 @@ function claudeTumOku_() {
       if (c.tekrar) return;   // sonraki tur yeniden dener
       const dog = c.input ? clYanitDogrula_(c.input, clAyarMi_(g.ad)) : { satirlar: [], uyari: [c.hata] };
       if (!dog.satirlar.length) { hatalar[g.anah] = (hatalar[g.anah] || 0) + 1; if (hatalar[g.anah] >= 2) kars = kars.filter(x => !(anahtar_(x[0]) === g.k && String(x[2]) === g.cert)).concat([[g.id, g.ad, g.cert, 0, (mev[g.anah] || []).length, "", "", "", "", "✗ Claude okuyamadı", "", dog.uyari.slice(0, 3).join("; "), new Date()]]); return; }
-      const certYaz = String(c.input.sertifika_no || g.cert).trim() || g.cert;
+      const certYaz = g.cert || String(c.input.sertifika_no || "").trim(), certNot = clSertNot_(g.cert, c.input.sertifika_no);
+      if (certNot) dog.satirlar.forEach(x => { x.d.notlar = (x.d.notlar || []).concat([certNot]); });
       const satir = dog.satirlar.map(x => { const d2 = x.d; const row = [g.id, certYaz, iKt >= 0 ? v[g.r][iKt] : (c.input.kalibrasyon_tarihi || ""), x.buyukluk, x.aralik, String(x.p.referans).trim(), String(x.p.olculen).trim(), d2.hataYazi, d2.u === null ? "" : d2.uYazi, d2.birim, "", String(+(Math.abs(d2.hata) + (d2.u || 0)).toPrecision(5)).replace(".", ","), "—", [CL_NOT + " (" + model + ")"].concat(x.p.not ? [String(x.p.not)] : [], d2.notlar, d2.uyari).join("; "), new Date()]; while (row.length < 19) row.push(""); row.push(g.cert, String(c.input.olcum_araligi || ""), String(c.input.cozunurluk || "")); return row; });
       cn = cn.filter(x => anahtar_(x[0]) !== g.k).concat(satir);
       const ayniSert = (mev[g.anah] || []).length > 0, baska = !ayniSert && (mevId[g.k] || []).length > 0;   // 1.9: sertifika no yazımı farklı olabilir → cihazın mevcut okumasıyla karşılaştır, üzerine yazma
@@ -456,11 +461,10 @@ function claudeTumOku_() {
     });
     // her gruptan sonra yaz: süre dolsa da kayıp olmaz
     if (bekleyenSatir.length) { clNoktaGuncelle_(ns, bekleyen, bekleyenSatir); bekleyen = {}; bekleyenSatir = []; }
-    const gen = Math.max(NOKTA_BASLIK.length, 22), cnD = cn.map(x => { const s = x.slice(0, gen); while (s.length < gen) s.push(""); return s; });
-    if (cs.getLastRow() > 1) cs.getRange(2, 1, cs.getLastRow() - 1, Math.max(cs.getLastColumn(), gen)).clearContent();
-    if (cnD.length) { if (cs.getRange(1, 20).getValue() === "") cs.getRange(1, 20, 1, 3).setValues([["Dosyadaki Sertifika No", "Ölçüm Aralığı (sertifika)", "Çözünürlük (sertifika)"]]); cs.getRange(2, 6, cnD.length, 7).setNumberFormat("@"); cs.getRange(2, 1, cnD.length, gen).setValues(cnD); }
-    if (ks.getLastRow() > 1) ks.getRange(2, 1, ks.getLastRow() - 1, CL_KARS_BAS.length).clearContent();
-    if (kars.length) ks.getRange(2, 1, kars.length, CL_KARS_BAS.length).setValues(kars);
+    const gen = Math.max(NOKTA_BASLIK.length, 22), degisen = {}; grup.forEach(g => { degisen[g.k] = 1; });
+    if (cs.getRange(1, 20).getValue() === "") cs.getRange(1, 20, 1, 3).setValues([["Dosyadaki Sertifika No", "Ölçüm Aralığı (sertifika)", "Çözünürlük (sertifika)"]]);
+    clSekmeGuncelle_(cs, gen, degisen, cn.filter(x => degisen[anahtar_(x[0])]), 7);
+    clSekmeGuncelle_(ks, CL_KARS_BAS.length, degisen, kars.filter(x => degisen[anahtar_(x[0])]), 0);
   }
   P.setProperty("CL_TUM_HATA", JSON.stringify(hatalar));
   const kalan = hedef.length - i, say = {}; kars.forEach(r => { const d = String(r[9]).replace(/\s*\(.*\)$/, "").replace(/: .*$/, ""); say[d] = (say[d] || 0) + 1; });
@@ -473,6 +477,16 @@ function claudeTumDurum() {
   if (!d.zaman) return bildir_(cal ? "Başladı, ilk tur 5 dakika içinde." : "Henüz çalışmadı.");
   bildir_((d.dur ? "⛔ DURDU: " + d.dur + "\nSorunu giderip komutu yeniden başlatın; kaldığı yerden devam eder.\n\n" : "") + (cal ? "🔄 Sürüyor." : (d.kalan === 0 ? "✓ Tamamlandı." : "⏸ Durdu.")) + "\nSon tur: " + new Date(d.zaman).toLocaleString("tr-TR") + " · bu turda " + d.islenen + " sertifika · kalan " + d.kalan +
     "\n\n" + (Object.keys(d.say || {}).sort().map(k => k + ": " + d.say[k]).join("\n") || "") + "\n\nAyrıntı: Claude_Karsilastirma sekmesi (Farklı / Yalnız Mevcut sütunlarına bakın).");
+}
+// 1.10: herhangi bir sekmede yalnız verilen cihazların satırlarını değiştirir; yazmadan hemen önce yeniden okur (belge kilidi)
+function clSekmeGuncelle_(sayfa, genislik, idler, yeni, metinSutun) {
+  const lk = LockService.getDocumentLock(); lk.waitLock(60000);
+  try {
+    const tum = sayfa.getDataRange().getValues().slice(1).filter(r => String(r[0]).trim() !== "" && !idler[anahtar_(r[0])]).concat(yeni).map(x => { const s = x.slice(0, genislik); while (s.length < genislik) s.push(""); return s; });
+    const son = sayfa.getLastRow(); if (son > 1) sayfa.getRange(2, 1, son - 1, Math.max(sayfa.getLastColumn(), genislik)).clearContent();
+    if (tum.length) { if (metinSutun) sayfa.getRange(2, 6, tum.length, metinSutun).setNumberFormat("@"); sayfa.getRange(2, 1, tum.length, genislik).setValues(tum); }
+    SpreadsheetApp.flush();
+  } finally { lk.releaseLock(); }
 }
 // 1.9: GÜVENLİ YAZMA – sekme yazmadan HEMEN ÖNCE yeniden okunur; yalnız verilen cihazların satırları değişir, diğer herkesin (genel/sıcaklık/direnç ajanları,
 // arka plan turları) arada yazdığı satırlar korunur. Belge kilidi Claude komutlarını birbirine karşı sıraya sokar.
