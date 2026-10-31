@@ -1,9 +1,9 @@
-/***** AJAN_GENEL 1.8 (1.8: yazmadan önce sekme yeniden okunur, başka ajanların satırları korunur · 1.7: kriter birim çevriminde Ω/mΩ/µΩ/kΩ/MΩ, W, ml · 1.6: çözünürlük aramasında ölçüm aralığı "0-10 l/min" çözünürlük sayılmaz; aralık üst sınırına eşit/büyük çözünürlük düzeltilir · 1.5: bilimsel gösterim, standart direnç; ölçüm aralığı + çözünürlük sertifikadan; noktalı ondalık, sütun dökümü tablolar (METKAL vb.), debimetre; okunamayanlar atlanır, birim cihaz türünden, arka planda okuma; F7.10-02 Rev 1 kriterleri; tipler: mutlak, % okuma, % okuma + sabit, en büyüğü, OIML R35, % tam skala) – Genel kalibrasyon sertifikası okuyucu (özel ajanı olmayan TÜM cihaz türleri: kumpas, mikrometre, YG, sparktester, terazi, manometre…)
+/***** AJAN_GENEL 1.9 (1.9: genel U ancak nokta birimiyle aynı büyüklükteyse kullanılır (± 5 °C ortam şartı bar noktasına yazılmaz) · 1.8: yazmadan önce sekme yeniden okunur, başka ajanların satırları korunur · 1.7: kriter birim çevriminde Ω/mΩ/µΩ/kΩ/MΩ, W, ml · 1.6: çözünürlük aramasında ölçüm aralığı "0-10 l/min" çözünürlük sayılmaz; aralık üst sınırına eşit/büyük çözünürlük düzeltilir · 1.5: bilimsel gösterim, standart direnç; ölçüm aralığı + çözünürlük sertifikadan; noktalı ondalık, sütun dökümü tablolar (METKAL vb.), debimetre; okunamayanlar atlanır, birim cihaz türünden, arka planda okuma; F7.10-02 Rev 1 kriterleri; tipler: mutlak, % okuma, % okuma + sabit, en büyüğü, OIML R35, % tam skala) – Genel kalibrasyon sertifikası okuyucu (özel ajanı olmayan TÜM cihaz türleri: kumpas, mikrometre, YG, sparktester, terazi, manometre…)
  * Birimden bağımsız: 1) "Referans · Ölçülen · Hata (· U)" tablolarını sütun/satır düzeniyle  2) olmazsa ardışık "referans ölçülen hata" üçlülerini arar.
  * Her nokta hata = ölçülen − referans ile doğrulanır (hata farklı birimde olabilir: mm ↔ µm, ×1000). Tutmayan tablo KABUL EDİLMEZ → tanı dosyası.
  * Kriter: Kabul_Kriterleri (Birim sütunu ile, ölçüm raporunun kriterleriyle başlar). Karar: belirsizlik dahil üç durum. Öncelik 99: özel ajanlardan sonra. *****/
 function ajanKimlik_Genel() {
-  return { kod: "GENEL", ad: "Genel okuyucu", surum: "1.8", aciklama: "Özel ajanı olmayan sertifikaları birimden bağımsız okur",
+  return { kod: "GENEL", ad: "Genel okuyucu", surum: "1.9", aciklama: "Özel ajanı olmayan sertifikaları birimden bağımsız okur",
            menu: [["Arka planda oku (otomatik, önerilen)", "genelArkaPlanBaslat"], ["Arka plan durumunu göster", "genelArkaPlanDurum"], ["Arka planda okumayı durdur", "genelArkaPlanDurdur"], ["Diğer tüm sertifikaları oku (bir tur)", "genelOku"], ["Genel okuyucu satırlarını temizle (yeniden okuma)", "gnSatirlariTemizle"], ["Genel kabul kriterlerini ekle (eksikler)", "gnKriterleriEkle"], ["Kabul kriterlerini F7.10-02 Rev 1'e güncelle", "kriterRev1Uygula"]], gunluk: null, web: {},
            okuma: { desen: ".", islev: "genelOku", oncelik: 99 } };
 }
@@ -354,6 +354,9 @@ function gnBirimBulEski_(t) {
   const say = {}; let m; const re = new RegExp(BR.source, "g"); while ((m = re.exec(t)) !== null) { const b = m[1].replace("um", "µm"); if (b !== "°C") say[b] = (say[b] || 0) + 1; }
   return Object.keys(say).sort((p, q) => say[q] - say[p])[0] || "";
 }
+// 1.9: iki birim aynı büyüklükten mi (U ile nokta birimi): °C ≠ bar, mm = µm, Ω = mΩ …
+const GN_AILE = [["nm", "µm", "um", "mm", "cm", "m"], ["mV", "V", "kV"], ["µA", "mA", "A"], ["mN", "N", "kN"], ["mg", "g", "kg"], ["mbar", "bar", "Pa", "kPa", "MPa"], ["°C"], ["%", "%rh"], ["µΩ", "μΩ", "mΩ", "Ω", "kΩ", "MΩ", "GΩ"], ["mW", "W", "kW"], ["ml", "mL", "l", "L"], ["ml/min", "l/min"], ["s", "dk"], ["pH"], ["Hz"]];
+const gnAyniAile_ = (a, b) => { if (!a || !b) return !a || !b ? true : false; if (a === b) return true; const f = x => GN_AILE.findIndex(L => L.indexOf(x) >= 0); return f(a) >= 0 && f(a) === f(b); };
 const gnCevir_ = (v, from, to) => (!from || !to || from === to || GN_BIRIM[from] === undefined || GN_BIRIM[to] === undefined) ? v : v * GN_BIRIM[from] / GN_BIRIM[to];
 // En ayrıntılı eşleşen kriter satırı (Model > Marka > Cihaz Adı)
 function gnKriterBul_(ss, ad, marka, model) {
@@ -416,7 +419,8 @@ function genelOku(sadece) {
       const ref = gnSayi_(n.reft), hata = gnSayi_(n.hatat) / n.olcek, dRef = n.olcek > 1 ? gnDec_(n.hatat) + 3 : Math.max(gnDec_(n.reft), gnDec_(n.olct), gnDec_(n.hatat));   // hata, sertifikadaki basamakla (µm → mm ise +3)
       let u = null, uNot = "";
       if (n.ut !== "" && !isNaN(gnSayi_(n.ut))) u = gnSayi_(n.ut) / n.olcek;
-      else if (o.genelU) { const ub = n.birim || bir; u = ub && GN_BIRIM[o.genelU.birim] !== undefined && GN_BIRIM[ub] !== undefined ? gnCevir_(o.genelU.v, o.genelU.birim, ub) : o.genelU.v / n.olcek; uNot = "U genel (± " + o.genelU.s + " " + o.genelU.birim + ")"; }   // 1.5: noktanın kendi birimine
+      else if (o.genelU && gnAyniAile_(o.genelU.birim, n.birim || bir)) { const ub = n.birim || bir; u = ub && GN_BIRIM[o.genelU.birim] !== undefined && GN_BIRIM[ub] !== undefined ? gnCevir_(o.genelU.v, o.genelU.birim, ub) : o.genelU.v / n.olcek; uNot = "U genel (± " + o.genelU.s + " " + o.genelU.birim + ")"; }   // 1.5: noktanın kendi birimine
+      else if (o.genelU) uNot = "genel U (± " + o.genelU.s + " " + o.genelU.birim + ") nokta birimiyle uyuşmuyor – kullanılmadı";   // 1.9: ortam şartı (± 5 °C) bar noktasına U yazılmasın
       const nb = n.birim || bir;   // 1.5: her nokta kendi birimiyle (KK-08: MΩ, V, kV aynı sertifikada)
       const k = kr ? gnKarar_(ref, hata, u, kr, nb, fs) : { lim: null, top: Math.abs(hata) + (u || 0), karar: "KRİTER YOK" }; kararlar.push(k.karar);
       if (!enk || Math.abs(hata) > Math.abs(enk.h)) enk = { h: hata, d: dRef, r: n.reft, b: n.birim || bir };

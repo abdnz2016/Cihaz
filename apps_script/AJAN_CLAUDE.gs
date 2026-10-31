@@ -1,13 +1,13 @@
-/***** AJAN_CLAUDE 1.10 (Sertifika No = dosya adındaki numara, diğer ajanlar yeniden okumaz; karşılaştırma sekmeleri de güvenli yazılır; güvenli yazma: başkalarının satırları korunur; başka sertifika no ile okunmuş cihaza dokunmaz; kredi/anahtar hatasında durur, cihaz işaretlenmez; aralık = en düşük–en yüksek, çözünürlük = en hassas; sertifika → üretici tamamlama; mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
+/***** AJAN_CLAUDE 1.11 (fark çıkan genel okuyucu okumalarını Claude ile değiştirme; Sertifika No = dosya adındaki numara, diğer ajanlar yeniden okumaz; karşılaştırma sekmeleri de güvenli yazılır; güvenli yazma: başkalarının satırları korunur; başka sertifika no ile okunmuş cihaza dokunmaz; kredi/anahtar hatasında durur, cihaz işaretlenmez; aralık = en düşük–en yüksek, çözünürlük = en hassas; sertifika → üretici tamamlama; mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
  * AJAN_GENEL'e DOKUNMAZ ve Yönlendirici'ye bağlanmaz (okuma anahtarı yok): yalnızca menüden çalışır.
  * Hedef: GN_BASARISIZ listesindeki (Genel okuyucunun okuyamadığı) cihazlar ya da seçili satırdaki cihaz. Daha önce okunmuş sertifikalar atlanır.
  * Sayılar sertifikada yazıldığı gibi (metin) alınır; hata = ölçülen − referans her noktada yeniden doğrulanır; tutmayan hata uyarı olarak yazılır.
  * Karar Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) verilir ve Cihazlar özet sütunları yazılır. Kapatmak için Script Properties: CLAUDE_KARAR = kapalı.
  * Gerekenler: Script Properties → ANTHROPIC_API_KEY (menüden kaydedilir). İsteğe bağlı: CLAUDE_MODEL (varsayılan claude-sonnet-5-5). *****/
 function ajanKimlik_Claude() {
-  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.10", sira: 95,
+  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.11", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
-           menu: [["EKSİK TÜRLER (listedeki) – Claude ile oku ve karşılaştır", "claudeEksikTurler"], ["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını işle (Kalibrasyon_Noktalari + karar + özet)", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Ölçüm aralığı / çözünürlük tamamla (sertifika → üretici)", "claudeAralikTamamla"], ["Hata kayıtlarını sıfırla (kredi bitti vb. sonrası)", "claudeHatalariSifirla"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
+           menu: [["EKSİK TÜRLER (listedeki) – Claude ile oku ve karşılaştır", "claudeEksikTurler"], ["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını işle (Kalibrasyon_Noktalari + karar + özet)", "claudeYeniAktar"], ["Fark çıkan GENEL OKUYUCU okumalarını Claude okumasıyla değiştir", "claudeGenelDegistir"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Ölçüm aralığı / çözünürlük tamamla (sertifika → üretici)", "claudeAralikTamamla"], ["Hata kayıtlarını sıfırla (kredi bitti vb. sonrası)", "claudeHatalariSifirla"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
            gunluk: null, web: {} };
 }
 const CL_API = "https://api.anthropic.com/v1/messages", CL_NOT = "Claude okuyucu";
@@ -315,6 +315,34 @@ function clJsonBul_(metin) {
   const t = String(metin || ""), i = t.lastIndexOf('{"olcum_araligi"'); if (i < 0) return null;
   let d = 0; for (let j = i; j < t.length; j++) { if (t[j] === "{") d++; else if (t[j] === "}" && --d === 0) { try { return JSON.parse(t.slice(i, j + 1)); } catch (e) { return null; } } }
   return null;
+}
+// 1.11: GENEL OKUYUCU satırlarını Claude okumasıyla değiştirir – API çağrısı yapmaz (Claude_Noktalari'ndan).
+// Kapsam: Kalibrasyon_Noktalari'ndaki satırları "genel okuyucu" ile başlayan VE Claude_Karsilastirma'da "⚠ Fark var" olan cihazlar.
+// Özel ajanların (sıcaklık, direnç) ve elle girilen okumalara dokunmaz. Değişen cihazlarda karar ve Cihazlar özeti yeniden yazılır.
+function claudeGenelDegistir() {
+  const ss = SpreadsheetApp.openById(SHEET_ID), ks = ss.getSheetByName(CL_KARS), cs = ss.getSheetByName(CL_SEKME); if (!ks || !cs) return bildir_("Önce karşılaştırmayı çalıştırın.");
+  const sh = ss.getSheetByName(AYAR.SEKME), v = sh.getDataRange().getValues(), h = v[0], P = PropertiesService.getScriptProperties();
+  const iId = sutun_(h, AYAR.KAYIT_BASLIK), iAd = sutun_(h, "Cihaz Adı"), iMa = bul_(h, ["Marka"]), iMo = bul_(h, ["Model"]), iAr = bul_(h, ["Ölçüm Aralığı", "Ölçüm Aralığı (Kapasite)", "Kapasite", "Ölçüm Aralığı - Kapasite"]), iCz = bul_(h, ["Çözünürlük"]);
+  const ctx = { ss, sh, v, iMa, iMo, iAr, iCz, karar: !/kapal/i.test(P.getProperty("CLAUDE_KARAR") || ""), model: clModel_() }, satirNo = {}; v.forEach((r, i) => { if (i && r[iId]) satirNo[anahtar_(r[iId])] = i; });
+  const fark = {}; ks.getDataRange().getValues().slice(1).forEach((r, i) => { if (/Fark var/i.test(String(r[9]))) fark[anahtar_(r[0])] = i + 1; });
+  const ns = clSekme_(ss, NOKTA_SEKME, NOKTA_BASLIK), sahip = {};   // cihaz → satırlarının okuyucusu
+  ns.getDataRange().getValues().slice(1).forEach(r => { const k = anahtar_(r[0]); if (!k) return; const g = /^genel okuyucu/i.test(String(r[13])); sahip[k] = sahip[k] === undefined ? g : (sahip[k] && g); });
+  const grup = {}; cs.getDataRange().getValues().slice(1).forEach(r => { const k = anahtar_(r[0]); if (r[0] && fark[k] && sahip[k] === true) (grup[k] = grup[k] || []).push(r); });
+  const rapor = [], idler = {}; let yeni = [];
+  Object.keys(grup).forEach(k => {
+    const R = grup[k], r = satirNo[k]; if (r === undefined) return;
+    const S = R.map(x => ({ p: { referans: x[5], olculen: x[6], not: "" }, d: { ref: clSayi_(x[5]), olc: clSayi_(x[6]), hata: clSayi_(x[7]), hataYazi: String(x[7]), u: String(x[8]).trim() === "" ? null : clSayi_(x[8]), uYazi: String(x[8]), birim: String(x[9]) }, aralik: x[4], buyukluk: x[3], notHazir: String(x[13]) + "; genel okuyucu okumasının yerine" }))
+      .filter(x => !isNaN(x.d.ref) && !isNaN(x.d.olc) && !isNaN(x.d.hata));
+    if (!S.length) return;
+    const dosyaCert = String(R[0][19] || R[0][1]).trim(), ara = R[0][20] !== undefined && (String(R[0][20]).trim() || String(R[0][21]).trim()) ? { olcum_araligi: R[0][20], cozunurluk: R[0][21] } : null;
+    const isl = clIsle_(ctx, r, R[0][0], dosyaCert, R[0][2], S, ara, clAyarMi_(String(v[r][iAd])));
+    idler[k] = 1; yeni = yeni.concat(isl.yeni);
+    ks.getRange(fark[k] + 1, 10).setValue("⚠ Fark var → Claude okuması esas alındı" + (isl.genel ? ": " + isl.genel : ""));
+    rapor.push(R[0][0] + " " + String(v[r][iAd]) + ": " + S.length + " nokta" + (isl.genel ? " → " + isl.genel : ""));
+  });
+  if (!rapor.length) return bildir_("Değiştirilecek cihaz yok (genel okuyucu okuması olup Claude ile fark çıkan cihaz bulunamadı).");
+  clNoktaGuncelle_(ns, idler, yeni);
+  bildir_("Genel okuyucu okuması Claude okumasıyla değiştirildi (" + rapor.length + " cihaz):\n" + rapor.join("\n") + "\n\nÖzel ajanların (sıcaklık, direnç) okumalarına dokunulmadı.");
 }
 // Hesap hatası (kredi bitti vb.) yüzünden yanlışlıkla "okunamadı / denendi" sayılan cihazları temizler – sonraki çalıştırmada yeniden denenirler
 function claudeHatalariSifirla() {
