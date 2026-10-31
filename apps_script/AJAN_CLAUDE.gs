@@ -1,13 +1,13 @@
-/***** AJAN_CLAUDE 1.6 (mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
+/***** AJAN_CLAUDE 1.7 (aralık = en düşük–en yüksek, çözünürlük = en hassas; sertifika → üretici tamamlama; mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
  * AJAN_GENEL'e DOKUNMAZ ve Yönlendirici'ye bağlanmaz (okuma anahtarı yok): yalnızca menüden çalışır.
  * Hedef: GN_BASARISIZ listesindeki (Genel okuyucunun okuyamadığı) cihazlar ya da seçili satırdaki cihaz. Daha önce okunmuş sertifikalar atlanır.
  * Sayılar sertifikada yazıldığı gibi (metin) alınır; hata = ölçülen − referans her noktada yeniden doğrulanır; tutmayan hata uyarı olarak yazılır.
  * Karar Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) verilir ve Cihazlar özet sütunları yazılır. Kapatmak için Script Properties: CLAUDE_KARAR = kapalı.
  * Gerekenler: Script Properties → ANTHROPIC_API_KEY (menüden kaydedilir). İsteğe bağlı: CLAUDE_MODEL (varsayılan claude-sonnet-5-5). *****/
 function ajanKimlik_Claude() {
-  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.6", sira: 95,
+  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.7", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
-           menu: [["EKSİK TÜRLER (listedeki) – Claude ile oku ve karşılaştır", "claudeEksikTurler"], ["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını işle (Kalibrasyon_Noktalari + karar + özet)", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
+           menu: [["EKSİK TÜRLER (listedeki) – Claude ile oku ve karşılaştır", "claudeEksikTurler"], ["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını işle (Kalibrasyon_Noktalari + karar + özet)", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Ölçüm aralığı / çözünürlük tamamla (sertifika → üretici)", "claudeAralikTamamla"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
            gunluk: null, web: {} };
 }
 const CL_API = "https://api.anthropic.com/v1/messages", CL_NOT = "Claude okuyucu";
@@ -149,16 +149,43 @@ function clOzetYaz_(sh, r, S, kr) {
   yaz("Kal. Kontrol Sonucu", clGenel_(S, kr));
   const ct = sutunGaranti_(sh, "Kal. Kontrol Tarihi"); sh.getRange(r + 1, ct + 1).setValue(new Date());
 }
-// 1.4: ölçüm aralığı ve çözünürlük. Boş hücreye yazılır. Çözünürlük, aralığın üst sınırına eşit ya da büyükse (ör. "0-10 l/min" için "10 l/min") açıkça yanlıştır → sertifikadaki değerle düzeltilir. Döner: rapor notu
-function clAralikCozYaz_(sh, v, r, iAr, iCz, sonuc) {
-  const notlar = [], ar = String(sonuc.olcum_araligi || "").trim(), cz = String(sonuc.cozunurluk || "").trim();
-  if (iAr >= 0 && ar && !String(v[r][iAr]).trim()) { sh.getRange(r + 1, iAr + 1).setValue(ar); v[r][iAr] = ar; notlar.push("aralık yazıldı: " + ar); }
-  if (iCz >= 0 && cz && !/;/.test(cz)) {
-    const eski = String(v[r][iCz]).trim(), ust = Math.max(0, ...(String(v[r][iAr] || ar).match(/\d+(?:[.,]\d+)?/g) || ["0"]).map(clSayi_)), ev = clSayi_(eski);
-    if (!eski) { sh.getRange(r + 1, iCz + 1).setValue(cz); v[r][iCz] = cz; notlar.push("çözünürlük yazıldı: " + cz); }
-    else if (ust && !isNaN(ev) && ev >= ust && clSayi_(cz) < ust) { sh.getRange(r + 1, iCz + 1).setValue(cz); v[r][iCz] = cz; notlar.push("çözünürlük düzeltildi: " + eski + " → " + cz); }
-    else if (eski.replace(/\s/g, "") !== cz.replace(/\s/g, "")) notlar.push("⚠ çözünürlük Cihazlar'da " + eski + ", sertifikada " + cz + " (kontrol edin)");
+// 1.7: Ölçüm aralığı = tüm aralıkların EN DÜŞÜK – EN YÜKSEK değeri (birim çevrilerek); çözünürlük = EN HASSAS (en küçük) değer
+const CL_ARL_RE = /(-?\d+(?:[.,]\d+)?)\s*(?:-|–|…|\.\.\.|÷|to|ile|ila)\s*(\+?-?\d+(?:[.,]\d+)?)\s*([^\s;,()0-9][^\s;,()]*)/gi;
+const clFmt_ = x => String(+x.toPrecision(6)).replace(".", ",");
+function clAralikBirlestir_(metin) {
+  const A = []; let m; const re = new RegExp(CL_ARL_RE.source, "gi");
+  while ((m = re.exec(String(metin || ""))) !== null) A.push({ lo: clSayi_(m[1]), hi: clSayi_(m[2].replace("+", "")), b: clBirim_(m[3]) });
+  if (!A.length) return "";
+  const enB = A.reduce((p, q) => { const kp = clCarpan_(p.b, q.b); return !isNaN(kp) && q.hi > p.hi * kp ? q : p; }, A[0]).b;   // en yüksek üst sınırın birimi
+  let lo = Infinity, hi = -Infinity;
+  for (const x of A) { const k = clCarpan_(x.b, enB); if (isNaN(k)) return A.map(y => clFmt_(y.lo) + "–" + clFmt_(y.hi) + " " + y.b).join("; "); lo = Math.min(lo, x.lo * k); hi = Math.max(hi, x.hi * k); }
+  return clFmt_(lo) + "–" + clFmt_(hi) + " " + enB;
+}
+function clCozEnInce_(metin) {
+  const C = []; let m; const re = /(\d+(?:[.,]\d+)?)\s*([^\s;,()0-9][^\s;,()]*)/g;
+  while ((m = re.exec(String(metin || ""))) !== null) C.push({ v: clSayi_(m[1]), b: clBirim_(m[2]), t: m[1] + " " + clBirim_(m[2]) });
+  if (!C.length) return "";
+  return C.reduce((p, q) => { const k = clCarpan_(q.b, p.b); return !isNaN(k) && q.v * k < p.v ? q : p; }, C[0]).t;
+}
+const clUst_ = s => { const m = /([\d.,]+)\s*([^\s;,()]*)\s*$/.exec(String(s || "").trim()); return m ? { v: clSayi_(m[1]), b: clBirim_(m[2]) } : null; };   // "0–600 Ω" → {600, Ω}
+// Boş hücreye yazılır. Aralık: yeni aralık mevcuttan GENİŞSE güncellenir. Çözünürlük: mevcut değer aralığın üst sınırına eşit/büyükse (açıkça yanlış) ya da yeni değer DAHA HASSASSA güncellenir.
+// kaynak: "sertifika" / "üretici: <url>" – Cihazlar'da "Aralık/Çözünürlük Kaynağı" sütununa yazılır. Döner: rapor notu
+function clAralikCozYaz_(sh, v, r, iAr, iCz, sonuc, kaynak) {
+  const notlar = [], ar = clAralikBirlestir_(sonuc.olcum_araligi) || String(sonuc.olcum_araligi || "").trim(), cz = clCozEnInce_(sonuc.cozunurluk);
+  let yazildi = false;
+  if (iAr >= 0 && ar) {
+    const eski = String(v[r][iAr]).trim(), e = clUst_(eski), y = clUst_(ar), k = e && y ? clCarpan_(y.b, e.b) : NaN;
+    if (!eski) { sh.getRange(r + 1, iAr + 1).setValue(ar); v[r][iAr] = ar; notlar.push("aralık yazıldı: " + ar); yazildi = true; }
+    else if (!isNaN(k) && y.v * k > e.v * (1 + 1e-9) && !/;/.test(ar)) { sh.getRange(r + 1, iAr + 1).setValue(ar); v[r][iAr] = ar; notlar.push("aralık genişletildi: " + eski + " → " + ar); yazildi = true; }
   }
+  if (iCz >= 0 && cz) {
+    const eski = String(v[r][iCz]).trim(), ust = clUst_(v[r][iAr] || ar), ev = clUst_(eski), yv = clUst_(cz);
+    const kEu = ev && ust ? clCarpan_(ev.b, ust.b) : NaN, kYe = ev && yv ? clCarpan_(yv.b, ev.b) : NaN;
+    if (!eski) { sh.getRange(r + 1, iCz + 1).setValue(cz); v[r][iCz] = cz; notlar.push("çözünürlük yazıldı: " + cz); yazildi = true; }
+    else if (!isNaN(kEu) && ev.v * kEu >= ust.v) { sh.getRange(r + 1, iCz + 1).setValue(cz); v[r][iCz] = cz; notlar.push("çözünürlük düzeltildi: " + eski + " → " + cz); yazildi = true; }
+    else if (!isNaN(kYe) && yv.v * kYe < ev.v * (1 - 1e-9)) { sh.getRange(r + 1, iCz + 1).setValue(cz); v[r][iCz] = cz; notlar.push("çözünürlük en hassasa güncellendi: " + eski + " → " + cz); yazildi = true; }
+  }
+  if (yazildi && kaynak && typeof sutunGaranti_ === "function") { const c = sutunGaranti_(sh, "Aralık/Çözünürlük Kaynağı"); sh.getRange(r + 1, c + 1).setValue(kaynak); }
   return notlar.join(" · ");
 }
 // 1.6: Doğrulanmış noktaları işler: karar (Kabul_Kriterleri), Kalibrasyon_Noktalari satırları, Cihazlar özeti, aralık/çözünürlük.
@@ -166,7 +193,7 @@ function clAralikCozYaz_(sh, v, r, iAr, iCz, sonuc) {
 // ara: { olcum_araligi, cozunurluk } ya da null. Döner: { yeni: [satır], genel: "UYGUN"…, arNot }
 function clIsle_(ctx, r, id, certYaz, kt, satirlar, ara, ayar) {
   const { ss, sh, v, iMa, iMo, iAr, iCz, karar, model } = ctx, ad = String(v[r][sutun_(v[0], "Cihaz Adı")]);
-  const arNot = ara ? clAralikCozYaz_(sh, v, r, iAr, iCz, ara) : "";   // ölçüm aralığı / çözünürlük sertifikadan (boşsa yazılır; çözünürlük aralığın üst sınırına eşit ya da büyükse düzeltilir)
+  const arNot = ara ? clAralikCozYaz_(sh, v, r, iAr, iCz, ara, "sertifika") : "";   // ölçüm aralığı / çözünürlük sertifikadan (boşsa yazılır; çözünürlük aralığın üst sınırına eşit ya da büyükse düzeltilir)
   const fs = iAr >= 0 ? Math.max(0, ...(String(v[r][iAr]).match(/\d+(?:[.,]\d+)?/g) || ["0"]).map(clSayi_)) || null : null;
   const kr = karar && typeof gnKriterBul_ === "function" ? gnKriterBul_(ss, ad, iMa >= 0 ? v[r][iMa] : "", iMo >= 0 ? v[r][iMo] : "") : null;
   const yeni = satirlar.map(x => {
@@ -260,6 +287,67 @@ function claudeBaglantiTest() {
   if (kod === 200) return bildir_("✓ Claude bağlantısı çalışıyor.\nModel: " + model + "\nYanıt: " + ((JSON.parse(m).content || [])[0] || {}).text);
   const ipucu = kod === 401 ? "API anahtarı geçersiz – menüden yeniden kaydedin." : kod === 404 ? "Model adı bulunamadı – Script Properties'teki CLAUDE_MODEL değerini kontrol edin." : kod === 400 && /credit|balance/i.test(m) ? "Hesapta kredi yok – console.anthropic.com → Billing." : kod === 429 ? "Hız sınırı – birkaç dakika sonra deneyin." : "";
   bildir_("✗ Bağlantı hatası " + kod + (ipucu ? "\n" + ipucu : "") + "\n\n" + m.slice(0, 300));
+}
+// ===== 1.7: ÖLÇÜM ARALIĞI / ÇÖZÜNÜRLÜK TAMAMLAMA =====
+// 1) Sertifikadan (kalibre edilen cihazın aralık/çözünürlüğü)  2) Sertifikada yoksa ÜRETİCİ teknik özelliklerinden (Claude web araması; kaynak URL'siyle).
+// Yalnız aralığı ya da çözünürlüğü boş / açıkça yanlış olan cihazlar. Kaynak "Aralık/Çözünürlük Kaynağı" sütununa yazılır.
+const CL_AR_SEMA = { type: "object", additionalProperties: false, required: ["olcum_araligi", "cozunurluk"], properties: { olcum_araligi: { type: "string" }, cozunurluk: { type: "string" } } };
+const CL_AR_ISTEM = "Bu bir kalibrasyon sertifikasıdır. KALİBRE EDİLEN cihazın (referans/standart cihazların DEĞİL) ölçme sahasını/aralığını ve çözünürlüğünü yaz. Birden çok aralık ya da çözünürlük varsa hepsini '; ' ile ayırarak yaz (ör. '0-60 mΩ; 0-600 mΩ; 0-6 Ω'). Birimiyle, sertifikada yazıldığı gibi yaz. Sertifikada yoksa boş bırak; tahmin etme.";
+function clIstekAralik_(dosya, anahtar, model) {
+  const govde = { model: model, max_tokens: 2000, output_config: { effort: "low", format: { type: "json_schema", schema: CL_AR_SEMA } },
+    messages: [{ role: "user", content: [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: Utilities.base64Encode(dosya.getBlob().getBytes()) } }, { type: "text", text: CL_AR_ISTEM }] }] };
+  return { url: CL_API, method: "post", contentType: "application/json", headers: { "x-api-key": anahtar, "anthropic-version": "2023-06-01" }, payload: JSON.stringify(govde), muteHttpExceptions: true };
+}
+function clIstekUretici_(ad, marka, model_, anahtar, model) {
+  const istem = "Cihaz: " + ad + " · Marka: " + (marka || "?") + " · Model: " + (model_ || "?") + "\nBu cihazın ÜRETİCİSİNİN resmi teknik özelliklerinden (datasheet, kullanım kılavuzu, üretici sitesi) ölçüm aralığını (en düşük – en yüksek, birimiyle) ve EN HASSAS çözünürlüğünü bul. " +
+    "Bulamazsan ya da model tam eşleşmiyorsa alanları boş bırak; tahmin etme. Yanıtın SONUNDA yalnız şu JSON'u yaz: {\"olcum_araligi\":\"...\",\"cozunurluk\":\"...\",\"kaynak\":\"<üretici sayfasının URL'si>\"}";
+  const govde = { model: model, max_tokens: 4000, tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }], messages: [{ role: "user", content: istem }] };
+  return { url: CL_API, method: "post", contentType: "application/json", headers: { "x-api-key": anahtar, "anthropic-version": "2023-06-01" }, payload: JSON.stringify(govde), muteHttpExceptions: true };
+}
+// Yanıt metnindeki son {"olcum_araligi":…} JSON'u
+function clJsonBul_(metin) {
+  const t = String(metin || ""), i = t.lastIndexOf('{"olcum_araligi"'); if (i < 0) return null;
+  let d = 0; for (let j = i; j < t.length; j++) { if (t[j] === "{") d++; else if (t[j] === "}" && --d === 0) { try { return JSON.parse(t.slice(i, j + 1)); } catch (e) { return null; } } }
+  return null;
+}
+function claudeAralikTamamla() {
+  const ss = SpreadsheetApp.openById(SHEET_ID), sh = ss.getSheetByName(AYAR.SEKME), v = sh.getDataRange().getValues(), h = v[0], idx = dosyaIndeksi_(), bas = Date.now();
+  const iId = sutun_(h, AYAR.KAYIT_BASLIK), iAd = sutun_(h, "Cihaz Adı"), iMa = bul_(h, ["Marka"]), iMo = bul_(h, ["Model"]);
+  const iAr = bul_(h, ["Ölçüm Aralığı", "Ölçüm Aralığı (Kapasite)", "Kapasite", "Ölçüm Aralığı - Kapasite"]), iCz = bul_(h, ["Çözünürlük"]);
+  if (iAr < 0 && iCz < 0) return bildir_("Cihazlar'da 'Ölçüm Aralığı' / 'Çözünürlük' sütunu yok.");
+  const P = PropertiesService.getScriptProperties(), anahtar = clAnahtar_(), model = clModel_(), paralel = Math.min(8, Math.max(1, Number(P.getProperty("CLAUDE_PARALEL")) || 4));
+  const denendi = JSON.parse(P.getProperty("CL_AR_DENENDI") || "{}");   // "KK-05" → "sertifika" / "üretici" (aynı adım bir daha denenmez)
+  const eksik = r => (iAr >= 0 && !String(v[r][iAr]).trim()) || (iCz >= 0 && !String(v[r][iCz]).trim()) || (iAr >= 0 && iCz >= 0 && (() => { const u = clUst_(v[r][iAr]), c = clUst_(v[r][iCz]), k = u && c ? clCarpan_(c.b, u.b) : NaN; return !isNaN(k) && c.v * k >= u.v; })());
+  const sert = [], ure = [];
+  for (let r = 1; r < v.length; r++) {
+    const id = v[r][iId]; if (!id || !eksik(r)) continue; const k = anahtar_(id), d = idx[k];
+    if (d && !/sertifika|üretici/.test(denendi[k] || "")) sert.push({ r, id, k, d }); else if (!/üretici/.test(denendi[k] || "")) ure.push({ r, id, k });
+  }
+  const rapor = [], bulunamadi = [];
+  const calistir = (L, istekYap, coz, adim) => {
+    let i = 0;
+    while (i < L.length && Date.now() - bas < 240000) {
+      const grup = L.slice(i, i + paralel), ist = [], gec = []; i += grup.length;
+      grup.forEach(g => { try { ist.push(istekYap(g)); gec.push(g); } catch (e) { denendi[g.k] = adim; bulunamadi.push(g.id + " (" + e.message + ")"); } });
+      if (!ist.length) continue;
+      UrlFetchApp.fetchAll(ist).forEach((y, j) => {
+        const g = gec[j], kod = y.getResponseCode(); if (kod === 429 || kod === 529 || kod >= 500) return;   // sonra yeniden
+        denendi[g.k] = adim; let o = null;
+        try { const jj = JSON.parse(y.getContentText()); if (kod === 200) o = coz(jj); else bulunamadi.push(g.id + " (API " + kod + ": " + String((jj.error || {}).message || "").slice(0, 80) + ")"); } catch (e) {}
+        if (!o || !(String(o.olcum_araligi || "").trim() || String(o.cozunurluk || "").trim())) { if (adim === "sertifika") ure.push({ r: g.r, id: g.id, k: g.k }); else bulunamadi.push(g.id); return; }
+        const not = clAralikCozYaz_(sh, v, g.r, iAr, iCz, o, adim === "sertifika" ? "sertifika" : "üretici: " + (o.kaynak || "?"));
+        rapor.push(g.id + " [" + adim + "]: " + (not || "değişiklik yok (mevcut değerler daha uygun)") + (adim === "üretici" && o.kaynak ? " · " + o.kaynak : ""));
+        if (eksik(g.r) && adim === "sertifika") ure.push({ r: g.r, id: g.id, k: g.k });
+      });
+    }
+    return L.length - i;
+  };
+  const kalan1 = calistir(sert, g => clIstekAralik_(DriveApp.getFileById((/\/d\/([\w-]+)/.exec(g.d.url) || [0, ""])[1]), anahtar, model),
+    jj => { const t = (jj.content || []).filter(c => c.type === "text").map(c => c.text).join(""); try { return JSON.parse(t); } catch (e) { return null; } }, "sertifika");
+  const kalan2 = calistir(ure, g => clIstekUretici_(String(v[g.r][iAd]), iMa >= 0 ? v[g.r][iMa] : "", iMo >= 0 ? v[g.r][iMo] : "", anahtar, model),
+    jj => { const o = clJsonBul_((jj.content || []).filter(c => c.type === "text").map(c => c.text).join("")); return o && /^https?:\/\//.test(String(o.kaynak || "")) ? o : null; }, "üretici");   // kaynaksız üretici bilgisi kabul edilmez
+  P.setProperty("CL_AR_DENENDI", JSON.stringify(denendi));
+  bildir_("Ölçüm aralığı / çözünürlük tamamlama:\n" + (rapor.join("\n") || "güncellenen yok") + (bulunamadi.length ? "\n\nBulunamadı (" + bulunamadi.length + "): " + bulunamadi.join(", ") : "") + (kalan1 + kalan2 ? "\n\n⏱ Süre doldu, kalan " + (kalan1 + kalan2) + " cihaz – komutu tekrar çalıştırın." : ""));
 }
 // ===== 1.2: TÜM SERTİFİKALAR – bağımsız okuma ve karşılaştırma (Kalibrasyon_Noktalari'na DOKUNMAZ) =====
 const CL_SEKME = "Claude_Noktalari", CL_KARS = "Claude_Karsilastirma";
@@ -403,4 +491,4 @@ function claudeYeniAktar() {
   bildir_("İşlendi (" + rapor.length + " cihaz): Kalibrasyon_Noktalari'na yazıldı, karar verildi, Cihazlar özeti dolduruldu.\n\n" + rapor.join("\n"));
 }
 
-if (typeof module !== "undefined") module.exports = { CL_EKSIK_TURLER, clAyarMi_, clYanitCoz_, clKarsilastir_, clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };
+if (typeof module !== "undefined") module.exports = { clJsonBul_, clAralikBirlestir_, clCozEnInce_, CL_EKSIK_TURLER, clAyarMi_, clYanitCoz_, clKarsilastir_, clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };

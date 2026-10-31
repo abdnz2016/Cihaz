@@ -264,19 +264,24 @@ function draw(){
 
 let KK = null;
 function kritTxt(kr){ return kr ? (kr.pct ? "± %" + String(kr.tol).replace(".", ",") : "± " + String(kr.tol).replace(".", ",") + " " + kr.u) : ""; }
-function kritOku(s, unit){ const m = /([\d.,]+)/.exec(String(s || "")); if(!m) return null; const tol = parseFloat(m[1].replace(",", ".")); return /%/.test(s) ? {tol, u:"%", pct:true} : {tol, u:unit}; }
+// kriter metni: "± 60 mΩ", "± %5", "± 0,05 mm" – birimi yazılıysa o birimde, yoksa formun birimiyle
+function kritOku(s, unit){ const m = /([\d.,]+)\s*(µΩ|μΩ|mΩ|kΩ|MΩ|Ω|µm|mm|mV|kV|V|mA|A|mg|kg|g)?/.exec(String(s || "")); if(!m) return null; const tol = parseFloat(m[1].replace(",", ".")); return /%/.test(s) ? {tol, u:"%", pct:true} : {tol, u:(m[2] || unit).replace("μ", "µ")}; }
+// karışık birimli sertifikada (mΩ ve Ω satırları) kriter ve hata satırın kendi birimine çevrilir
+const brCarp = (from, to) => (from === to || BR_CARP[from] === undefined || BR_CARP[to] === undefined) ? 1 : BR_CARP[from] / BR_CARP[to];
 function hesap(){
-  const unit = KK.unit, kr = kritOku($("#kr").value, unit); let maxE = null, maxP = null, maxD = KK.dec, maxB = unit, tumOk = true, kvVar = false, n = 0;
+  const unit = KK.unit, kr = kritOku($("#kr").value, unit); let maxE = null, maxP = null, maxD = KK.dec, maxB = unit, maxTaban = -1, tumOk = true, kvVar = false, n = 0;
   document.querySelectorAll("#satirlar tr").forEach(tr => {
     const s = parseFloat(tr.querySelector(".s").value.replace(",", ".")), o = parseFloat(tr.querySelector(".o").value.replace(",", "."));
     const hc = tr.querySelector(".h"), kc = tr.querySelector(".k");
     if(isNaN(s) || isNaN(o)){ hc.textContent = ""; kc.textContent = ""; return; }
     n++; const e = o - s, p = s ? Math.abs(e) / Math.abs(s) * 100 : 0, dr = tr.dataset.dec !== "" && tr.dataset.dec !== undefined ? +tr.dataset.dec : KK.dec;
     hc.textContent = (e > 0 ? "+" : "") + fnum(e, dr);
-    if(maxE === null || Math.abs(e) > Math.abs(maxE)){ maxE = e; maxD = dr; maxB = tr.dataset.br || unit; } if(maxP === null || p > maxP) maxP = p;
+    const br = tr.dataset.br || unit, eTaban = Math.abs(e) * (BR_CARP[br] || 1);   // en büyük hata birimden bağımsız karşılaştırılır
+    if(maxE === null || eTaban > maxTaban){ maxE = e; maxD = dr; maxB = br; maxTaban = eTaban; } if(maxP === null || p > maxP) maxP = p;
+    const tol = kr && !kr.pct ? kr.tol * brCarp(kr.u, br) : (kr ? kr.tol : 0);
     const uu = parseFloat((tr.querySelector(".u").value || "").replace(",", ".")), U = isNaN(uu) ? 0 : uu;   // Rev 1: |hata| + U ≤ kriter
-    const ok = kr ? (kr.pct ? p <= kr.tol + 1e-9 : Math.abs(e) <= kr.tol + 1e-9) : null;
-    const kv = ok === true && (kr.pct ? p + (s ? U / Math.abs(s) * 100 : 0) > kr.tol + 1e-9 : Math.abs(e) + U > kr.tol + 1e-9);
+    const ok = kr ? (kr.pct ? p <= kr.tol + 1e-9 : Math.abs(e) <= tol + 1e-12) : null;
+    const kv = ok === true && (kr.pct ? p + (s ? U / Math.abs(s) * 100 : 0) > kr.tol + 1e-9 : Math.abs(e) + U > tol + 1e-12);
     if(ok === false) tumOk = false; if(kv) kvVar = true;
     kc.innerHTML = ok === null ? "—" : (ok === false ? '<span class="no">✗</span>' : kv ? '<span class="no" title="Ölçüm sonuçlarına bakınız: |hata| + U kriteri aşıyor (karar verilemiyor)">?</span>' : '<span class="ok">✓</span>');
   });
