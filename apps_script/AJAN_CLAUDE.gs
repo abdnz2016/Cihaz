@@ -1,13 +1,13 @@
-/***** AJAN_CLAUDE 1.1 – YEDEK okuyucu (Claude): Genel okuyucunun (AJAN_GENEL) okuyamadığı sertifikaları PDF'i doğrudan Claude'a göndererek okur
+/***** AJAN_CLAUDE 1.2 – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
  * AJAN_GENEL'e DOKUNMAZ ve Yönlendirici'ye bağlanmaz (okuma anahtarı yok): yalnızca menüden çalışır.
  * Hedef: GN_BASARISIZ listesindeki (Genel okuyucunun okuyamadığı) cihazlar ya da seçili satırdaki cihaz. Daha önce okunmuş sertifikalar atlanır.
  * Sayılar sertifikada yazıldığı gibi (metin) alınır; hata = ölçülen − referans her noktada yeniden doğrulanır; tutmayan hata uyarı olarak yazılır.
  * Karar varsayılan olarak YAPILMAZ ("—"). Script Properties: CLAUDE_KARAR = "açık" yazılırsa Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) karar verilir.
  * Gerekenler: Script Properties → ANTHROPIC_API_KEY (menüden kaydedilir). İsteğe bağlı: CLAUDE_MODEL (varsayılan claude-sonnet-5-5). *****/
 function ajanKimlik_Claude() {
-  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.1", sira: 95,
+  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.2", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
-           menu: [["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satırdaki cihazı Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"]],
+           menu: [["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını Kalibrasyon_Noktalari'na aktar", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satırdaki cihazı Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"]],
            gunluk: null, web: {} };
 }
 const CL_API = "https://api.anthropic.com/v1/messages", CL_NOT = "Claude okuyucu";
@@ -86,21 +86,29 @@ const CL_ARAC = { name: "noktalari_kaydet", description: "Kalibrasyon sertifikas
       referans: { type: "string" }, olculen: { type: "string" }, hata: { type: ["string", "null"] }, belirsizlik: { type: ["string", "null"] }, not: { type: "string" } },
       required: ["referans", "olculen", "birim"] } },
     okunamayan: { type: "array", items: { type: "string" } }, notlar: { type: "string" } }, required: ["noktalar"] } };
-function clApi_(dosya) {
-  const P = PropertiesService.getScriptProperties(), anahtar = P.getProperty("ANTHROPIC_API_KEY");
-  if (!anahtar) throw new Error("API anahtarı kayıtlı değil (menü: Claude API anahtarını kaydet)");
+function clIstek_(dosya, anahtar, model) {   // UrlFetchApp.fetchAll için istek nesnesi
   const baytlar = dosya.getBlob().getBytes(); if (baytlar.length > 30 * 1024 * 1024) throw new Error("PDF 30 MB'tan büyük");
-  const govde = { model: P.getProperty("CLAUDE_MODEL") || "claude-sonnet-5-5", max_tokens: 16000, tools: [CL_ARAC], tool_choice: { type: "tool", name: CL_ARAC.name },
+  const govde = { model: model, max_tokens: 16000, tools: [CL_ARAC], tool_choice: { type: "tool", name: CL_ARAC.name },
     messages: [{ role: "user", content: [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: Utilities.base64Encode(baytlar) } }, { type: "text", text: CL_ISTEM }] }] };
+  return { url: CL_API, method: "post", contentType: "application/json", headers: { "x-api-key": anahtar, "anthropic-version": "2023-06-01" }, payload: JSON.stringify(govde), muteHttpExceptions: true };
+}
+// Yanıtı çözer: { input } ya da { tekrar: true } (yoğunluk – sonra yeniden denenir) ya da { hata }
+function clYanitCoz_(kod, metin) {
+  if (kod === 429 || kod === 529 || kod >= 500) return { tekrar: true, hata: "API yoğun (" + kod + ")" };
+  if (kod !== 200) return { hata: "API " + kod + ": " + String(metin).slice(0, 200) };
+  let j; try { j = JSON.parse(metin); } catch (e) { return { hata: "API yanıtı çözülemedi" }; }
+  const arac = (j.content || []).find(c => c.type === "tool_use"); if (!arac) return { hata: "API araç çağrısı döndürmedi" };
+  if (j.stop_reason === "max_tokens") arac.input.okunamayan = (arac.input.okunamayan || []).concat(["yanıt uzunluk sınırına takıldı – nokta listesi eksik olabilir"]);
+  return { input: arac.input };
+}
+function clAnahtar_() { const a = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY"); if (!a) throw new Error("API anahtarı kayıtlı değil (menü: Claude API anahtarını kaydet)"); return a; }
+const clModel_ = () => PropertiesService.getScriptProperties().getProperty("CLAUDE_MODEL") || "claude-sonnet-5-5";
+function clApi_(dosya) {
+  const istek = clIstek_(dosya, clAnahtar_(), clModel_());
   for (let deneme = 0; deneme < 3; deneme++) {
-    const yanit = UrlFetchApp.fetch(CL_API, { method: "post", contentType: "application/json", headers: { "x-api-key": anahtar, "anthropic-version": "2023-06-01" }, payload: JSON.stringify(govde), muteHttpExceptions: true });
-    const kod = yanit.getResponseCode();
-    if (kod === 429 || kod === 529 || kod >= 500) { Utilities.sleep(4000 * (deneme + 1)); continue; }
-    if (kod !== 200) throw new Error("API " + kod + ": " + yanit.getContentText().slice(0, 200));
-    const j = JSON.parse(yanit.getContentText()), arac = (j.content || []).find(c => c.type === "tool_use");
-    if (!arac) throw new Error("API araç çağrısı döndürmedi");
-    if (j.stop_reason === "max_tokens") arac.input.okunamayan = (arac.input.okunamayan || []).concat(["yanıt uzunluk sınırına takıldı – nokta listesi eksik olabilir"]);
-    return arac.input;
+    const y = UrlFetchApp.fetch(istek.url, istek), c = clYanitCoz_(y.getResponseCode(), y.getContentText());
+    if (c.tekrar) { Utilities.sleep(4000 * (deneme + 1)); continue; }
+    if (c.hata) throw new Error(c.hata); return c.input;
   }
   throw new Error("API yoğun, sonra tekrar deneyin");
 }
@@ -178,4 +186,109 @@ function claudeAnahtarKaydet() {
   if (y.getSelectedButton() !== ui.Button.OK || !y.getResponseText().trim()) return;
   PropertiesService.getScriptProperties().setProperty("ANTHROPIC_API_KEY", y.getResponseText().trim()); bildir_("API anahtarı kaydedildi.");
 }
-if (typeof module !== "undefined") module.exports = { clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };
+
+// ===== 1.2: TÜM SERTİFİKALAR – bağımsız okuma ve karşılaştırma (Kalibrasyon_Noktalari'na DOKUNMAZ) =====
+const CL_SEKME = "Claude_Noktalari", CL_KARS = "Claude_Karsilastirma";
+const CL_KARS_BAS = ["Kayıt No", "Cihaz Adı", "Sertifika No", "Claude Nokta", "Mevcut Nokta", "Eşleşen", "Farklı", "Yalnız Claude", "Yalnız Mevcut", "Durum", "Ayrıntı", "Uyarı", "Zaman"];
+// Saf: Claude noktaları ile mevcut noktaları karşılaştırır. A, B: [{ ref, olc, birim }] (sayı). Referans aynı (birim çevrilerek) olan noktalar eşlenir, ölçülen karşılaştırılır.
+function clKarsilastir_(A, B) {
+  const es = (x, y) => Math.abs(x - y) <= 1e-6 * Math.max(1, Math.abs(x), Math.abs(y)) + 1e-12;
+  const cevir = (v, from, to) => { const k = clCarpan_(clBirim_(from), clBirim_(to)); return isNaN(k) ? NaN : v * k; };
+  const kul = {}, sonuc = { eslesen: 0, farkli: [], yalnizClaude: [], yalnizMevcut: [] };
+  A.forEach(a => {
+    const aday = B.map((b, i) => ({ b, i, ref: cevir(b.ref, b.birim, a.birim), olc: cevir(b.olc, b.birim, a.birim) })).filter(x => !kul[x.i] && !isNaN(x.ref) && es(x.ref, a.ref));
+    const tam = aday.find(x => es(x.olc, a.olc));
+    if (tam) { kul[tam.i] = 1; sonuc.eslesen++; return; }
+    if (aday.length) { kul[aday[0].i] = 1; sonuc.farkli.push({ ref: a.ref, birim: a.birim, claude: a.olc, mevcut: aday[0].olc }); return; }
+    sonuc.yalnizClaude.push(a);
+  });
+  B.forEach((b, i) => { if (!kul[i]) sonuc.yalnizMevcut.push(b); });
+  sonuc.durum = !B.length ? "＋ Yalnız Claude okudu" : (!sonuc.farkli.length && !sonuc.yalnizMevcut.length ? (sonuc.yalnizClaude.length ? "✓ Aynı (Claude fazladan " + sonuc.yalnizClaude.length + " nokta)" : "✓ Aynı") : "⚠ Fark var");
+  return sonuc;
+}
+function clSekme_(ss, ad, bas) { let s = ss.getSheetByName(ad); if (!s) { s = ss.insertSheet(ad); s.getRange(1, 1, 1, bas.length).setValues([bas]).setFontWeight("bold").setBackground("#14305e").setFontColor("#ffffff"); s.setFrozenRows(1); } return s; }
+function claudeTumunuKarsilastir() {
+  clAnahtar_(); claudeTumDurdur(true);
+  ScriptApp.newTrigger("claudeTumTur").timeBased().everyMinutes(5).create();
+  bildir_("Tüm sertifikalar Claude ile arka planda okunuyor (5 dakikada bir tur, her turda " + (Number(PropertiesService.getScriptProperties().getProperty("CLAUDE_PARALEL")) || 4) + " sertifika aynı anda; bitince durur).\n\nKalibrasyon_Noktalari'na DOKUNULMAZ. Sonuçlar:\n• Claude_Noktalari – Claude'un okuduğu noktalar\n• Claude_Karsilastirma – her cihaz için mevcut okumayla karşılaştırma\n\nİlerleme: Karşılaştırma durumunu göster.");
+}
+function claudeTumDurdur(sessiz) {
+  let n = 0; ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === "claudeTumTur") { ScriptApp.deleteTrigger(t); n++; } });
+  if (sessiz !== true) bildir_(n ? "Karşılaştırma durduruldu (kaldığı yerden devam ettirilebilir)." : "Çalışan karşılaştırma yok.");
+}
+function claudeTumTur() {
+  const lk = LockService.getScriptLock(); if (!lk.tryLock(1000)) return;
+  let kalan = 0;
+  try { kalan = claudeTumOku_(); } finally { lk.releaseLock(); }
+  if (kalan === 0) claudeTumDurdur(true);
+}
+// Bir tur: Claude_Noktalari'nda henüz olmayan (cihaz + sertifika no) sertifikaları paralel okur. Döner: kalan cihaz sayısı
+function claudeTumOku_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID), sh = ss.getSheetByName(AYAR.SEKME), v = sh.getDataRange().getValues(), h = v[0], idx = dosyaIndeksi_(), bas = Date.now();
+  const iId = sutun_(h, AYAR.KAYIT_BASLIK), iAd = sutun_(h, "Cihaz Adı"), iKt = bul_(h, ["Kalibrasyon Tarihi"]);
+  const P = PropertiesService.getScriptProperties(), anahtar = clAnahtar_(), model = clModel_(), paralel = Math.min(8, Math.max(1, Number(P.getProperty("CLAUDE_PARALEL")) || 4));
+  const hatalar = JSON.parse(P.getProperty("CL_TUM_HATA") || "{}");   // "KK-05|sert" → deneme sayısı (2 kez okunamayan atlanır)
+  const cs = clSekme_(ss, CL_SEKME, NOKTA_BASLIK), ks = clSekme_(ss, CL_KARS, CL_KARS_BAS);
+  let cn = cs.getDataRange().getValues().slice(1).filter(r => String(r[0]).trim() !== "");
+  const yapilmis = {}; cn.forEach(r => { yapilmis[anahtar_(r[0]) + "|" + String(r[19] || r[1]).trim()] = 1; });
+  ks.getDataRange().getValues().slice(1).forEach(r => { if (/okuyamad/i.test(String(r[9]))) yapilmis[anahtar_(r[0]) + "|" + String(r[2]).trim()] = 1; });
+  // mevcut okumalar (Kalibrasyon_Noktalari), cihaz|sertifika → [{ref, olc, birim}]
+  const ns = ss.getSheetByName(NOKTA_SEKME), mev = {};
+  if (ns) ns.getDataRange().getValues().slice(1).forEach(r => { if (!r[0]) return; const ref = clSayi_(r[5]), olc = clSayi_(r[6]); if (isNaN(ref) || isNaN(olc)) return; (mev[anahtar_(r[0]) + "|" + String(r[1]).trim()] = mev[anahtar_(r[0]) + "|" + String(r[1]).trim()] || []).push({ ref, olc, birim: String(r[9] || "") }); });
+  const hedef = [];
+  for (let r = 1; r < v.length; r++) {
+    const id = v[r][iId]; if (!id) continue; const k = anahtar_(id), d = idx[k]; if (!d) continue;
+    const cert = clCertDosyadan_(d.ad), anah = k + "|" + cert; if (yapilmis[anah] || (hatalar[anah] || 0) >= 2) continue;
+    hedef.push({ r, id, k, d, cert, anah, ad: String(v[r][iAd]) });
+  }
+  let kars = ks.getDataRange().getValues().slice(1).filter(r => String(r[0]).trim() !== "");
+  let i = 0, islenen = 0;
+  while (i < hedef.length && Date.now() - bas < 200000) {
+    const grup = hedef.slice(i, i + paralel), istekler = [], gecerli = [];
+    grup.forEach(g => { try { istekler.push(clIstek_(DriveApp.getFileById((/\/d\/([\w-]+)/.exec(g.d.url) || [0, ""])[1]), anahtar, model)); gecerli.push(g); } catch (e) { hatalar[g.anah] = 2; kars.push([g.id, g.ad, g.cert, 0, (mev[g.anah] || []).length, "", "", "", "", "✗ Claude okuyamadı", "", "PDF alınamadı: " + e.message, new Date()]); } });
+    i += grup.length;
+    if (!istekler.length) continue;
+    const yanitlar = UrlFetchApp.fetchAll(istekler);
+    yanitlar.forEach((y, j) => {
+      const g = gecerli[j], c = clYanitCoz_(y.getResponseCode(), y.getContentText());
+      if (c.tekrar) return;   // sonraki tur yeniden dener
+      const dog = c.input ? clYanitDogrula_(c.input) : { satirlar: [], uyari: [c.hata] };
+      if (!dog.satirlar.length) { hatalar[g.anah] = (hatalar[g.anah] || 0) + 1; if (hatalar[g.anah] >= 2) kars = kars.filter(x => !(anahtar_(x[0]) === g.k && String(x[2]) === g.cert)).concat([[g.id, g.ad, g.cert, 0, (mev[g.anah] || []).length, "", "", "", "", "✗ Claude okuyamadı", "", dog.uyari.slice(0, 3).join("; "), new Date()]]); return; }
+      const certYaz = String(c.input.sertifika_no || g.cert).trim() || g.cert;
+      const satir = dog.satirlar.map(x => { const d2 = x.d; const row = [g.id, certYaz, iKt >= 0 ? v[g.r][iKt] : (c.input.kalibrasyon_tarihi || ""), x.buyukluk, x.aralik, String(x.p.referans).trim(), String(x.p.olculen).trim(), d2.hataYazi, d2.u === null ? "" : String(x.p.belirsizlik).trim(), d2.birim, "", String(+(Math.abs(d2.hata) + (d2.u || 0)).toPrecision(5)).replace(".", ","), "—", [CL_NOT + " (" + model + ")"].concat(x.p.not ? [String(x.p.not)] : [], d2.notlar, d2.uyari).join("; "), new Date()]; while (row.length < 19) row.push(""); row.push(g.cert); return row; });
+      cn = cn.filter(x => anahtar_(x[0]) !== g.k).concat(satir);
+      const K = clKarsilastir_(dog.satirlar.map(x => ({ ref: x.d.ref, olc: x.d.olc, birim: x.d.birim })), mev[g.anah] || []);
+      const ayr = K.farkli.slice(0, 4).map(f => "ref " + f.ref + " " + f.birim + ": Claude " + f.claude + " / mevcut " + f.mevcut).concat(K.yalnizMevcut.slice(0, 3).map(b => "yalnız mevcutta: ref " + b.ref + " " + b.birim)).join(" · ");
+      kars = kars.filter(x => anahtar_(x[0]) !== g.k).concat([[g.id, g.ad, certYaz, dog.satirlar.length, (mev[g.anah] || []).length, K.eslesen, K.farkli.length, K.yalnizClaude.length, K.yalnizMevcut.length, K.durum, ayr, dog.uyari.slice(0, 4).join("; "), new Date()]]);
+      delete hatalar[g.anah]; islenen++;
+    });
+    // her gruptan sonra yaz: süre dolsa da kayıp olmaz
+    const gen = Math.max(NOKTA_BASLIK.length, 20), cnD = cn.map(x => { const s = x.slice(0, gen); while (s.length < gen) s.push(""); return s; });
+    if (cs.getLastRow() > 1) cs.getRange(2, 1, cs.getLastRow() - 1, Math.max(cs.getLastColumn(), gen)).clearContent();
+    if (cnD.length) { if (cs.getRange(1, 20).getValue() === "") cs.getRange(1, 20).setValue("Dosyadaki Sertifika No"); cs.getRange(2, 6, cnD.length, 7).setNumberFormat("@"); cs.getRange(2, 1, cnD.length, gen).setValues(cnD); }
+    if (ks.getLastRow() > 1) ks.getRange(2, 1, ks.getLastRow() - 1, CL_KARS_BAS.length).clearContent();
+    if (kars.length) ks.getRange(2, 1, kars.length, CL_KARS_BAS.length).setValues(kars);
+  }
+  P.setProperty("CL_TUM_HATA", JSON.stringify(hatalar));
+  const kalan = hedef.length - i, say = {}; kars.forEach(r => { const d = String(r[9]).replace(/\s*\(.*\)$/, ""); say[d] = (say[d] || 0) + 1; });
+  P.setProperty("CL_TUM_SON", JSON.stringify({ zaman: new Date().toISOString(), islenen: islenen, kalan: kalan, say: say }));
+  return kalan;
+}
+function claudeTumDurum() {
+  const d = JSON.parse(PropertiesService.getScriptProperties().getProperty("CL_TUM_SON") || "{}"), cal = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === "claudeTumTur");
+  if (!d.zaman) return bildir_(cal ? "Başladı, ilk tur 5 dakika içinde." : "Henüz çalışmadı.");
+  bildir_((cal ? "🔄 Sürüyor." : (d.kalan === 0 ? "✓ Tamamlandı." : "⏸ Durdu.")) + "\nSon tur: " + new Date(d.zaman).toLocaleString("tr-TR") + " · bu turda " + d.islenen + " sertifika · kalan " + d.kalan +
+    "\n\n" + (Object.keys(d.say || {}).sort().map(k => k + ": " + d.say[k]).join("\n") || "") + "\n\nAyrıntı: Claude_Karsilastirma sekmesi (Farklı / Yalnız Mevcut sütunlarına bakın).");
+}
+// "＋ Yalnız Claude okudu" durumundaki cihazların Claude satırlarını Kalibrasyon_Noktalari'na ekler (mevcut okuması olan cihazlara dokunmaz)
+function claudeYeniAktar() {
+  const ss = SpreadsheetApp.openById(SHEET_ID), ks = ss.getSheetByName(CL_KARS), cs = ss.getSheetByName(CL_SEKME); if (!ks || !cs) return bildir_("Önce karşılaştırmayı çalıştırın.");
+  const yeni = {}; ks.getDataRange().getValues().slice(1).forEach(r => { if (/Yalnız Claude/i.test(String(r[9]))) yeni[anahtar_(r[0])] = 1; });
+  const ns = clSekme_(ss, NOKTA_SEKME, NOKTA_BASLIK), mevcut = {}; ns.getDataRange().getValues().slice(1).forEach(r => { if (r[0]) mevcut[anahtar_(r[0])] = 1; });
+  const ek = cs.getDataRange().getValues().slice(1).filter(r => r[0] && yeni[anahtar_(r[0])] && !mevcut[anahtar_(r[0])]).map(r => r.slice(0, NOKTA_BASLIK.length));
+  if (!ek.length) return bildir_("Aktarılacak yeni cihaz yok.");
+  const b = ns.getLastRow() + 1; ns.getRange(b, 6, ek.length, 7).setNumberFormat("@"); ns.getRange(b, 1, ek.length, NOKTA_BASLIK.length).setValues(ek);
+  bildir_("Kalibrasyon_Noktalari'na eklendi: " + ek.length + " nokta, " + Object.keys(ek.reduce((o, r) => (o[anahtar_(r[0])] = 1, o), {})).length + " cihaz.\nKarar sütunu \"—\"; Okuma_Denetimi ile kontrol edin.");
+}
+
+if (typeof module !== "undefined") module.exports = { clKarsilastir_, clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };
