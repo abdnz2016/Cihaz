@@ -1,11 +1,11 @@
-/***** AJAN_CLAUDE 1.2 – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
+/***** AJAN_CLAUDE 1.3 (yapılandırılmış çıktı) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
  * AJAN_GENEL'e DOKUNMAZ ve Yönlendirici'ye bağlanmaz (okuma anahtarı yok): yalnızca menüden çalışır.
  * Hedef: GN_BASARISIZ listesindeki (Genel okuyucunun okuyamadığı) cihazlar ya da seçili satırdaki cihaz. Daha önce okunmuş sertifikalar atlanır.
  * Sayılar sertifikada yazıldığı gibi (metin) alınır; hata = ölçülen − referans her noktada yeniden doğrulanır; tutmayan hata uyarı olarak yazılır.
  * Karar varsayılan olarak YAPILMAZ ("—"). Script Properties: CLAUDE_KARAR = "açık" yazılırsa Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) karar verilir.
  * Gerekenler: Script Properties → ANTHROPIC_API_KEY (menüden kaydedilir). İsteğe bağlı: CLAUDE_MODEL (varsayılan claude-sonnet-5-5). *****/
 function ajanKimlik_Claude() {
-  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.2", sira: 95,
+  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.3", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
            menu: [["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını Kalibrasyon_Noktalari'na aktar", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satırdaki cihazı Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
            gunluk: null, web: {} };
@@ -69,7 +69,7 @@ function clYanitDogrula_(o) {
 }
 
 // ---------- Claude çağrısı ----------
-const CL_ISTEM = "Bu bir kalibrasyon sertifikasıdır. Ölçüm sonuçları tablolarındaki HER satırı `noktalari_kaydet` aracıyla ver.\n" +
+const CL_ISTEM = "Bu bir kalibrasyon sertifikasıdır. Ölçüm sonuçları tablolarındaki HER satırı verilen JSON şemasına göre ver.\n" +
   "KURALLAR:\n" +
   "1. Sayıları sertifikada yazıldığı gibi, metin olarak kopyala (ondalık virgül, sondaki sıfırlar, E-notasyonu aynen). Hiçbir sayıyı hesaplama, yuvarlama, tamamlama, düzeltme.\n" +
   "2. `referans` = referans/standart/uygulanan/set/nominal değer. `olculen` = test edilen cihazın okuması (ya da sertifikada 'ölçülen/okunan/gösterge' sütunu). Etüv/kabin gibi cihazlarda referans = set değeri, ölçülen = kabin ortalaması.\n" +
@@ -78,17 +78,21 @@ const CL_ISTEM = "Bu bir kalibrasyon sertifikasıdır. Ölçüm sonuçları tabl
   "5. Tekrarlanabilirlik, köşe yükü, histerezis gibi testlerin satırlarını da ver ama `tablo` alanında test adını belirt; birden çok ölçüm sütunu varsa (ön/arka, artan/azalan) her sütun için ayrı nokta ver ve `not` alanına sütunu yaz.\n" +
   "6. Okuyamadığın ya da emin olmadığın bir yer varsa uydurma: o noktayı atla ve `okunamayan` listesine nerede olduğunu yaz.\n" +
   "7. Sertifika no, kalibrasyon tarihi (GG.AA.YYYY) ve cihaz adını da doldur.";
-const CL_ARAC = { name: "noktalari_kaydet", description: "Kalibrasyon sertifikasındaki ölçüm noktalarını kaydeder.",
-  input_schema: { type: "object", properties: {
+// Yapılandırılmış çıktı şeması (output_config.format): yanıt bu şemaya UYMAK ZORUNDA (her nesnede additionalProperties: false, tüm alanlar zorunlu; boş olabilenler null)
+const CL_NULL_STR = { anyOf: [{ type: "string" }, { type: "null" }] };
+const CL_SEMA = { type: "object", additionalProperties: false,
+  required: ["sertifika_no", "kalibrasyon_tarihi", "cihaz", "noktalar", "okunamayan", "notlar"],
+  properties: {
     sertifika_no: { type: "string" }, kalibrasyon_tarihi: { type: "string" }, cihaz: { type: "string" },
-    noktalar: { type: "array", items: { type: "object", properties: {
-      tablo: { type: "string" }, aralik: { type: "string" }, buyukluk: { type: "string" }, birim: { type: "string" },
-      referans: { type: "string" }, olculen: { type: "string" }, hata: { type: ["string", "null"] }, belirsizlik: { type: ["string", "null"] }, not: { type: "string" } },
-      required: ["referans", "olculen", "birim"] } },
-    okunamayan: { type: "array", items: { type: "string" } }, notlar: { type: "string" } }, required: ["noktalar"] } };
+    noktalar: { type: "array", items: { type: "object", additionalProperties: false,
+      required: ["tablo", "aralik", "buyukluk", "birim", "referans", "olculen", "hata", "belirsizlik", "not"],
+      properties: { tablo: { type: "string" }, aralik: { type: "string" }, buyukluk: { type: "string" }, birim: { type: "string" },
+        referans: { type: "string" }, olculen: { type: "string" }, hata: CL_NULL_STR, belirsizlik: CL_NULL_STR, not: { type: "string" } } } },
+    okunamayan: { type: "array", items: { type: "string" } }, notlar: { type: "string" } } };
 function clIstek_(dosya, anahtar, model) {   // UrlFetchApp.fetchAll için istek nesnesi
   const baytlar = dosya.getBlob().getBytes(); if (baytlar.length > 30 * 1024 * 1024) throw new Error("PDF 30 MB'tan büyük");
-  const govde = { model: model, max_tokens: 16000, tools: [CL_ARAC], tool_choice: { type: "tool", name: CL_ARAC.name },
+  const efor = PropertiesService.getScriptProperties().getProperty("CLAUDE_EFOR") || "low";   // çıkarma işi: düşük efor hızlı ve yeterli; zor sertifikalarda "medium"/"high"
+  const govde = { model: model, max_tokens: 16000, output_config: { effort: efor, format: { type: "json_schema", schema: CL_SEMA } },
     messages: [{ role: "user", content: [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: Utilities.base64Encode(baytlar) } }, { type: "text", text: CL_ISTEM }] }] };
   return { url: CL_API, method: "post", contentType: "application/json", headers: { "x-api-key": anahtar, "anthropic-version": "2023-06-01" }, payload: JSON.stringify(govde), muteHttpExceptions: true };
 }
@@ -97,9 +101,11 @@ function clYanitCoz_(kod, metin) {
   if (kod === 429 || kod === 529 || kod >= 500) return { tekrar: true, hata: "API yoğun (" + kod + ")" };
   if (kod !== 200) return { hata: "API " + kod + ": " + String(metin).slice(0, 200) };
   let j; try { j = JSON.parse(metin); } catch (e) { return { hata: "API yanıtı çözülemedi" }; }
-  const arac = (j.content || []).find(c => c.type === "tool_use"); if (!arac) return { hata: "API araç çağrısı döndürmedi" };
-  if (j.stop_reason === "max_tokens") arac.input.okunamayan = (arac.input.okunamayan || []).concat(["yanıt uzunluk sınırına takıldı – nokta listesi eksik olabilir"]);
-  return { input: arac.input };
+  if (j.stop_reason === "refusal") return { hata: "model sertifikayı işlemeyi reddetti (" + ((j.stop_details || {}).category || "kategori yok") + ")" };
+  const metin2 = (j.content || []).filter(c => c.type === "text").map(c => c.text).join("");
+  let girdi; try { girdi = JSON.parse(metin2); } catch (e) { return { hata: j.stop_reason === "max_tokens" ? "yanıt uzunluk sınırına takıldı (çok büyük sertifika)" : "yanıt JSON değil" }; }
+  if (j.stop_reason === "max_tokens") girdi.okunamayan = (girdi.okunamayan || []).concat(["yanıt uzunluk sınırına takıldı – nokta listesi eksik olabilir"]);
+  return { input: girdi };
 }
 function clAnahtar_() { const a = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY"); if (!a) throw new Error("API anahtarı kayıtlı değil (menü: Claude API anahtarını kaydet)"); return a; }
 const clModel_ = () => PropertiesService.getScriptProperties().getProperty("CLAUDE_MODEL") || "claude-sonnet-5-5";
@@ -301,4 +307,4 @@ function claudeYeniAktar() {
   bildir_("Kalibrasyon_Noktalari'na eklendi: " + ek.length + " nokta, " + Object.keys(ek.reduce((o, r) => (o[anahtar_(r[0])] = 1, o), {})).length + " cihaz.\nKarar sütunu \"—\"; Okuma_Denetimi ile kontrol edin.");
 }
 
-if (typeof module !== "undefined") module.exports = { clKarsilastir_, clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };
+if (typeof module !== "undefined") module.exports = { clYanitCoz_, clKarsilastir_, clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };
