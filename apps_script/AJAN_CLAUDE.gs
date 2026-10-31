@@ -1,13 +1,13 @@
-/***** AJAN_CLAUDE 1.12 (okunmuş sertifika tekrar okunmaz – toplu komutlarda atlanır, seçili okumada onay sorulur, aralık önceki okumadan; fark çıkan genel okuyucu okumalarını Claude ile değiştirme; Sertifika No = dosya adındaki numara, diğer ajanlar yeniden okumaz; karşılaştırma sekmeleri de güvenli yazılır; güvenli yazma: başkalarının satırları korunur; başka sertifika no ile okunmuş cihaza dokunmaz; kredi/anahtar hatasında durur, cihaz işaretlenmez; aralık = en düşük–en yüksek, çözünürlük = en hassas; sertifika → üretici tamamlama; mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
+/***** AJAN_CLAUDE 1.13 (kaybolan Claude okumaları Claude_Noktalari'ndan geri yüklenir; okunmuş sertifika tekrar okunmaz – toplu komutlarda atlanır, seçili okumada onay sorulur, aralık önceki okumadan; fark çıkan genel okuyucu okumalarını Claude ile değiştirme; Sertifika No = dosya adındaki numara, diğer ajanlar yeniden okumaz; karşılaştırma sekmeleri de güvenli yazılır; güvenli yazma: başkalarının satırları korunur; başka sertifika no ile okunmuş cihaza dokunmaz; kredi/anahtar hatasında durur, cihaz işaretlenmez; aralık = en düşük–en yüksek, çözünürlük = en hassas; sertifika → üretici tamamlama; mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
  * AJAN_GENEL'e DOKUNMAZ ve Yönlendirici'ye bağlanmaz (okuma anahtarı yok): yalnızca menüden çalışır.
  * Hedef: GN_BASARISIZ listesindeki (Genel okuyucunun okuyamadığı) cihazlar ya da seçili satırdaki cihaz. Daha önce okunmuş sertifikalar atlanır.
  * Sayılar sertifikada yazıldığı gibi (metin) alınır; hata = ölçülen − referans her noktada yeniden doğrulanır; tutmayan hata uyarı olarak yazılır.
  * Karar Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) verilir ve Cihazlar özet sütunları yazılır. Kapatmak için Script Properties: CLAUDE_KARAR = kapalı.
  * Gerekenler: Script Properties → ANTHROPIC_API_KEY (menüden kaydedilir). İsteğe bağlı: CLAUDE_MODEL (varsayılan claude-sonnet-5-5). *****/
 function ajanKimlik_Claude() {
-  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.12", sira: 95,
+  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.13", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
-           menu: [["Sertifika No düzelt (bir kez – yeniden okumayı önler)", "claudeSertNoDuzelt"], ["EKSİK TÜRLER (listedeki) – okunmamışları Claude ile oku", "claudeEksikTurler"], ["OKUNMAMIŞ tüm sertifikaları Claude ile oku (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını işle (Kalibrasyon_Noktalari + karar + özet)", "claudeYeniAktar"], ["Fark çıkan GENEL OKUYUCU okumalarını Claude okumasıyla değiştir", "claudeGenelDegistir"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Ölçüm aralığı / çözünürlük tamamla (sertifika → üretici)", "claudeAralikTamamla"], ["Hata kayıtlarını sıfırla (kredi bitti vb. sonrası)", "claudeHatalariSifirla"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
+           menu: [["Sertifika No düzelt (bir kez – yeniden okumayı önler)", "claudeSertNoDuzelt"], ["EKSİK TÜRLER (listedeki) – okunmamışları Claude ile oku", "claudeEksikTurler"], ["OKUNMAMIŞ tüm sertifikaları Claude ile oku (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Claude okumalarını işle / geri yükle (Kalibrasyon_Noktalari'nda olmayanlar, API'siz)", "claudeYeniAktar"], ["Fark çıkan GENEL OKUYUCU okumalarını Claude okumasıyla değiştir", "claudeGenelDegistir"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Ölçüm aralığı / çözünürlük tamamla (sertifika → üretici)", "claudeAralikTamamla"], ["Hata kayıtlarını sıfırla (kredi bitti vb. sonrası)", "claudeHatalariSifirla"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
            gunluk: null, web: {} };
 }
 const CL_API = "https://api.anthropic.com/v1/messages", CL_NOT = "Claude okuyucu";
@@ -573,7 +573,9 @@ function claudeYeniAktar() {
   const sh = ss.getSheetByName(AYAR.SEKME), v = sh.getDataRange().getValues(), h = v[0], P = PropertiesService.getScriptProperties();
   const iId = sutun_(h, AYAR.KAYIT_BASLIK), iAd = sutun_(h, "Cihaz Adı"), iMa = bul_(h, ["Marka"]), iMo = bul_(h, ["Model"]), iAr = bul_(h, ["Ölçüm Aralığı", "Ölçüm Aralığı (Kapasite)", "Kapasite", "Ölçüm Aralığı - Kapasite"]), iCz = bul_(h, ["Çözünürlük"]);
   const ctx = { ss, sh, v, iMa, iMo, iAr, iCz, karar: !/kapal/i.test(P.getProperty("CLAUDE_KARAR") || ""), model: clModel_() }, satirNo = {}; v.forEach((r, i) => { if (i && r[iId]) satirNo[anahtar_(r[iId])] = i; });
-  const kv = ks.getDataRange().getValues(), hedef = {}; kv.slice(1).forEach((r, i) => { if (/Yalnız Claude/i.test(String(r[9])) && !/işlendi/i.test(String(r[9]))) hedef[anahtar_(r[0])] = i + 1; });
+  // 1.13: Claude_Noktalari'nda okuması olup Kalibrasyon_Noktalari'nda HİÇ satırı olmayan her cihaz (işlenmemiş ya da sonradan kaybolmuş) – durumundan bağımsız
+  const kv = ks.getDataRange().getValues(), hedef = {}, ksSatir = {}; kv.slice(1).forEach((r, i) => { if (r[0]) ksSatir[anahtar_(r[0])] = i + 1; });
+  cs.getDataRange().getValues().slice(1).forEach(r => { if (r[0]) hedef[anahtar_(r[0])] = ksSatir[anahtar_(r[0])] || -1; });
   const ns = clSekme_(ss, NOKTA_SEKME, NOKTA_BASLIK), mevcut = {}; ns.getDataRange().getValues().slice(1).forEach(r => { if (String(r[0]).trim()) mevcut[anahtar_(r[0])] = 1; });
   const ekIds = {}; let ek = [];
   const grup = {}; cs.getDataRange().getValues().slice(1).forEach(r => { const k = anahtar_(r[0]); if (r[0] && hedef[k] && !mevcut[k]) (grup[k] = grup[k] || []).push(r); });
@@ -586,10 +588,10 @@ function claudeYeniAktar() {
     const ara = R[0][20] !== undefined && (String(R[0][20]).trim() || String(R[0][21]).trim()) ? { olcum_araligi: R[0][20], cozunurluk: R[0][21] } : null;
     const isl = clIsle_(ctx, r, R[0][0], R[0][1], R[0][2], S, ara, clAyarMi_(String(v[r][iAd])));
     ekIds[k] = 1; ek = ek.concat(isl.yeni);
-    ks.getRange(hedef[k] + 1, 10).setValue("＋ Yalnız Claude okudu → işlendi" + (isl.genel ? ": " + isl.genel : ""));
+    if (hedef[k] > 0) ks.getRange(hedef[k] + 1, 10).setValue("＋ Claude okuması işlendi" + (isl.genel ? ": " + isl.genel : ""));
     rapor.push(R[0][0] + ": " + S.length + " nokta" + (isl.genel ? " → " + isl.genel : "") + (isl.arNot ? " · " + isl.arNot : ""));
   });
-  if (!rapor.length) return bildir_("İşlenecek yeni cihaz yok.");
+  if (!rapor.length) return bildir_("İşlenecek cihaz yok: Claude'un okuduğu her cihazın Kalibrasyon_Noktalari'nda satırı var.");
   clNoktaGuncelle_(ns, ekIds, ek);
   bildir_("İşlendi (" + rapor.length + " cihaz): Kalibrasyon_Noktalari'na yazıldı, karar verildi, Cihazlar özeti dolduruldu.\n\n" + rapor.join("\n"));
 }
