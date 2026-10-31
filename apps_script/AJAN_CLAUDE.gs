@@ -1,13 +1,13 @@
-/***** AJAN_CLAUDE 1.7 (aralık = en düşük–en yüksek, çözünürlük = en hassas; sertifika → üretici tamamlama; mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
+/***** AJAN_CLAUDE 1.8 (kredi/anahtar hatasında durur, cihaz işaretlenmez; aralık = en düşük–en yüksek, çözünürlük = en hassas; sertifika → üretici tamamlama; mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
  * AJAN_GENEL'e DOKUNMAZ ve Yönlendirici'ye bağlanmaz (okuma anahtarı yok): yalnızca menüden çalışır.
  * Hedef: GN_BASARISIZ listesindeki (Genel okuyucunun okuyamadığı) cihazlar ya da seçili satırdaki cihaz. Daha önce okunmuş sertifikalar atlanır.
  * Sayılar sertifikada yazıldığı gibi (metin) alınır; hata = ölçülen − referans her noktada yeniden doğrulanır; tutmayan hata uyarı olarak yazılır.
  * Karar Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) verilir ve Cihazlar özet sütunları yazılır. Kapatmak için Script Properties: CLAUDE_KARAR = kapalı.
  * Gerekenler: Script Properties → ANTHROPIC_API_KEY (menüden kaydedilir). İsteğe bağlı: CLAUDE_MODEL (varsayılan claude-sonnet-5-5). *****/
 function ajanKimlik_Claude() {
-  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.7", sira: 95,
+  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.8", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
-           menu: [["EKSİK TÜRLER (listedeki) – Claude ile oku ve karşılaştır", "claudeEksikTurler"], ["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını işle (Kalibrasyon_Noktalari + karar + özet)", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Ölçüm aralığı / çözünürlük tamamla (sertifika → üretici)", "claudeAralikTamamla"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
+           menu: [["EKSİK TÜRLER (listedeki) – Claude ile oku ve karşılaştır", "claudeEksikTurler"], ["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını işle (Kalibrasyon_Noktalari + karar + özet)", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Ölçüm aralığı / çözünürlük tamamla (sertifika → üretici)", "claudeAralikTamamla"], ["Hata kayıtlarını sıfırla (kredi bitti vb. sonrası)", "claudeHatalariSifirla"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
            gunluk: null, web: {} };
 }
 const CL_API = "https://api.anthropic.com/v1/messages", CL_NOT = "Claude okuyucu";
@@ -116,8 +116,11 @@ function clIstek_(dosya, anahtar, model) {   // UrlFetchApp.fetchAll için istek
   return { url: CL_API, method: "post", contentType: "application/json", headers: { "x-api-key": anahtar, "anthropic-version": "2023-06-01" }, payload: JSON.stringify(govde), muteHttpExceptions: true };
 }
 // Yanıtı çözer: { input } ya da { tekrar: true } (yoğunluk – sonra yeniden denenir) ya da { hata }
+// 1.8: hesap düzeyindeki hatalar (kredi bitti, anahtar geçersiz) – hiçbir cihaz "okunamadı" sayılmaz, çalıştırma durur
+const clDurNedeni_ = (kod, metin) => /credit balance|billing/i.test(String(metin)) ? "Anthropic hesabında kredi bitti (console.anthropic.com → Billing)" : (kod === 401 ? "API anahtarı geçersiz (menüden yeniden kaydedin)" : "API erişimi reddedildi (" + kod + ")");
 function clYanitCoz_(kod, metin) {
   if (kod === 429 || kod === 529 || kod >= 500) return { tekrar: true, hata: "API yoğun (" + kod + ")" };
+  if (kod === 401 || kod === 403 || (kod === 400 && /credit balance|billing/i.test(String(metin)))) return { durdur: true, tekrar: true, hata: clDurNedeni_(kod, metin) };   // hesap sorunu: cihazın suçu değil
   if (kod !== 200) return { hata: "API " + kod + ": " + String(metin).slice(0, 200) };
   let j; try { j = JSON.parse(metin); } catch (e) { return { hata: "API yanıtı çözülemedi" }; }
   if (j.stop_reason === "refusal") return { hata: "model sertifikayı işlemeyi reddetti (" + ((j.stop_details || {}).category || "kategori yok") + ")" };
@@ -132,6 +135,7 @@ function clApi_(dosya) {
   const istek = clIstek_(dosya, clAnahtar_(), clModel_());
   for (let deneme = 0; deneme < 3; deneme++) {
     const y = UrlFetchApp.fetch(istek.url, istek), c = clYanitCoz_(y.getResponseCode(), y.getContentText());
+    if (c.durdur) throw new Error(c.hata);
     if (c.tekrar) { Utilities.sleep(4000 * (deneme + 1)); continue; }
     if (c.hata) throw new Error(c.hata); return c.input;
   }
@@ -310,6 +314,14 @@ function clJsonBul_(metin) {
   let d = 0; for (let j = i; j < t.length; j++) { if (t[j] === "{") d++; else if (t[j] === "}" && --d === 0) { try { return JSON.parse(t.slice(i, j + 1)); } catch (e) { return null; } } }
   return null;
 }
+// Hesap hatası (kredi bitti vb.) yüzünden yanlışlıkla "okunamadı / denendi" sayılan cihazları temizler – sonraki çalıştırmada yeniden denenirler
+function claudeHatalariSifirla() {
+  const P = PropertiesService.getScriptProperties(); P.deleteProperty("CL_AR_DENENDI"); P.deleteProperty("CL_TUM_HATA");
+  const ks = SpreadsheetApp.openById(SHEET_ID).getSheetByName(CL_KARS); let n = 0;
+  if (ks && ks.getLastRow() > 1) { const v = ks.getDataRange().getValues(), kalan = v.slice(1).filter(r => { const sil = /okuyamad/i.test(String(r[9])) && /API 4\d\d|credit|kredi/i.test(String(r[11])); if (sil) n++; return !sil; });
+    ks.getRange(2, 1, v.length - 1, v[0].length).clearContent(); if (kalan.length) ks.getRange(2, 1, kalan.length, v[0].length).setValues(kalan); }
+  bildir_("Sıfırlandı: aralık/çözünürlük deneme kayıtları ve karşılaştırma hata sayaçları silindi" + (n ? ", hesap hatası yüzünden '✗ okuyamadı' olan " + n + " satır kaldırıldı" : "") + ".\nKomutları yeniden çalıştırabilirsiniz; okunmuş cihazlar atlanır.");
+}
 function claudeAralikTamamla() {
   const ss = SpreadsheetApp.openById(SHEET_ID), sh = ss.getSheetByName(AYAR.SEKME), v = sh.getDataRange().getValues(), h = v[0], idx = dosyaIndeksi_(), bas = Date.now();
   const iId = sutun_(h, AYAR.KAYIT_BASLIK), iAd = sutun_(h, "Cihaz Adı"), iMa = bul_(h, ["Marka"]), iMo = bul_(h, ["Model"]);
@@ -323,15 +335,16 @@ function claudeAralikTamamla() {
     const id = v[r][iId]; if (!id || !eksik(r)) continue; const k = anahtar_(id), d = idx[k];
     if (d && !/sertifika|üretici/.test(denendi[k] || "")) sert.push({ r, id, k, d }); else if (!/üretici/.test(denendi[k] || "")) ure.push({ r, id, k });
   }
-  const rapor = [], bulunamadi = [];
+  const rapor = [], bulunamadi = []; let durNedeni = "";
   const calistir = (L, istekYap, coz, adim) => {
     let i = 0;
-    while (i < L.length && Date.now() - bas < 240000) {
+    while (i < L.length && Date.now() - bas < 240000 && !durNedeni) {
       const grup = L.slice(i, i + paralel), ist = [], gec = []; i += grup.length;
       grup.forEach(g => { try { ist.push(istekYap(g)); gec.push(g); } catch (e) { denendi[g.k] = adim; bulunamadi.push(g.id + " (" + e.message + ")"); } });
       if (!ist.length) continue;
       UrlFetchApp.fetchAll(ist).forEach((y, j) => {
         const g = gec[j], kod = y.getResponseCode(); if (kod === 429 || kod === 529 || kod >= 500) return;   // sonra yeniden
+        if (kod === 401 || kod === 403 || (kod === 400 && /credit balance|billing/i.test(y.getContentText()))) { durNedeni = clDurNedeni_(kod, y.getContentText()); return; }   // hesap sorunu: işaretlenmez
         denendi[g.k] = adim; let o = null;
         try { const jj = JSON.parse(y.getContentText()); if (kod === 200) o = coz(jj); else bulunamadi.push(g.id + " (API " + kod + ": " + String((jj.error || {}).message || "").slice(0, 80) + ")"); } catch (e) {}
         if (!o || !(String(o.olcum_araligi || "").trim() || String(o.cozunurluk || "").trim())) { if (adim === "sertifika") ure.push({ r: g.r, id: g.id, k: g.k }); else bulunamadi.push(g.id); return; }
@@ -347,6 +360,7 @@ function claudeAralikTamamla() {
   const kalan2 = calistir(ure, g => clIstekUretici_(String(v[g.r][iAd]), iMa >= 0 ? v[g.r][iMa] : "", iMo >= 0 ? v[g.r][iMo] : "", anahtar, model),
     jj => { const o = clJsonBul_((jj.content || []).filter(c => c.type === "text").map(c => c.text).join("")); return o && /^https?:\/\//.test(String(o.kaynak || "")) ? o : null; }, "üretici");   // kaynaksız üretici bilgisi kabul edilmez
   P.setProperty("CL_AR_DENENDI", JSON.stringify(denendi));
+  if (durNedeni) return bildir_("⛔ DURDU: " + durNedeni + "\nHiçbir cihaz 'denendi' olarak işaretlenmedi; sorunu giderip komutu yeniden çalıştırın." + (rapor.length ? "\n\nDurmadan önce güncellenen:\n" + rapor.join("\n") : ""));
   bildir_("Ölçüm aralığı / çözünürlük tamamlama:\n" + (rapor.join("\n") || "güncellenen yok") + (bulunamadi.length ? "\n\nBulunamadı (" + bulunamadi.length + "): " + bulunamadi.join(", ") : "") + (kalan1 + kalan2 ? "\n\n⏱ Süre doldu, kalan " + (kalan1 + kalan2) + " cihaz – komutu tekrar çalıştırın." : ""));
 }
 // ===== 1.2: TÜM SERTİFİKALAR – bağımsız okuma ve karşılaştırma (Kalibrasyon_Noktalari'na DOKUNMAZ) =====
@@ -414,8 +428,8 @@ function claudeTumOku_() {
     hedef.push({ r, id, k, d, cert, anah, ad: String(v[r][iAd]) });
   }
   let kars = ks.getDataRange().getValues().slice(1).filter(r => String(r[0]).trim() !== "");
-  let i = 0, islenen = 0;
-  while (i < hedef.length && Date.now() - bas < 200000) {
+  let i = 0, islenen = 0, durNedeni = "";
+  while (i < hedef.length && Date.now() - bas < 200000 && !durNedeni) {
     const grup = hedef.slice(i, i + paralel), istekler = [], gecerli = [];
     grup.forEach(g => { try { istekler.push(clIstek_(DriveApp.getFileById((/\/d\/([\w-]+)/.exec(g.d.url) || [0, ""])[1]), anahtar, model)); gecerli.push(g); } catch (e) { hatalar[g.anah] = 2; kars.push([g.id, g.ad, g.cert, 0, (mev[g.anah] || []).length, "", "", "", "", "✗ Claude okuyamadı", "", "PDF alınamadı: " + e.message, new Date()]); } });
     i += grup.length;
@@ -423,6 +437,7 @@ function claudeTumOku_() {
     const yanitlar = UrlFetchApp.fetchAll(istekler);
     yanitlar.forEach((y, j) => {
       const g = gecerli[j], c = clYanitCoz_(y.getResponseCode(), y.getContentText());
+      if (c.durdur) { durNedeni = c.hata; return; }
       if (c.tekrar) return;   // sonraki tur yeniden dener
       const dog = c.input ? clYanitDogrula_(c.input, clAyarMi_(g.ad)) : { satirlar: [], uyari: [c.hata] };
       if (!dog.satirlar.length) { hatalar[g.anah] = (hatalar[g.anah] || 0) + 1; if (hatalar[g.anah] >= 2) kars = kars.filter(x => !(anahtar_(x[0]) === g.k && String(x[2]) === g.cert)).concat([[g.id, g.ad, g.cert, 0, (mev[g.anah] || []).length, "", "", "", "", "✗ Claude okuyamadı", "", dog.uyari.slice(0, 3).join("; "), new Date()]]); return; }
@@ -450,13 +465,14 @@ function claudeTumOku_() {
   }
   P.setProperty("CL_TUM_HATA", JSON.stringify(hatalar));
   const kalan = hedef.length - i, say = {}; kars.forEach(r => { const d = String(r[9]).replace(/\s*\(.*\)$/, "").replace(/: .*$/, ""); say[d] = (say[d] || 0) + 1; });
-  P.setProperty("CL_TUM_SON", JSON.stringify({ zaman: new Date().toISOString(), islenen: islenen, kalan: kalan, say: say, aktarildi: aktarildi }));
+  P.setProperty("CL_TUM_SON", JSON.stringify({ zaman: new Date().toISOString(), islenen: islenen, kalan: kalan, say: say, aktarildi: aktarildi, dur: durNedeni }));
+  if (durNedeni) { claudeTumDurdur(true); return -1; }   // hesap sorunu: arka plan durur, kaldığı yerden devam ettirilebilir
   return kalan;
 }
 function claudeTumDurum() {
   const d = JSON.parse(PropertiesService.getScriptProperties().getProperty("CL_TUM_SON") || "{}"), cal = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === "claudeTumTur");
   if (!d.zaman) return bildir_(cal ? "Başladı, ilk tur 5 dakika içinde." : "Henüz çalışmadı.");
-  bildir_((cal ? "🔄 Sürüyor." : (d.kalan === 0 ? "✓ Tamamlandı." : "⏸ Durdu.")) + "\nSon tur: " + new Date(d.zaman).toLocaleString("tr-TR") + " · bu turda " + d.islenen + " sertifika · kalan " + d.kalan +
+  bildir_((d.dur ? "⛔ DURDU: " + d.dur + "\nSorunu giderip komutu yeniden başlatın; kaldığı yerden devam eder.\n\n" : "") + (cal ? "🔄 Sürüyor." : (d.kalan === 0 ? "✓ Tamamlandı." : "⏸ Durdu.")) + "\nSon tur: " + new Date(d.zaman).toLocaleString("tr-TR") + " · bu turda " + d.islenen + " sertifika · kalan " + d.kalan +
     "\n\n" + (Object.keys(d.say || {}).sort().map(k => k + ": " + d.say[k]).join("\n") || "") + "\n\nAyrıntı: Claude_Karsilastirma sekmesi (Farklı / Yalnız Mevcut sütunlarına bakın).");
 }
 function clNoktaYaz_(ns, tum) {
