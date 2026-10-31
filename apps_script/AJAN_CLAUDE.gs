@@ -1,13 +1,13 @@
-/***** AJAN_CLAUDE 1.5 (eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
+/***** AJAN_CLAUDE 1.6 (mevcut okuması olmayan cihazlar karşılaştırmada doğrudan işlenir; eksik türler süzgeci, çoklu seçim; yapılandırılmış çıktı; ayar cihazı sütunları; karar ve özet; aralık/çözünürlük) – Claude okuyucu: (a) TÜM sertifikaları bağımsız okuyup mevcut okumalarla karşılaştırır (Claude_Noktalari, Claude_Karsilastirma)  (b) Genel okuyucunun okuyamadıklarını okur
  * AJAN_GENEL'e DOKUNMAZ ve Yönlendirici'ye bağlanmaz (okuma anahtarı yok): yalnızca menüden çalışır.
  * Hedef: GN_BASARISIZ listesindeki (Genel okuyucunun okuyamadığı) cihazlar ya da seçili satırdaki cihaz. Daha önce okunmuş sertifikalar atlanır.
  * Sayılar sertifikada yazıldığı gibi (metin) alınır; hata = ölçülen − referans her noktada yeniden doğrulanır; tutmayan hata uyarı olarak yazılır.
  * Karar Genel okuyucunun kriter/karar işlevleriyle (gnKriterBul_, gnKarar_) verilir ve Cihazlar özet sütunları yazılır. Kapatmak için Script Properties: CLAUDE_KARAR = kapalı.
  * Gerekenler: Script Properties → ANTHROPIC_API_KEY (menüden kaydedilir). İsteğe bağlı: CLAUDE_MODEL (varsayılan claude-sonnet-5-5). *****/
 function ajanKimlik_Claude() {
-  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.5", sira: 95,
+  return { kod: "CLAUDE", ad: "Yedek okuyucu (Claude)", surum: "1.6", sira: 95,
            aciklama: "Genel okuyucunun okuyamadığı sertifikaları Claude ile okur",
-           menu: [["EKSİK TÜRLER (listedeki) – Claude ile oku ve karşılaştır", "claudeEksikTurler"], ["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını Kalibrasyon_Noktalari'na aktar", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
+           menu: [["EKSİK TÜRLER (listedeki) – Claude ile oku ve karşılaştır", "claudeEksikTurler"], ["TÜM sertifikaları Claude ile oku ve karşılaştır (arka planda)", "claudeTumunuKarsilastir"], ["Karşılaştırma durumunu göster", "claudeTumDurum"], ["Karşılaştırmayı durdur", "claudeTumDurdur"], ["Yalnız Claude'un okuduklarını işle (Kalibrasyon_Noktalari + karar + özet)", "claudeYeniAktar"], ["Okunamayanları Claude ile oku (arka planda)", "claudeOkunamayanlariOku"], ["Seçili satır(lar)daki cihazları Claude ile oku", "claudeSeciliOku"], ["Arka plan durumunu göster", "claudeDurum"], ["Arka planda okumayı durdur", "claudeDurdur"], ["Claude API anahtarını kaydet", "claudeAnahtarKaydet"], ["Claude bağlantısını test et", "claudeBaglantiTest"]],
            gunluk: null, web: {} };
 }
 const CL_API = "https://api.anthropic.com/v1/messages", CL_NOT = "Claude okuyucu";
@@ -161,6 +161,23 @@ function clAralikCozYaz_(sh, v, r, iAr, iCz, sonuc) {
   }
   return notlar.join(" · ");
 }
+// 1.6: Doğrulanmış noktaları işler: karar (Kabul_Kriterleri), Kalibrasyon_Noktalari satırları, Cihazlar özeti, aralık/çözünürlük.
+// satirlar: [{ p: {referans, olculen, not}, d: {ref, olc, hata, hataYazi, u, uYazi, birim, notlar, uyari}, aralik, buyukluk, notHazir? }]
+// ara: { olcum_araligi, cozunurluk } ya da null. Döner: { yeni: [satır], genel: "UYGUN"…, arNot }
+function clIsle_(ctx, r, id, certYaz, kt, satirlar, ara, ayar) {
+  const { ss, sh, v, iMa, iMo, iAr, iCz, karar, model } = ctx, ad = String(v[r][sutun_(v[0], "Cihaz Adı")]);
+  const arNot = ara ? clAralikCozYaz_(sh, v, r, iAr, iCz, ara) : "";   // ölçüm aralığı / çözünürlük sertifikadan (boşsa yazılır; çözünürlük aralığın üst sınırına eşit ya da büyükse düzeltilir)
+  const fs = iAr >= 0 ? Math.max(0, ...(String(v[r][iAr]).match(/\d+(?:[.,]\d+)?/g) || ["0"]).map(clSayi_)) || null : null;
+  const kr = karar && typeof gnKriterBul_ === "function" ? gnKriterBul_(ss, ad, iMa >= 0 ? v[r][iMa] : "", iMo >= 0 ? v[r][iMo] : "") : null;
+  const yeni = satirlar.map(x => {
+    const d2 = x.d, top = Math.abs(d2.hata) + (d2.u || 0), kk = karar ? (kr ? gnKarar_(d2.ref, d2.hata, d2.u, kr, d2.birim, fs) : { lim: null, karar: "KRİTER YOK" }) : { lim: null, karar: "—" };
+    const not = x.notHazir || [CL_NOT + " (" + model + ")", ayar ? "ayar cihazı: Referans = cihaza girilen, Ölçülen = gerçek" : ""].filter(Boolean).concat(x.p.not ? [String(x.p.not)] : [], d2.notlar, d2.uyari).join("; ");
+    x.kk = kk; return [id, certYaz, kt, x.buyukluk, x.aralik, String(x.p.referans).trim(), String(x.p.olculen).trim(), d2.hataYazi, d2.u === null ? "" : d2.uYazi, d2.birim,
+      kk.lim === null || kk.lim === undefined ? "" : String(+kk.lim.toPrecision(4)).replace(".", ","), String(+top.toPrecision(5)).replace(".", ","), kk.karar, not, new Date()];
+  });
+  if (karar) clOzetYaz_(sh, r, satirlar, kr);   // Cihazlar: Kabul Kriteri · Max Hata · Kal. Kontrol Sonucu · Kal. Kontrol Tarihi (diğer ajanlarla aynı)
+  return { yeni: yeni, genel: karar ? clGenel_(satirlar, kr) : "", arNot: arNot };
+}
 // ---------- ana işlev ----------
 const clCertDosyadan_ = ad => (String(ad).replace(/\.pdf$/i, "").match(/_([^_]+)$/) || [])[1] || "";
 // sadece: { "KK-05": 1 } verilirse yalnız o cihazlar (daha önce okunmuş olsa da yeniden); verilmezse GN_BASARISIZ listesindeki ve henüz okunmamış cihazlar. Döner: rapor metni
@@ -185,21 +202,12 @@ function claudeOku(sadece) {
     try { sonuc = clApi_(DriveApp.getFileById(dosyaId)); } catch (e) { sorunlu.push(id + ": " + e.message); continue; }
     const ad = String(v[r][iAd]), ayar = clAyarMi_(ad), dog = clYanitDogrula_(sonuc, ayar), certYaz = String(sonuc.sertifika_no || cert || "").trim() || cert;
     if (!dog.satirlar.length) { sorunlu.push(id + ": nokta okunamadı" + (dog.uyari.length ? " (" + dog.uyari.slice(0, 2).join("; ") + ")" : "")); continue; }
-    const arNot = clAralikCozYaz_(sh, v, r, iAr, iCz, sonuc);   // ölçüm aralığı / çözünürlük sertifikadan (boşsa yazılır; çözünürlük aralığın üst sınırına eşit ya da büyükse düzeltilir)
-    const fs = iAr >= 0 ? Math.max(0, ...(String(v[r][iAr]).match(/\d+(?:[.,]\d+)?/g) || ["0"]).map(clSayi_)) || null : null;
-    const kr = karar && typeof gnKriterBul_ === "function" ? gnKriterBul_(ss, ad, iMa >= 0 ? v[r][iMa] : "", iMo >= 0 ? v[r][iMo] : "") : null;
-    const yeni = dog.satirlar.map(x => {
-      const d2 = x.d, top = Math.abs(d2.hata) + (d2.u || 0), kk = karar ? (kr ? gnKarar_(d2.ref, d2.hata, d2.u, kr, d2.birim, fs) : { lim: null, karar: "KRİTER YOK" }) : { lim: null, karar: "—" };
-      const not = [CL_NOT + " (" + model + ")", ayar ? "ayar cihazı: Referans = cihaza girilen, Ölçülen = gerçek" : ""].filter(Boolean).concat(x.p.not ? [String(x.p.not)] : [], d2.notlar, d2.uyari).join("; ");
-      x.kk = kk; return [id, certYaz, iKt >= 0 ? v[r][iKt] : (sonuc.kalibrasyon_tarihi || ""), x.buyukluk, x.aralik, String(x.p.referans).trim(), String(x.p.olculen).trim(), d2.hataYazi, d2.u === null ? "" : d2.uYazi, d2.birim,
-        kk.lim === null || kk.lim === undefined ? "" : String(+kk.lim.toPrecision(4)).replace(".", ","), String(+top.toPrecision(5)).replace(".", ","), kk.karar, not, new Date()];
-    });
+    const ctx = { ss, sh, v, iMa, iMo, iAr, iCz, karar, model }, isl = clIsle_(ctx, r, id, certYaz, iKt >= 0 ? v[r][iKt] : (sonuc.kalibrasyon_tarihi || ""), dog.satirlar, sonuc, ayar), yeni = isl.yeni, arNot = isl.arNot;
     tum = tum.filter(x => anahtar_(x[0]) !== k).concat(yeni);   // bu cihazın eski satırları yenileriyle değişir
     const son = ns.getLastRow(); if (son > 1) ns.getRange(2, 1, son - 1, Math.max(ns.getLastColumn(), NOKTA_BASLIK.length)).clearContent();
     ns.getRange(2, 6, tum.length, 7).setNumberFormat("@"); ns.getRange(2, 1, tum.length, NOKTA_BASLIK.length).setValues(tum);   // her cihazdan sonra yazılır; süre dolsa da kayıp olmaz
-    if (karar) clOzetYaz_(sh, r, dog.satirlar, kr);   // Cihazlar: Kabul Kriteri · Max Hata · Kal. Kontrol Sonucu · Kal. Kontrol Tarihi (diğer ajanlarla aynı)
     okunmus[k + "|" + certYaz] = 1; okunmus[anah] = 1; delete basarisiz[anah]; yapilan++;
-    rapor.push(id + " (" + certYaz + "): " + yeni.length + " nokta" + (karar ? " → " + clGenel_(dog.satirlar, kr) : "") + (arNot ? " · " + arNot : "") + (dog.uyari.length ? " · ⚠ " + dog.uyari.length + " uyarı: " + dog.uyari.slice(0, 3).join("; ") : " · uyarı yok"));
+    rapor.push(id + " (" + certYaz + "): " + yeni.length + " nokta" + (karar ? " → " + isl.genel : "") + (arNot ? " · " + arNot : "") + (dog.uyari.length ? " · ⚠ " + dog.uyari.length + " uyarı: " + dog.uyari.slice(0, 3).join("; ") : " · uyarı yok"));
   }
   P.setProperty("GN_BASARISIZ", JSON.stringify(basarisiz));   // Claude'un okuduğu cihazlar Genel okuyucunun "okunamayan" listesinden çıkar
   const metin = "Yedek okuyucu (Claude):\n" + (rapor.join("\n") || "okunan cihaz yok") + (sorunlu.length ? "\n\nOkunamadı (" + sorunlu.length + "):\n" + sorunlu.join("\n") : "") + (atlandi ? "\n\nBu arada okunmuş (atlandı): " + atlandi : "") + (kaldi ? "\n⏱ Süre doldu, kalan " + kaldi + " cihaz – sonraki tur okur." : "");
@@ -298,15 +306,17 @@ function claudeTumTur() {
 // Bir tur: Claude_Noktalari'nda henüz olmayan (cihaz + sertifika no) sertifikaları paralel okur. Döner: kalan cihaz sayısı
 function claudeTumOku_() {
   const ss = SpreadsheetApp.openById(SHEET_ID), sh = ss.getSheetByName(AYAR.SEKME), v = sh.getDataRange().getValues(), h = v[0], idx = dosyaIndeksi_(), bas = Date.now();
-  const iId = sutun_(h, AYAR.KAYIT_BASLIK), iAd = sutun_(h, "Cihaz Adı"), iKt = bul_(h, ["Kalibrasyon Tarihi"]);
-  const P = PropertiesService.getScriptProperties(), anahtar = clAnahtar_(), model = clModel_(), paralel = Math.min(8, Math.max(1, Number(P.getProperty("CLAUDE_PARALEL")) || 4));
+  const iId = sutun_(h, AYAR.KAYIT_BASLIK), iAd = sutun_(h, "Cihaz Adı"), iKt = bul_(h, ["Kalibrasyon Tarihi"]), iMa = bul_(h, ["Marka"]), iMo = bul_(h, ["Model"]);
+  const iAr = bul_(h, ["Ölçüm Aralığı", "Ölçüm Aralığı (Kapasite)", "Kapasite", "Ölçüm Aralığı - Kapasite"]), iCz = bul_(h, ["Çözünürlük"]);
+  const P = PropertiesService.getScriptProperties(), anahtar = clAnahtar_(), model = clModel_(), karar = !/kapal/i.test(P.getProperty("CLAUDE_KARAR") || ""), paralel = Math.min(8, Math.max(1, Number(P.getProperty("CLAUDE_PARALEL")) || 4));
   const hatalar = JSON.parse(P.getProperty("CL_TUM_HATA") || "{}"), filtre = P.getProperty("CL_TUM_FILTRE") ? new RegExp(P.getProperty("CL_TUM_FILTRE"), "i") : null;   // "KK-05|sert" → deneme sayısı (2 kez okunamayan atlanır)
   const cs = clSekme_(ss, CL_SEKME, NOKTA_BASLIK), ks = clSekme_(ss, CL_KARS, CL_KARS_BAS);
   let cn = cs.getDataRange().getValues().slice(1).filter(r => String(r[0]).trim() !== "");
   const yapilmis = {}; cn.forEach(r => { yapilmis[anahtar_(r[0]) + "|" + String(r[19] || r[1]).trim()] = 1; });
   ks.getDataRange().getValues().slice(1).forEach(r => { if (/okuyamad/i.test(String(r[9]))) yapilmis[anahtar_(r[0]) + "|" + String(r[2]).trim()] = 1; });
   // mevcut okumalar (Kalibrasyon_Noktalari), cihaz|sertifika → [{ref, olc, birim}]
-  const ns = ss.getSheetByName(NOKTA_SEKME), mev = {};
+  const ns = clSekme_(ss, NOKTA_SEKME, NOKTA_BASLIK), mev = {}, ctx = { ss, sh, v, iMa, iMo, iAr, iCz, karar, model };
+  let tum = ns.getDataRange().getValues().slice(1).filter(r => String(r[0]).trim() !== "").map(r => { const x = r.slice(0, NOKTA_BASLIK.length); while (x.length < NOKTA_BASLIK.length) x.push(""); return x; }), aktarildi = 0;
   if (ns) ns.getDataRange().getValues().slice(1).forEach(r => { if (!r[0]) return; const ref = clSayi_(r[5]), olc = clSayi_(r[6]); if (isNaN(ref) || isNaN(olc)) return; (mev[anahtar_(r[0]) + "|" + String(r[1]).trim()] = mev[anahtar_(r[0]) + "|" + String(r[1]).trim()] || []).push({ ref, olc, birim: String(r[9] || "") }); });
   const hedef = [];
   for (let r = 1; r < v.length; r++) {
@@ -329,23 +339,30 @@ function claudeTumOku_() {
       const dog = c.input ? clYanitDogrula_(c.input, clAyarMi_(g.ad)) : { satirlar: [], uyari: [c.hata] };
       if (!dog.satirlar.length) { hatalar[g.anah] = (hatalar[g.anah] || 0) + 1; if (hatalar[g.anah] >= 2) kars = kars.filter(x => !(anahtar_(x[0]) === g.k && String(x[2]) === g.cert)).concat([[g.id, g.ad, g.cert, 0, (mev[g.anah] || []).length, "", "", "", "", "✗ Claude okuyamadı", "", dog.uyari.slice(0, 3).join("; "), new Date()]]); return; }
       const certYaz = String(c.input.sertifika_no || g.cert).trim() || g.cert;
-      const satir = dog.satirlar.map(x => { const d2 = x.d; const row = [g.id, certYaz, iKt >= 0 ? v[g.r][iKt] : (c.input.kalibrasyon_tarihi || ""), x.buyukluk, x.aralik, String(x.p.referans).trim(), String(x.p.olculen).trim(), d2.hataYazi, d2.u === null ? "" : d2.uYazi, d2.birim, "", String(+(Math.abs(d2.hata) + (d2.u || 0)).toPrecision(5)).replace(".", ","), "—", [CL_NOT + " (" + model + ")"].concat(x.p.not ? [String(x.p.not)] : [], d2.notlar, d2.uyari).join("; "), new Date()]; while (row.length < 19) row.push(""); row.push(g.cert); return row; });
+      const satir = dog.satirlar.map(x => { const d2 = x.d; const row = [g.id, certYaz, iKt >= 0 ? v[g.r][iKt] : (c.input.kalibrasyon_tarihi || ""), x.buyukluk, x.aralik, String(x.p.referans).trim(), String(x.p.olculen).trim(), d2.hataYazi, d2.u === null ? "" : d2.uYazi, d2.birim, "", String(+(Math.abs(d2.hata) + (d2.u || 0)).toPrecision(5)).replace(".", ","), "—", [CL_NOT + " (" + model + ")"].concat(x.p.not ? [String(x.p.not)] : [], d2.notlar, d2.uyari).join("; "), new Date()]; while (row.length < 19) row.push(""); row.push(g.cert, String(c.input.olcum_araligi || ""), String(c.input.cozunurluk || "")); return row; });
       cn = cn.filter(x => anahtar_(x[0]) !== g.k).concat(satir);
       const K = clKarsilastir_(dog.satirlar.map(x => ({ ref: x.d.ref, olc: x.d.olc, birim: x.d.birim })), mev[g.anah] || []);
       const ayr = K.farkli.slice(0, 4).map(f => "ref " + f.ref + " " + f.birim + ": Claude " + f.claude + " / mevcut " + f.mevcut).concat(K.yalnizMevcut.slice(0, 3).map(b => "yalnız mevcutta: ref " + b.ref + " " + b.birim)).join(" · ");
-      kars = kars.filter(x => anahtar_(x[0]) !== g.k).concat([[g.id, g.ad, certYaz, dog.satirlar.length, (mev[g.anah] || []).length, K.eslesen, K.farkli.length, K.yalnizClaude.length, K.yalnizMevcut.length, K.durum, ayr, dog.uyari.slice(0, 4).join("; "), new Date()]]);
+      let durum = K.durum;
+      if (!(mev[g.anah] || []).length) {   // 1.6: mevcut okuması olmayan cihaz → doğrudan işlenir (Kalibrasyon_Noktalari + karar + Cihazlar özeti), elle aktarmaya gerek yok
+        const isl = clIsle_(ctx, g.r, g.id, certYaz, iKt >= 0 ? v[g.r][iKt] : (c.input.kalibrasyon_tarihi || ""), dog.satirlar, c.input, clAyarMi_(g.ad));
+        tum = tum.filter(x => anahtar_(x[0]) !== g.k).concat(isl.yeni); aktarildi++;
+        durum = "＋ Yalnız Claude okudu → işlendi" + (isl.genel ? ": " + isl.genel : "");
+      }
+      kars = kars.filter(x => anahtar_(x[0]) !== g.k).concat([[g.id, g.ad, certYaz, dog.satirlar.length, (mev[g.anah] || []).length, K.eslesen, K.farkli.length, K.yalnizClaude.length, K.yalnizMevcut.length, durum, ayr, dog.uyari.slice(0, 4).join("; "), new Date()]]);
       delete hatalar[g.anah]; islenen++;
     });
     // her gruptan sonra yaz: süre dolsa da kayıp olmaz
-    const gen = Math.max(NOKTA_BASLIK.length, 20), cnD = cn.map(x => { const s = x.slice(0, gen); while (s.length < gen) s.push(""); return s; });
+    if (aktarildi) clNoktaYaz_(ns, tum);
+    const gen = Math.max(NOKTA_BASLIK.length, 22), cnD = cn.map(x => { const s = x.slice(0, gen); while (s.length < gen) s.push(""); return s; });
     if (cs.getLastRow() > 1) cs.getRange(2, 1, cs.getLastRow() - 1, Math.max(cs.getLastColumn(), gen)).clearContent();
-    if (cnD.length) { if (cs.getRange(1, 20).getValue() === "") cs.getRange(1, 20).setValue("Dosyadaki Sertifika No"); cs.getRange(2, 6, cnD.length, 7).setNumberFormat("@"); cs.getRange(2, 1, cnD.length, gen).setValues(cnD); }
+    if (cnD.length) { if (cs.getRange(1, 20).getValue() === "") cs.getRange(1, 20, 1, 3).setValues([["Dosyadaki Sertifika No", "Ölçüm Aralığı (sertifika)", "Çözünürlük (sertifika)"]]); cs.getRange(2, 6, cnD.length, 7).setNumberFormat("@"); cs.getRange(2, 1, cnD.length, gen).setValues(cnD); }
     if (ks.getLastRow() > 1) ks.getRange(2, 1, ks.getLastRow() - 1, CL_KARS_BAS.length).clearContent();
     if (kars.length) ks.getRange(2, 1, kars.length, CL_KARS_BAS.length).setValues(kars);
   }
   P.setProperty("CL_TUM_HATA", JSON.stringify(hatalar));
-  const kalan = hedef.length - i, say = {}; kars.forEach(r => { const d = String(r[9]).replace(/\s*\(.*\)$/, ""); say[d] = (say[d] || 0) + 1; });
-  P.setProperty("CL_TUM_SON", JSON.stringify({ zaman: new Date().toISOString(), islenen: islenen, kalan: kalan, say: say }));
+  const kalan = hedef.length - i, say = {}; kars.forEach(r => { const d = String(r[9]).replace(/\s*\(.*\)$/, "").replace(/: .*$/, ""); say[d] = (say[d] || 0) + 1; });
+  P.setProperty("CL_TUM_SON", JSON.stringify({ zaman: new Date().toISOString(), islenen: islenen, kalan: kalan, say: say, aktarildi: aktarildi }));
   return kalan;
 }
 function claudeTumDurum() {
@@ -354,15 +371,36 @@ function claudeTumDurum() {
   bildir_((cal ? "🔄 Sürüyor." : (d.kalan === 0 ? "✓ Tamamlandı." : "⏸ Durdu.")) + "\nSon tur: " + new Date(d.zaman).toLocaleString("tr-TR") + " · bu turda " + d.islenen + " sertifika · kalan " + d.kalan +
     "\n\n" + (Object.keys(d.say || {}).sort().map(k => k + ": " + d.say[k]).join("\n") || "") + "\n\nAyrıntı: Claude_Karsilastirma sekmesi (Farklı / Yalnız Mevcut sütunlarına bakın).");
 }
-// "＋ Yalnız Claude okudu" durumundaki cihazların Claude satırlarını Kalibrasyon_Noktalari'na ekler (mevcut okuması olan cihazlara dokunmaz)
+function clNoktaYaz_(ns, tum) {
+  const son = ns.getLastRow(); if (son > 1) ns.getRange(2, 1, son - 1, Math.max(ns.getLastColumn(), NOKTA_BASLIK.length)).clearContent();
+  if (tum.length) { ns.getRange(2, 6, tum.length, 7).setNumberFormat("@"); ns.getRange(2, 1, tum.length, NOKTA_BASLIK.length).setValues(tum); }
+}
+// "＋ Yalnız Claude okudu" olup henüz işlenmemiş cihazları (1.5 ve öncesinde okunanlar) Claude_Noktalari'ndan İŞLER: Kalibrasyon_Noktalari + karar + Cihazlar özeti. API çağrısı yapmaz.
+// Mevcut okuması olan cihazlara dokunmaz.
 function claudeYeniAktar() {
   const ss = SpreadsheetApp.openById(SHEET_ID), ks = ss.getSheetByName(CL_KARS), cs = ss.getSheetByName(CL_SEKME); if (!ks || !cs) return bildir_("Önce karşılaştırmayı çalıştırın.");
-  const yeni = {}; ks.getDataRange().getValues().slice(1).forEach(r => { if (/Yalnız Claude/i.test(String(r[9]))) yeni[anahtar_(r[0])] = 1; });
-  const ns = clSekme_(ss, NOKTA_SEKME, NOKTA_BASLIK), mevcut = {}; ns.getDataRange().getValues().slice(1).forEach(r => { if (r[0]) mevcut[anahtar_(r[0])] = 1; });
-  const ek = cs.getDataRange().getValues().slice(1).filter(r => r[0] && yeni[anahtar_(r[0])] && !mevcut[anahtar_(r[0])]).map(r => r.slice(0, NOKTA_BASLIK.length));
-  if (!ek.length) return bildir_("Aktarılacak yeni cihaz yok.");
-  const b = ns.getLastRow() + 1; ns.getRange(b, 6, ek.length, 7).setNumberFormat("@"); ns.getRange(b, 1, ek.length, NOKTA_BASLIK.length).setValues(ek);
-  bildir_("Kalibrasyon_Noktalari'na eklendi: " + ek.length + " nokta, " + Object.keys(ek.reduce((o, r) => (o[anahtar_(r[0])] = 1, o), {})).length + " cihaz.\nKarar sütunu \"—\"; Okuma_Denetimi ile kontrol edin.");
+  const sh = ss.getSheetByName(AYAR.SEKME), v = sh.getDataRange().getValues(), h = v[0], P = PropertiesService.getScriptProperties();
+  const iId = sutun_(h, AYAR.KAYIT_BASLIK), iAd = sutun_(h, "Cihaz Adı"), iMa = bul_(h, ["Marka"]), iMo = bul_(h, ["Model"]), iAr = bul_(h, ["Ölçüm Aralığı", "Ölçüm Aralığı (Kapasite)", "Kapasite", "Ölçüm Aralığı - Kapasite"]), iCz = bul_(h, ["Çözünürlük"]);
+  const ctx = { ss, sh, v, iMa, iMo, iAr, iCz, karar: !/kapal/i.test(P.getProperty("CLAUDE_KARAR") || ""), model: clModel_() }, satirNo = {}; v.forEach((r, i) => { if (i && r[iId]) satirNo[anahtar_(r[iId])] = i; });
+  const kv = ks.getDataRange().getValues(), hedef = {}; kv.slice(1).forEach((r, i) => { if (/Yalnız Claude/i.test(String(r[9])) && !/işlendi/i.test(String(r[9]))) hedef[anahtar_(r[0])] = i + 1; });
+  const ns = clSekme_(ss, NOKTA_SEKME, NOKTA_BASLIK); let tum = ns.getDataRange().getValues().slice(1).filter(r => String(r[0]).trim() !== "").map(r => { const x = r.slice(0, NOKTA_BASLIK.length); while (x.length < NOKTA_BASLIK.length) x.push(""); return x; });
+  const mevcut = {}; tum.forEach(r => { mevcut[anahtar_(r[0])] = 1; });
+  const grup = {}; cs.getDataRange().getValues().slice(1).forEach(r => { const k = anahtar_(r[0]); if (r[0] && hedef[k] && !mevcut[k]) (grup[k] = grup[k] || []).push(r); });
+  const rapor = [];
+  Object.keys(grup).forEach(k => {
+    const R = grup[k], r = satirNo[k]; if (r === undefined) return;
+    const S = R.map(x => ({ p: { referans: x[5], olculen: x[6], not: "" }, d: { ref: clSayi_(x[5]), olc: clSayi_(x[6]), hata: clSayi_(x[7]), hataYazi: String(x[7]), u: String(x[8]).trim() === "" ? null : clSayi_(x[8]), uYazi: String(x[8]), birim: String(x[9]) }, aralik: x[4], buyukluk: x[3], notHazir: String(x[13]) }))
+      .filter(x => !isNaN(x.d.ref) && !isNaN(x.d.olc) && !isNaN(x.d.hata));
+    if (!S.length) return;
+    const ara = R[0][20] !== undefined && (String(R[0][20]).trim() || String(R[0][21]).trim()) ? { olcum_araligi: R[0][20], cozunurluk: R[0][21] } : null;
+    const isl = clIsle_(ctx, r, R[0][0], R[0][1], R[0][2], S, ara, clAyarMi_(String(v[r][iAd])));
+    tum = tum.concat(isl.yeni);
+    ks.getRange(hedef[k] + 1, 10).setValue("＋ Yalnız Claude okudu → işlendi" + (isl.genel ? ": " + isl.genel : ""));
+    rapor.push(R[0][0] + ": " + S.length + " nokta" + (isl.genel ? " → " + isl.genel : "") + (isl.arNot ? " · " + isl.arNot : ""));
+  });
+  if (!rapor.length) return bildir_("İşlenecek yeni cihaz yok.");
+  clNoktaYaz_(ns, tum);
+  bildir_("İşlendi (" + rapor.length + " cihaz): Kalibrasyon_Noktalari'na yazıldı, karar verildi, Cihazlar özeti dolduruldu.\n\n" + rapor.join("\n"));
 }
 
 if (typeof module !== "undefined") module.exports = { CL_EKSIK_TURLER, clAyarMi_, clYanitCoz_, clKarsilastir_, clSayi_, clOnd_, clBirim_, clCarpan_, clNoktaDogrula_, clYanitDogrula_ };

@@ -1,9 +1,9 @@
-/***** AJAN_GENEL 1.6 (1.6: çözünürlük aramasında ölçüm aralığı "0-10 l/min" çözünürlük sayılmaz; aralık üst sınırına eşit/büyük çözünürlük düzeltilir · 1.5: bilimsel gösterim, standart direnç; ölçüm aralığı + çözünürlük sertifikadan; noktalı ondalık, sütun dökümü tablolar (METKAL vb.), debimetre; okunamayanlar atlanır, birim cihaz türünden, arka planda okuma; F7.10-02 Rev 1 kriterleri; tipler: mutlak, % okuma, % okuma + sabit, en büyüğü, OIML R35, % tam skala) – Genel kalibrasyon sertifikası okuyucu (özel ajanı olmayan TÜM cihaz türleri: kumpas, mikrometre, YG, sparktester, terazi, manometre…)
+/***** AJAN_GENEL 1.7 (1.7: kriter birim çevriminde Ω/mΩ/µΩ/kΩ/MΩ, W, ml · 1.6: çözünürlük aramasında ölçüm aralığı "0-10 l/min" çözünürlük sayılmaz; aralık üst sınırına eşit/büyük çözünürlük düzeltilir · 1.5: bilimsel gösterim, standart direnç; ölçüm aralığı + çözünürlük sertifikadan; noktalı ondalık, sütun dökümü tablolar (METKAL vb.), debimetre; okunamayanlar atlanır, birim cihaz türünden, arka planda okuma; F7.10-02 Rev 1 kriterleri; tipler: mutlak, % okuma, % okuma + sabit, en büyüğü, OIML R35, % tam skala) – Genel kalibrasyon sertifikası okuyucu (özel ajanı olmayan TÜM cihaz türleri: kumpas, mikrometre, YG, sparktester, terazi, manometre…)
  * Birimden bağımsız: 1) "Referans · Ölçülen · Hata (· U)" tablolarını sütun/satır düzeniyle  2) olmazsa ardışık "referans ölçülen hata" üçlülerini arar.
  * Her nokta hata = ölçülen − referans ile doğrulanır (hata farklı birimde olabilir: mm ↔ µm, ×1000). Tutmayan tablo KABUL EDİLMEZ → tanı dosyası.
  * Kriter: Kabul_Kriterleri (Birim sütunu ile, ölçüm raporunun kriterleriyle başlar). Karar: belirsizlik dahil üç durum. Öncelik 99: özel ajanlardan sonra. *****/
 function ajanKimlik_Genel() {
-  return { kod: "GENEL", ad: "Genel okuyucu", surum: "1.6", aciklama: "Özel ajanı olmayan sertifikaları birimden bağımsız okur",
+  return { kod: "GENEL", ad: "Genel okuyucu", surum: "1.7", aciklama: "Özel ajanı olmayan sertifikaları birimden bağımsız okur",
            menu: [["Arka planda oku (otomatik, önerilen)", "genelArkaPlanBaslat"], ["Arka plan durumunu göster", "genelArkaPlanDurum"], ["Arka planda okumayı durdur", "genelArkaPlanDurdur"], ["Diğer tüm sertifikaları oku (bir tur)", "genelOku"], ["Genel okuyucu satırlarını temizle (yeniden okuma)", "gnSatirlariTemizle"], ["Genel kabul kriterlerini ekle (eksikler)", "gnKriterleriEkle"], ["Kabul kriterlerini F7.10-02 Rev 1'e güncelle", "kriterRev1Uygula"]], gunluk: null, web: {},
            okuma: { desen: ".", islev: "genelOku", oncelik: 99 } };
 }
@@ -85,7 +85,8 @@ function kriterRev1Uygula() {
   bildir_("F7.10-02 Rev 1 uygulandı.\nGüncellenen satır: " + gun + "\nEklenen satır: " + ek.length + "\n\nModele özgü üretici satırları (ör. Burster 2316, Cem DT-172) değiştirilmedi; bunlar genel satırın önüne geçer.");
 }
 // ===== GENEL OKUYUCU: birimden bağımsız "referans · ölçülen · hata (· U)" =====
-const GN_BIRIM = { "nm": 1e-9, "µm": 1e-6, "um": 1e-6, "mm": 1e-3, "cm": 1e-2, "m": 1, "mV": 1e-3, "V": 1, "kV": 1e3, "µA": 1e-6, "mA": 1e-3, "A": 1, "mN": 1e-3, "N": 1, "kN": 1e3, "mg": 1e-6, "g": 1e-3, "kg": 1, "mbar": 1e-3, "bar": 1, "Pa": 1e-5, "kPa": 1e-2, "MPa": 10, "°C": 1, "%": 1, "%rh": 1, "pC": 1, "Hz": 1, "s": 1, "dk": 60 };
+const GN_BIRIM = { "nm": 1e-9, "µm": 1e-6, "um": 1e-6, "mm": 1e-3, "cm": 1e-2, "m": 1, "mV": 1e-3, "V": 1, "kV": 1e3, "µA": 1e-6, "mA": 1e-3, "A": 1, "mN": 1e-3, "N": 1, "kN": 1e3, "mg": 1e-6, "g": 1e-3, "kg": 1, "mbar": 1e-3, "bar": 1, "Pa": 1e-5, "kPa": 1e-2, "MPa": 10, "°C": 1, "%": 1, "%rh": 1, "pC": 1, "Hz": 1, "s": 1, "dk": 60,
+  "µΩ": 1e-6, "μΩ": 1e-6, "mΩ": 1e-3, "Ω": 1, "kΩ": 1e3, "MΩ": 1e6, "GΩ": 1e9, "mW": 1e-3, "W": 1, "kW": 1e3, "ml": 1e-3, "mL": 1e-3, "l": 1, "L": 1, "ml/min": 1e-3, "l/min": 1 };   // 1.7: direnç, güç, hacim (kriter Ω iken noktalar mΩ: 0,06 Ω = 60 mΩ)
 const gnSayi_ = s => parseFloat(String(s).replace(",", "."));
 const gnDec_ = s => (String(s).split(/[.,]/)[1] || "").replace(/E.*/i, "").length;
 function gnTemizle_(m) {
