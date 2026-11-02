@@ -37,6 +37,7 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef1f5;color:#1
 
 .kk .ust .bt{color:#0a7d32}.kk input.e{width:100%;border:.25mm solid #cbd5e1;border-radius:1.2mm;padding:1mm;font:inherit;text-align:center;background:#fff}
 .kk .olc td{padding:.8mm .6mm}.kk .ok{color:#0a7d32;font-weight:800}.kk .no{color:#c4161c;font-weight:800}
+.kk .olc tr.grp td{background:#eef3fb!important;color:#14305e;font-weight:800;text-align:left;font-size:2.6mm;padding:1.2mm 1.5mm}
 .kk .ozet{display:grid;grid-template-columns:1fr 1fr;gap:1.8mm;padding:2.5mm 3.5mm 0}.kk .ozet div{border-radius:2mm;padding:2mm 2.4mm;background:#f3f6fb}.kk .ozet small{display:block;font-size:2.1mm;color:#64748b;font-weight:700;text-transform:uppercase}.kk .ozet b{font-size:3.6mm}
 .kk .ozet .iyi{background:#d1fae5;color:#065f46}.kk .ozet .bak{background:#fef3c7;color:#92400e}
 .kk .ekle{margin:1.5mm 3.5mm 0;font-size:2.6mm;background:#fff;border:.25mm dashed #94a3b8;border-radius:1.5mm;padding:1mm 2mm;color:#14305e}
@@ -152,7 +153,7 @@ async function load(){
     const kt = parseDate(g(r,"kalibrasyon tarihi")), kp = num(g(r,"kalibrasyon periyodu (ay)"));
     let next = parseDate(g(r,"sonraki kalibrasyon"));
     if(!next && kt && kp) next = addDays(kt, Math.round(kp*365/12));
-    DEV[id] = {id, ad:txt(g(r,"cihaz adı")), marka:txt(g(r,"marka")), model:txt(g(r,"model")), seri:txt(g(r,"seri numarası")), sert:txt(g(r,"sertifika no")), yer:txt(g(r,"bulunduğu yer")), kt, next, kp, aralik:txt(g(r,"ölçüm aralığı")), coz:txt(g(r,"çözünürlük")), firma:txt(g(r,"kalibrasyon yapan firma")), kkTar:parseDate(g(r,"kal. kontrol tarihi")), kkSon:txt(g(r,"kal. kontrol sonucu"))};
+    DEV[id] = {id, ad:txt(g(r,"cihaz adı")), marka:txt(g(r,"marka")), model:txt(g(r,"model")), seri:txt(g(r,"seri numarası")), sert:txt(g(r,"sertifika no")), yer:txt(g(r,"bulunduğu yer")), kt, next, kp, aralik:txt(g(r,"ölçüm aralığı")), coz:txt(g(r,"çözünürlük")), kabul:txt(g(r,"kabul kriteri")), firma:txt(g(r,"kalibrasyon yapan firma")), kkTar:parseDate(g(r,"kal. kontrol tarihi")), kkSon:txt(g(r,"kal. kontrol sonucu"))};
   });
   const oi = k => o.idx[k];
   const og = (r,k) => oi(k) === undefined ? null : r.c[oi(k)];
@@ -187,8 +188,8 @@ async function load(){
       const dn = norm(DEV[id].ad), kul = (AYAR_RE.test(dn) && !/resistomat|spark|yüksek gerilim|oto trafo/.test(dn)) ? "ayar" : "ölçüm";
       let set = ref, olc = ol; const sm = /^Set\s+(-?[\d,]+)/i.exec(ar);
       if(sm){ const X = parseFloat(sm[1].replace(",", ".")); if(Math.abs(ol - X) < Math.abs(ref - X)) { set = ol; olc = ref; } }   // kabin: set = cihaza girilen, ölçülen = kabin ortalaması
-      const tur = /^0\s*-|^\d/.test(ar) ? ar : (buy || "Ölçüm");
-      (NK[id] = NK[id] || []).push({ set, olc, u, unit, tur, dec: Math.max(dc(ng(r,"referans")), dc(ng(r,"ölçülen"))), kul, karar: String(txt(ng(r,"karar")) || ""), nkSert: String(txt(ng(r,"sertifika no")) || "") });
+      const tur = (!/^(kabin\s+)?set\b/i.test(ar.trim()) && ar.trim()) || buy || "Ölçüm", kr = sn(ng(r,"kriter (±)"));   // her tablo/eksen/yön ayrı grup; kabin set satırları büyüklükte toplanır
+      (NK[id] = NK[id] || []).push({ set, olc, u, unit, tur, kr, dec: Math.max(dc(ng(r,"referans")), dc(ng(r,"ölçülen"))), kul, karar: String(txt(ng(r,"karar")) || ""), nkSert: String(txt(ng(r,"sertifika no")) || "") });
     });
     Object.keys(NK).forEach(id => { MEAS[id] = NK[id]; DEV[id].kaynakNK = true; DEV[id].olcDurum = ""; if(NK[id][0].nkSert) DEV[id].sert = DEV[id].sert || NK[id][0].nkSert; });
   }catch(e){ /* sekme yoksa Ölçümler ile devam */ }
@@ -255,12 +256,15 @@ function draw(){
 let KK = null;
 function kritTxt(kr){ return kr ? (kr.pct ? "± %" + String(kr.tol).replace(".", ",") : "± " + String(kr.tol).replace(".", ",") + " " + kr.u) : ""; }
 // kriter metni: "± 60 mΩ", "± %5", "± 0,05 mm" – birimi yazılıysa o birimde, yoksa formun birimiyle
-function kritOku(s, unit){ const m = /([\d.,]+)\s*(µΩ|μΩ|mΩ|kΩ|MΩ|Ω|µm|mm|mV|kV|V|mA|A|mg|kg|g)?/.exec(String(s || "")); if(!m) return null; const tol = parseFloat(m[1].replace(",", ".")); return /%/.test(s) ? {tol, u:"%", pct:true} : {tol, u:(m[2] || unit).replace("μ", "µ")}; }
+function kritOku(s, unit){ const m = /([\d.,]+)\s*(µΩ|μΩ|mΩ|kΩ|MΩ|Ω|µm|mm|mV|kV|V|mA|A|mg|kg|g|°C|%rh)?/i.exec(String(s || "")); if(!m) return null; const tol = parseFloat(m[1].replace(",", ".")); return /%(?!\s*rh)/i.test(s) ? {tol, u:"%", pct:true} : {tol, u:(m[2] || unit).replace("μ", "µ")}; }
 // karışık birimli sertifikada (mΩ ve Ω satırları) kriter ve hata satırın kendi birimine çevrilir
 const brCarp = (from, to) => (from === to || BR_CARP[from] === undefined || BR_CARP[to] === undefined) ? 1 : BR_CARP[from] / BR_CARP[to];
+// "± 1 °C; ± 3,5 %rh": her satıra kendi biriminin kriteri uygulanır
 function hesap(){
-  const unit = KK.unit, kr = kritOku($("#kr").value, unit); let maxE = null, maxP = null, maxD = KK.dec, maxB = unit, maxTaban = -1, tumOk = true, kvVar = false, n = 0;
+  const unit = KK.unit, parca = $("#kr").value.split(";"), krP = parca.map(x => kritOku(x, unit)).filter(Boolean), kr = krP[0] || null; let maxE = null, maxP = null, maxD = KK.dec, maxB = unit, maxTaban = -1, tumOk = true, kvVar = false, n = 0;
+  const elle = $("#kr").value !== KK.krIlk;   // kriter kutusu değiştirildiyse her satıra o uygulanır; değilse satırın kendi kriteri (Kalibrasyon_Noktalari)
   document.querySelectorAll("#satirlar tr").forEach(tr => {
+    if(!tr.querySelector(".s")) return;   // tablo başlığı satırı
     const s = parseFloat(tr.querySelector(".s").value.replace(",", ".")), o = parseFloat(tr.querySelector(".o").value.replace(",", "."));
     const hc = tr.querySelector(".h"), kc = tr.querySelector(".k");
     if(isNaN(s) || isNaN(o)){ hc.textContent = ""; kc.textContent = ""; return; }
@@ -268,26 +272,32 @@ function hesap(){
     hc.textContent = (e > 0 ? "+" : "") + fnum(e, dr);
     const br = tr.dataset.br || unit, eTaban = Math.abs(e) * (BR_CARP[br] || 1);   // en büyük hata birimden bağımsız karşılaştırılır
     if(maxE === null || eTaban > maxTaban){ maxE = e; maxD = dr; maxB = br; maxTaban = eTaban; } if(maxP === null || p > maxP) maxP = p;
-    const tol = kr && !kr.pct ? kr.tol * brCarp(kr.u, br) : (kr ? kr.tol : 0);
+    const kr = krP.find(k => k.u === br || (BR_CARP[k.u] && BR_CARP[br] && k.u.slice(-1) === br.slice(-1))) || krP[0] || null;
+    const sk = !elle && tr.dataset.kr !== "" ? +tr.dataset.kr : NaN, pct = isNaN(sk) && kr && kr.pct;
+    const tol = !isNaN(sk) ? sk : (kr && !kr.pct ? kr.tol * brCarp(kr.u, br) : (kr ? kr.tol : 0)), var_ = !isNaN(sk) || kr;
     const uu = parseFloat((tr.querySelector(".u").value || "").replace(",", ".")), U = isNaN(uu) ? 0 : uu;   // Rev 1: |hata| + U ≤ kriter
-    const ok = kr ? (kr.pct ? p <= kr.tol + 1e-9 : Math.abs(e) <= tol + 1e-12) : null;
-    const kv = ok === true && (kr.pct ? p + (s ? U / Math.abs(s) * 100 : 0) > kr.tol + 1e-9 : Math.abs(e) + U > tol + 1e-12);
+    const ok = var_ ? (pct ? p <= kr.tol + 1e-9 : Math.abs(e) <= tol + 1e-12) : null;
+    const kv = ok === true && (pct ? p + (s ? U / Math.abs(s) * 100 : 0) > kr.tol + 1e-9 : Math.abs(e) + U > tol + 1e-12);
     if(ok === false) tumOk = false; if(kv) kvVar = true;
     kc.innerHTML = ok === null ? "—" : (ok === false ? '<span class="no">✗</span>' : kv ? '<span class="no" title="Ölçüm sonuçlarına bakınız: |hata| + U kriteri aşıyor (karar verilemiyor)">?</span>' : '<span class="ok">✓</span>');
   });
   KK.maxTxt = maxE === null ? "—" : (kr && kr.pct ? "%" + fnum(maxP, 3) + (KK.karisik ? "" : " (" + (maxE > 0 ? "+" : "") + fnum(maxE, maxD) + " " + maxB + ")") : (maxE > 0 ? "+" : "") + fnum(maxE, maxD) + " " + maxB);
-  KK.sonuc = !n || !kr ? "—" : (!tumOk ? "Ölçüm raporuna bakınız" : kvVar ? "Ölçüm sonuçlarına bakınız" : "UYGUN");
+  KK.sonuc = !n || !(kr || document.querySelector('#satirlar tr[data-kr]:not([data-kr=""])')) ? "—" : (!tumOk ? "Ölçüm raporuna bakınız" : kvVar ? "Ölçüm sonuçlarına bakınız" : "UYGUN");
   $("#mx").textContent = KK.maxTxt; const so = $("#so"); so.textContent = KK.sonuc; so.parentElement.className = KK.sonuc === "UYGUN" ? "iyi" : (KK.sonuc === "—" ? "" : "bak");
 }
 // her satır kendi birimi ve ondalığıyla (resistomat: µΩ … kΩ aynı sertifikada)
-function satir(s, o, u, b, dc){ return `<tr data-dec="${dc ?? ""}" data-br="${esc(b || "")}"><td style="font-size:11px;color:#475569;white-space:nowrap">${esc(b || KK.unit || "")}</td><td><input class="e s" value="${s ?? ""}"></td><td><input class="e o" value="${o ?? ""}"></td><td class="h"></td><td><input class="e u" value="${u ?? ""}"></td><td class="k"></td></tr>`; }
+function satir(s, o, u, b, dc, kr){ return `<tr data-dec="${dc ?? ""}" data-br="${esc(b || "")}" data-kr="${kr === undefined || isNaN(kr) ? "" : kr}"><td style="font-size:11px;color:#475569;white-space:nowrap">${esc(b || KK.unit || "")}</td><td><input class="e s" value="${s ?? ""}"></td><td><input class="e o" value="${o ?? ""}"></td><td class="h"></td><td><input class="e u" value="${u ?? ""}"></td><td class="k"></td></tr>`; }
 const BR_CARP = {"µΩ":1e-6, "mΩ":1e-3, "Ω":1, "kΩ":1e3, "MΩ":1e6, "µm":1e-3, "mm":1, "mV":1e-3, "V":1, "kV":1e3, "mA":1e-3, "A":1, "mg":1e-3, "g":1, "kg":1e3};
 function ac(id){
   const d = DEV[Object.keys(DEV).find(k => norm(k) === norm(id))]; if(!d){ $("#msg").textContent = "Cihaz bulunamadı: " + id; $("#list").innerHTML = ""; return; }
   const kb = KABUL.find(x => x[0].test(norm((d.ad||"") + " " + (d.model||""))));   // sertifika satırı yoksa birim, cihazın kabul kriterinden
-  const rows = (MEAS[d.id] || []).slice().sort((a,b) => a.set * (BR_CARP[a.unit] || 1) - b.set * (BR_CARP[b.unit] || 1)), karisik = new Set(rows.map(m => m.unit)).size > 1, unit = rows.length ? rows[0].unit : (kb && kb[2] !== "%" ? kb[2] : (/kv/i.test(d.ad) ? "kV" : "°C")), dec = rows.length ? rows[0].dec : (unit === "mm" ? 2 : unit === "°C" ? 1 : 2);
+  const grp = []; (MEAS[d.id] || []).forEach(m => { let g = grp.find(x => x.tur === m.tur); if(!g) grp.push(g = { tur:m.tur, r:[] }); g.r.push(m); });   // sertifikadaki tablolar (eksen, yön, büyüklük) sırasıyla
+  grp.forEach(g => g.r.sort((a,b) => a.set * (BR_CARP[a.unit] || 1) - b.set * (BR_CARP[b.unit] || 1)));
+  const rows = [].concat(...grp.map(g => g.r)), karisik = new Set(rows.map(m => m.unit)).size > 1, unit = rows.length ? rows[0].unit : (kb && kb[2] !== "%" ? kb[2] : (/kv/i.test(d.ad) ? "kV" : "°C")), dec = rows.length ? rows[0].dec : (unit === "mm" ? 2 : unit === "°C" ? 1 : 2);
   const kr = kriter(d, unit); let next = d.next; if(!next && d.kt && d.kp) next = addDays(d.kt, Math.round(d.kp*365/12));
-  KK = { id:d.id, unit, dec, karisik };
+  const krSat = [...new Set(rows.filter(m => m.kr !== undefined && !isNaN(m.kr)).map(m => m.unit))].map(b => { const k = [...new Set(rows.filter(m => m.unit === b && !isNaN(m.kr)).map(m => m.kr))]; return k.length === 1 ? "± " + String(k[0]).replace(".", ",") + " " + b : b + " satır bazında"; });
+  const krIlk = krSat.length ? krSat.join("; ") : (d.kabul || kritTxt(kr));   // satırların kriteri (Kabul_Kriterleri → Kalibrasyon_Noktalari), yoksa Cihazlar'daki ya da F7.10-02 listesi
+  KK = { id:d.id, unit, dec, karisik, krIlk };
   $("#msg").innerHTML = rows.length ? (d.kkTar ? "Son kalibrasyon kontrolü: " + fmt(d.kkTar) + " · " + esc(d.kkSon) : "Değerler son kalibrasyon sertifikasından otomatik dolduruldu, kontrol edip kaydedin.") : "Bu cihaz için sertifikadan okunmuş değer yok, değerleri girin.";
   $("#list").innerHTML = `<div class="rep kk">
     <div class="ust"><img src="${CONFIG.LOGO}" alt="Seval Kablo"><div class="bt">KALİBRASYON<br>KONTROL FORMU</div></div>
@@ -299,9 +309,9 @@ function ac(id){
       <div><small>Gelecek kalibrasyon${d.kp ? " (" + d.kp + " ay)" : ""}</small><b>${fmt(next)}</b></div>
       <div><small>Ölçüm aralığı</small><b>${esc(d.aralik || "—")}</b></div>
       <div><small>Çözünürlük</small><b>${esc(d.coz || "—")}</b></div>
-      <div style="grid-column:1/3"><small>Kabul kriteri (değiştirilebilir)</small><input class="e" id="kr" value="${esc(kritTxt(kr))}" placeholder="örn. ± 3 °C ya da ± %5" style="text-align:left"></div>
+      <div style="grid-column:1/3"><small>Kabul kriteri (değiştirilebilir)</small><input class="e" id="kr" value="${esc(krIlk)}" placeholder="örn. ± 3 °C ya da ± %5" style="text-align:left"></div>
     </div>
-    <div class="tw"><div class="tt">Sertifika değerleri${karisik ? "" : " (" + esc(unit) + ")"}</div><table class="olc"><tr><th>BİRİM</th><th>REFERANS / SET</th><th>ÖLÇÜLEN</th><th>HATA</th><th>BELİRSİZLİK ±</th><th>KRİTER</th></tr><tbody id="satirlar">${(rows.length ? rows : [{},{},{}]).map(m => satir(m.set !== undefined ? fnum(m.set, m.dec ?? dec) : "", m.olc !== undefined ? fnum(m.olc, m.dec ?? dec) : "", m.u !== undefined && !isNaN(m.u) ? String(m.u).replace(".", ",") : "", m.unit, m.dec)).join("")}</tbody></table></div>
+    <div class="tw"><div class="tt">Sertifika değerleri${karisik ? "" : " (" + esc(unit) + ")"}</div><table class="olc"><tr><th>BİRİM</th><th>REFERANS / SET</th><th>ÖLÇÜLEN</th><th>HATA</th><th>BELİRSİZLİK ±</th><th>KRİTER</th></tr><tbody id="satirlar">${rows.length ? grp.map(g => (grp.length > 1 ? `<tr class="grp"><td colspan="6">${esc(g.tur)}</td></tr>` : "") + g.r.map(m => satir(fnum(m.set, m.dec ?? dec), fnum(m.olc, m.dec ?? dec), m.u !== undefined && !isNaN(m.u) ? String(m.u).replace(".", ",") : "", m.unit, m.dec, m.kr)).join("")).join("") : [1,2,3].map(() => satir()).join("")}</tbody></table></div>
     <button class="ekle" id="sEkle">+ satır ekle</button>
     <div class="ozet"><div><small>En büyük hata (max)</small><b id="mx">—</b></div><div><small>Sonuç</small><b id="so">—</b></div></div>
     <div class="not">ℹ️ Hata = ölçülen − referans. Her nokta belirsizlik dahil kabul kriteriyle karşılaştırılır (P7.10 Rev 1: |hata| + U ≤ kriter → UYGUN; |hata| ≤ kriter < |hata| + U → ÖLÇÜM SONUÇLARINA BAKINIZ / karar verilemiyor); kriteri aşan nokta varsa "Ölçüm raporuna bakınız" (girilecek/düzeltme değeriyle kullanılır).</div>
@@ -314,7 +324,7 @@ $("#ac").onclick = () => ac($("#flt").value.trim()); $("#flt").onkeydown = e => 
 $("#yaz").onclick = () => window.print();
 $("#kaydet").onclick = async () => {
   if(!KK) return; hesap();
-  const S = [], O = [], U = []; document.querySelectorAll("#satirlar tr").forEach(tr => { const s = tr.querySelector(".s").value.trim(), o = tr.querySelector(".o").value.trim(); if(s && o){ S.push(s); O.push(o); U.push(tr.querySelector(".u").value.trim()); } });
+  const S = [], O = [], U = []; document.querySelectorAll("#satirlar tr").forEach(tr => { if(!tr.querySelector(".s")) return; const s = tr.querySelector(".s").value.trim(), o = tr.querySelector(".o").value.trim(); if(s && o){ S.push(s); O.push(o); U.push(tr.querySelector(".u").value.trim()); } });
   let pin = localStorage.getItem("kayitPin") || ""; if(!pin){ pin = (prompt("Kayıt PIN'i:") || "").trim(); if(!pin) return; }
   $("#msg").textContent = "Kaydediliyor…";
   try{

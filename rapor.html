@@ -187,8 +187,8 @@ async function load(){
       const dn = norm(DEV[id].ad), kul = (AYAR_RE.test(dn) && !/resistomat|spark|yüksek gerilim|oto trafo/.test(dn)) ? "ayar" : "ölçüm";
       let set = ref, olc = ol; const sm = /^Set\s+(-?[\d,]+)/i.exec(ar);
       if(sm){ const X = parseFloat(sm[1].replace(",", ".")); if(Math.abs(ol - X) < Math.abs(ref - X)) { set = ol; olc = ref; } }   // kabin: set = cihaza girilen, ölçülen = kabin ortalaması
-      const tur = /^0\s*-|^\d/.test(ar) ? ar : (buy || "Ölçüm");
-      (NK[id] = NK[id] || []).push({ set, olc, u, unit, tur, dec: Math.max(dc(ng(r,"referans")), dc(ng(r,"ölçülen"))), kul, karar: String(txt(ng(r,"karar")) || ""), nkSert: String(txt(ng(r,"sertifika no")) || "") });
+      const tur = (!/^(kabin\s+)?set\b/i.test(ar.trim()) && ar.trim()) || buy || "Ölçüm", kr = sn(ng(r,"kriter (±)"));   // her tablo/eksen/yön ayrı grup; kabin set satırları büyüklükte toplanır
+      (NK[id] = NK[id] || []).push({ set, olc, u, unit, tur, kr, dec: Math.max(dc(ng(r,"referans")), dc(ng(r,"ölçülen"))), kul, karar: String(txt(ng(r,"karar")) || ""), nkSert: String(txt(ng(r,"sertifika no")) || "") });
     });
     Object.keys(NK).forEach(id => { MEAS[id] = NK[id]; DEV[id].kaynakNK = true; DEV[id].olcDurum = ""; if(NK[id][0].nkSert) DEV[id].sert = DEV[id].sert || NK[id][0].nkSert; });
   }catch(e){ /* sekme yoksa Ölçümler ile devam */ }
@@ -204,7 +204,7 @@ function report(id){
     const tz = teraziKrit(d, u), kr = tz ? null : kriter(d, u);
     if(tz && !kritTxt) kritTxt = tz.yazi; else if(kr && !kritTxt) kritTxt = kr.pct ? "± %" + String(kr.tol).replace(".", ",") : "± " + String(kr.tol).replace(".", ",") + " " + kr.u;
     const body = rows.map(m => {
-      const e = m.olc - m.set, T = tz ? tz.T(m.set) : (kr ? (kr.pct ? Math.abs(m.set) * kr.tol / 100 : kr.tol) : null), Uu = (m.u !== undefined && !isNaN(m.u)) ? m.u : 0;
+      const e = m.olc - m.set, T = m.kr !== undefined && !isNaN(m.kr) ? m.kr : tz ? tz.T(m.set) : (kr ? (kr.pct ? Math.abs(m.set) * kr.tol / 100 : kr.tol) : null), Uu = (m.u !== undefined && !isNaN(m.u)) ? m.u : 0;
       const ok = T === null ? null : Math.abs(e) <= T + 1e-9, kvN = ok === true && Math.abs(e) + Uu > T + 1e-9;
       if(kvN) kv = true;   // |hata| ≤ kriter < |hata| + U
       if(ok === false) durum = false; else if(ok === true && durum === null) durum = true;
@@ -216,6 +216,7 @@ function report(id){
     </table></div>`;
   }).join("");
   if(kv && durum !== false) durum = null;
+  const krSat = [...new Set(all.filter(m => m.kr !== undefined && !isNaN(m.kr)).map(m => m.unit))].map(b => { const k = [...new Set(all.filter(m => m.unit === b && !isNaN(m.kr)).map(m => m.kr))]; return k.length === 1 ? "± " + String(k[0]).replace(".", ",") + " " + b : b + " satır bazında"; });   // satırların kriteri (Kalibrasyon_Noktalari)
   const dTxt = durum === false ? "ÖLÇÜM RAPORUNA BAKINIZ" : (kv ? "ÖLÇÜM SONUÇLARINA BAKINIZ" : (durum === null ? "—" : "UYGUN"));   // P7.10 Rev 1 B8 gösterimi
   const olcumTum = all.length && all.every(m => m.kul === "ölçüm");
   const kul = olcumTum
@@ -228,7 +229,7 @@ function report(id){
       <span class="durum ${kv && durum !== false ? "bak" : (durum === null ? "yok" : (durum ? "ok" : "bak"))}">${dTxt}</span></div>
     <div class="kutu">
       <div><small>Kalibrasyon sertifika no</small><b>${esc(d.sert || "—")}</b></div>
-      <div><small>Kabul kriteri</small><b>${esc(kritTxt || "—")}</b></div>
+      <div><small>Kabul kriteri</small><b>${esc(krSat.join("; ") || d.kabul || kritTxt || "—")}</b></div>
       <div><small>Kalibrasyon tarihi</small><b>${fmt(d.kt)}</b></div>
       <div><small>Gelecek kalibrasyon</small><b>${fmt(d.next)}</b></div>
       <div><small>Ölçüm aralığı</small><b>${esc(d.aralik || "—")}</b></div>
