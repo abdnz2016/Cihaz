@@ -200,7 +200,7 @@ function report(id){
   const keys = Object.keys(groups), multi = keys.length > 1;
   let durum = null, kritTxt = "", fark = 0, kv = false;   // Rev 1: kriter F7.10-02 Rev 1 listesinden, karar U ile üç durumlu
   const tables = keys.map(k => {
-    const rows = groups[k].sort((a,b)=>a.set-b.set), u = rows[0].unit, dec = rows[0].dec, olcum = rows[0].kul === "ölçüm", hasU = true;   // tam okuma: U ve karar sütunları her zaman
+    const rows = groups[k].sort((a,b)=>a.set-b.set), u = rows[0].unit, dec = rows[0].dec, olcum = rows[0].kul === "ölçüm", hasU = true;   // U sütunu her zaman; sertifikada U yoksa hücre boş
     const tz = teraziKrit(d, u), kr = tz ? null : kriter(d, u);
     if(tz && !kritTxt) kritTxt = tz.yazi; else if(kr && !kritTxt) kritTxt = kr.pct ? "± %" + String(kr.tol).replace(".", ",") : "± " + String(kr.tol).replace(".", ",") + " " + kr.u;
     const body = rows.map(m => {
@@ -209,9 +209,9 @@ function report(id){
       if(kvN) kv = true;   // |hata| ≤ kriter < |hata| + U
       if(ok === false) durum = false; else if(ok === true && durum === null) durum = true;
       if(Math.abs(e) > 1e-9) fark++;
-      return `<tr><td>${fset(m.set)}</td><td>${fnum(m.olc, dec)}</td><td class="${ok===false ? "kotu" : ""}">${(e>0?"+":"") + fnum(e, dec)}</td><td class="gir">${olcum ? ((-e > 0 ? "+" : "") + fnum(-e, dec)) : gYaz(m.set, m.olc, dec, d)}</td>${hasU ? `<td>${m.u !== undefined && !isNaN(m.u) ? String(m.u).replace(".", ",") : "—"}</td>` : ""}<td class="${ok === false ? "kotu" : ""}" title="${T === null ? "kriter yok" : "sınır ± " + String(+T.toPrecision(3)).replace(".", ",") + " " + u}" style="font-weight:800;color:${ok === false ? "#b91c1c" : kvN ? "#b45309" : "#047857"}">${ok === null ? "—" : ok === false ? "✗" : kvN ? "?" : "✓"}</td></tr>`; }).join("");
+      return `<tr><td>${fset(m.set)}</td><td>${fnum(m.olc, dec)}</td><td class="${ok===false ? "kotu" : ""}">${(e>0?"+":"") + fnum(e, dec)}</td><td class="gir">${olcum ? ((-e > 0 ? "+" : "") + fnum(-e, dec)) : gYaz(m.set, m.olc, dec, d)}</td>${hasU ? `<td>${m.u !== undefined && !isNaN(m.u) ? String(m.u).replace(".", ",") : ""}</td>` : ""}</tr>`; }).join("");
     return `<div class="tw">${multi ? `<div class="tt" style="text-transform:none">${esc(rows[0].tur)}</div>` : `<div class="tt">${olcum ? "Ölçüm sonuçları" : "Ayar ve kullanım değerleri"}</div>`}<table class="olc">
-      ${olcum ? `<tr><th>REFERANS<br>${esc(u)}</th><th>CİHAZ OKUMASI<br>${esc(u)}</th><th>HATA<br>${esc(u)}</th><th>DÜZELTME<br>${esc(u)}</th>${hasU ? `<th>BELİRSİZLİK<br>± ${esc(u)}</th>` : ""}<th>KARAR</th></tr>` : `<tr><th>SET<br>${esc(u)}</th><th>ÖLÇÜLEN<br>${esc(u)}</th><th>HATA<br>${esc(u)}</th><th>GİRİLECEK<br>${esc(u)}</th>${hasU ? `<th>BELİRSİZLİK<br>± ${esc(u)}</th>` : ""}<th>KARAR</th></tr>`}
+      ${olcum ? `<tr><th>REFERANS<br>${esc(u)}</th><th>CİHAZ OKUMASI<br>${esc(u)}</th><th>HATA<br>${esc(u)}</th><th>DÜZELTME<br>${esc(u)}</th>${hasU ? `<th>BELİRSİZLİK<br>± ${esc(u)}</th>` : ""}</tr>` : `<tr><th>SET<br>${esc(u)}</th><th>ÖLÇÜLEN<br>${esc(u)}</th><th>HATA<br>${esc(u)}</th><th>GİRİLECEK<br>${esc(u)}</th>${hasU ? `<th>BELİRSİZLİK<br>± ${esc(u)}</th>` : ""}</tr>`}
       ${body}
     </table></div>`;
   }).join("");
@@ -260,7 +260,7 @@ function draw(){
 (async function(){
   try{
     await load();
-    $("#cnt").textContent = IDS.length + " cihaz";
+    $("#cnt").textContent = IDS.length + " / " + Object.keys(DEV).length + " cihazın ölçüm değeri var";   // kalibrasyon kontrol tüm cihazları sayar
     const q = new URLSearchParams(location.search).get("id");
     if(q) $("#flt").value = q;
     draw();
