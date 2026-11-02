@@ -101,7 +101,8 @@ async function belgeGetir(istek, sessiz){
 <div class="gruplar np" id="gruplar"></div>
 <div class="tiles np" id="tiles"></div>
 <main>
- <div class="card np">
+ <section id="canli" class="np" hidden></section>
+ <div class="card np" id="listeKart">
   <div class="dt" id="modad" style="margin-top:12px"></div>
   <div id="g_liste">
    <div class="arama2"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="ara2" placeholder="Bu listede ara: kod, ad, seri no…" autocomplete="off"></div>
@@ -202,7 +203,7 @@ async function yukle(){
   const n = f => D.filter(f).length;
   if(false) $("#kpi").innerHTML = `<div><b>${D.length}</b>Toplam cihaz</div><div><b>${n(x=>x.kal)}</b>Kalibrasyona tabi</div><div><b>${n(x=>x.dog)}</b>Doğrulaması yapılan</div>
     <div><b class="gec">${n(x=>durumu(x.kn)==="gec")}</b>Kalibrasyonu geçmiş</div><div><b class="gec">${n(x=>durumu(x.dn)==="gec")}</b>Doğrulaması geçmiş</div><div><b>${n(x=>x.bek)}</b>Doğrulama bekleyen</div>`;
-  $("#saat").textContent = fd(BUGUN); tiles(); ciz();
+  $("#saat").textContent = fd(BUGUN); tiles(); ciz(); if(typeof anaSaat === "function") anaSaat();
 }
 function filtre(){
   const q = norm($("#ara").value), tip = $("#f_tip").value, ad = $("#f_ad").value, yer = $("#f_yer").value, dur = $("#f_dur").value;
@@ -236,9 +237,11 @@ function kriter(d, unit){
   if(u === "Ω" && unit === "kΩ") return {tol: tol/1000, u:unit}; if(u === "Ω" && unit === "mΩ") return {tol: tol*1000, u:unit};
   return null;
 }
-const IKON = {"mqr": "<svg viewBox=\"0 0 64 64\"><rect x=\"8\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"38\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"8\" y=\"38\" width=\"18\" height=\"18\"/><path d=\"M38 38h8v8h-8zM50 50h6v6h-6z\"/></svg>", "mtal": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 12h20a6 6 0 0 1 6 6v36a5 5 0 0 0-5-5H8zM56 12H36a6 6 0 0 0-6 6v36a5 5 0 0 1 5-5h21z\"/></svg>", "msic": "<svg viewBox=\"0 0 64 64\"><path d=\"M28 8a6 6 0 0 1 12 0v30a12 12 0 1 1-12 0z\"/><path d=\"M34 26v18\"/></svg>", "afoto": "<svg viewBox=\"0 0 64 64\"><rect x=\"6\" y=\"14\" width=\"52\" height=\"38\" rx=\"5\"/><circle cx=\"22\" cy=\"28\" r=\"5\"/><path d=\"M6 46l16-12 12 10 10-8 14 10\"/></svg>", "depo": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 22L32 10l24 12v30H8z\"/><path d=\"M8 22h48M22 52V34h20v18M22 42h20\"/></svg>", "park": "<svg viewBox=\"0 0 64 64\"><path d=\"M6 56V30l14-8v8l14-8v8l14-8v34z\"/><path d=\"M50 56V12h6v44M14 44h6M26 44h6M38 44h6\"/></svg>", "makine": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"9\"/><path d=\"M32 8v8M32 48v8M8 32h8M48 32h8M15 15l6 6M43 43l6 6M49 15l-6 6M21 43l-6 6\"/></svg>", "ariza": "<svg viewBox=\"0 0 64 64\"><path d=\"M40 10a12 12 0 0 0-14 16L10 42l12 12 16-16a12 12 0 0 0 16-14l-8 8-8-2-2-8z\"/></svg>", "liste": "<svg viewBox=\"0 0 64 64\"><rect x=\"12\" y=\"8\" width=\"40\" height=\"48\" rx=\"4\"/><path d=\"M20 20h24M20 30h24M20 40h16\"/></svg>", "sert": "<svg viewBox=\"0 0 64 64\"><path d=\"M14 6h26l10 10v30H14z\"/><path d=\"M40 6v10h10M20 18h14M20 26h22M20 34h12\"/><circle cx=\"40\" cy=\"44\" r=\"7\"/><path d=\"M36 50l-2 10 6-4 6 4-2-10\"/></svg>", "dogf": "<svg viewBox=\"0 0 64 64\"><rect x=\"14\" y=\"10\" width=\"36\" height=\"46\" rx=\"4\"/><path d=\"M24 6h16v8H24zM22 30l6 6 12-12M22 46h20\"/></svg>", "rapor": "<svg viewBox=\"0 0 64 64\"><path d=\"M10 54h44\"/><rect x=\"14\" y=\"34\" width=\"8\" height=\"18\"/><rect x=\"28\" y=\"22\" width=\"8\" height=\"30\"/><rect x=\"42\" y=\"12\" width=\"8\" height=\"40\"/></svg>", "dogyap": "<svg viewBox=\"0 0 64 64\"><path d=\"M26 6h12M28 6v18L14 50a5 5 0 0 0 4 8h28a5 5 0 0 0 4-8L36 24V6\"/><path d=\"M20 40h24\"/></svg>", "qr": "<svg viewBox=\"0 0 64 64\"><rect x=\"8\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"38\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"8\" y=\"38\" width=\"18\" height=\"18\"/><path d=\"M14 14h6v6h-6zM44 14h6v6h-6zM14 44h6v6h-6zM38 38h6v6M50 38h6v6M38 50h6v6M50 50h6v6M44 44h6\"/></svg>", "karne": "<svg viewBox=\"0 0 64 64\"><path d=\"M40 8a12 12 0 0 0-11 16L10 43a5 5 0 0 0 7 7l19-19a12 12 0 0 0 16-11l-7 4-6-2-2-6z\"/></svg>", "talimat": "<svg viewBox=\"0 0 64 64\"><path d=\"M32 14C24 8 14 8 8 10v40c6-2 16-2 24 4 8-6 18-6 24-4V10c-6-2-16-2-24 4zM32 14v40\"/></svg>", "takip": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"34\" r=\"22\"/><path d=\"M32 20v14l10 6M24 6h16\"/></svg>", "enerji": "<svg viewBox=\"0 0 64 64\"><path d=\"M36 6L14 36h16l-4 22 24-32H34z\"/></svg>", "etiket": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 30V10a2 2 0 0 1 2-2h20l26 26-22 22z\"/><circle cx=\"20\" cy=\"20\" r=\"4\"/></svg>", "kalk": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"24\"/><circle cx=\"32\" cy=\"32\" r=\"14\"/><circle cx=\"32\" cy=\"32\" r=\"4\"/></svg>", "yonet": "<svg viewBox=\"0 0 64 64\"><rect x=\"10\" y=\"10\" width=\"44\" height=\"44\" rx=\"8\"/><path d=\"M32 22v20M22 32h20\"/></svg>"};
-const RENK = {"park": "#0d9488", "makine": "#475569", "mqr": "#334155", "mtal": "#4f46e5", "msic": "#ea580c", "ariza": "#b91c1c", "afoto": "#7c3aed", "depo": "#a16207", "liste": "#2563eb", "sert": "#059669", "dogf": "#7c3aed", "rapor": "#0891b2", "dogyap": "#d97706", "qr": "#334155", "karne": "#dc2626", "talimat": "#4f46e5", "takip": "#e11d48", "enerji": "#ca8a04", "etiket": "#be123c", "kalk": "#0f766e", "yonet": "#475569"}, ACIK = {"liste": "Denetim listesi · yazdır / Excel", "sert": "Tüm kalibrasyon sertifikaları", "dogf": "Son doğrulama formları", "rapor": "Ölçüm ve kullanım raporları", "dogyap": "Cihaz seç, doğrulama kartını aç", "qr": "Cihaz kartları (QR sayfası)", "karne": "Bakım · arıza · tamir kayıtları", "talimat": "Kullanım talimatları ve videolar", "takip": "Süresi dolan ve yaklaşanlar", "enerji": "Etiket bilgileri: güç, besleme, kapasite", "etiket": "Hasar gören etiketi yeniden bas", "kalk": "Sertifika değerleri · max hata · sonuç", "yonet": "Yeni cihaz kaydı, bilgi düzeltme, çıkarma"};
+const IKON = {"kaltak": "<svg viewBox=\"0 0 64 64\"><rect x=\"10\" y=\"14\" width=\"44\" height=\"40\" rx=\"6\"/><path d=\"M10 26h44M22 8v12M42 8v12\"/><circle cx=\"32\" cy=\"40\" r=\"7\"/></svg>", "dogtak": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"22\"/><path d=\"M21 33l8 8 15-17\"/></svg>", "mqr": "<svg viewBox=\"0 0 64 64\"><rect x=\"8\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"38\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"8\" y=\"38\" width=\"18\" height=\"18\"/><path d=\"M38 38h8v8h-8zM50 50h6v6h-6z\"/></svg>", "mtal": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 12h20a6 6 0 0 1 6 6v36a5 5 0 0 0-5-5H8zM56 12H36a6 6 0 0 0-6 6v36a5 5 0 0 1 5-5h21z\"/></svg>", "msic": "<svg viewBox=\"0 0 64 64\"><path d=\"M28 8a6 6 0 0 1 12 0v30a12 12 0 1 1-12 0z\"/><path d=\"M34 26v18\"/></svg>", "afoto": "<svg viewBox=\"0 0 64 64\"><rect x=\"6\" y=\"14\" width=\"52\" height=\"38\" rx=\"5\"/><circle cx=\"22\" cy=\"28\" r=\"5\"/><path d=\"M6 46l16-12 12 10 10-8 14 10\"/></svg>", "depo": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 22L32 10l24 12v30H8z\"/><path d=\"M8 22h48M22 52V34h20v18M22 42h20\"/></svg>", "park": "<svg viewBox=\"0 0 64 64\"><path d=\"M6 56V30l14-8v8l14-8v8l14-8v34z\"/><path d=\"M50 56V12h6v44M14 44h6M26 44h6M38 44h6\"/></svg>", "makine": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"9\"/><path d=\"M32 8v8M32 48v8M8 32h8M48 32h8M15 15l6 6M43 43l6 6M49 15l-6 6M21 43l-6 6\"/></svg>", "ariza": "<svg viewBox=\"0 0 64 64\"><path d=\"M40 10a12 12 0 0 0-14 16L10 42l12 12 16-16a12 12 0 0 0 16-14l-8 8-8-2-2-8z\"/></svg>", "liste": "<svg viewBox=\"0 0 64 64\"><rect x=\"12\" y=\"8\" width=\"40\" height=\"48\" rx=\"4\"/><path d=\"M20 20h24M20 30h24M20 40h16\"/></svg>", "sert": "<svg viewBox=\"0 0 64 64\"><path d=\"M14 6h26l10 10v30H14z\"/><path d=\"M40 6v10h10M20 18h14M20 26h22M20 34h12\"/><circle cx=\"40\" cy=\"44\" r=\"7\"/><path d=\"M36 50l-2 10 6-4 6 4-2-10\"/></svg>", "dogf": "<svg viewBox=\"0 0 64 64\"><rect x=\"14\" y=\"10\" width=\"36\" height=\"46\" rx=\"4\"/><path d=\"M24 6h16v8H24zM22 30l6 6 12-12M22 46h20\"/></svg>", "rapor": "<svg viewBox=\"0 0 64 64\"><path d=\"M10 54h44\"/><rect x=\"14\" y=\"34\" width=\"8\" height=\"18\"/><rect x=\"28\" y=\"22\" width=\"8\" height=\"30\"/><rect x=\"42\" y=\"12\" width=\"8\" height=\"40\"/></svg>", "dogyap": "<svg viewBox=\"0 0 64 64\"><path d=\"M26 6h12M28 6v18L14 50a5 5 0 0 0 4 8h28a5 5 0 0 0 4-8L36 24V6\"/><path d=\"M20 40h24\"/></svg>", "qr": "<svg viewBox=\"0 0 64 64\"><rect x=\"8\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"38\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"8\" y=\"38\" width=\"18\" height=\"18\"/><path d=\"M14 14h6v6h-6zM44 14h6v6h-6zM14 44h6v6h-6zM38 38h6v6M50 38h6v6M38 50h6v6M50 50h6v6M44 44h6\"/></svg>", "karne": "<svg viewBox=\"0 0 64 64\"><path d=\"M40 8a12 12 0 0 0-11 16L10 43a5 5 0 0 0 7 7l19-19a12 12 0 0 0 16-11l-7 4-6-2-2-6z\"/></svg>", "talimat": "<svg viewBox=\"0 0 64 64\"><path d=\"M32 14C24 8 14 8 8 10v40c6-2 16-2 24 4 8-6 18-6 24-4V10c-6-2-16-2-24 4zM32 14v40\"/></svg>", "takip": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"34\" r=\"22\"/><path d=\"M32 20v14l10 6M24 6h16\"/></svg>", "enerji": "<svg viewBox=\"0 0 64 64\"><path d=\"M36 6L14 36h16l-4 22 24-32H34z\"/></svg>", "etiket": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 30V10a2 2 0 0 1 2-2h20l26 26-22 22z\"/><circle cx=\"20\" cy=\"20\" r=\"4\"/></svg>", "kalk": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"24\"/><circle cx=\"32\" cy=\"32\" r=\"14\"/><circle cx=\"32\" cy=\"32\" r=\"4\"/></svg>", "yonet": "<svg viewBox=\"0 0 64 64\"><rect x=\"10\" y=\"10\" width=\"44\" height=\"44\" rx=\"8\"/><path d=\"M32 22v20M22 32h20\"/></svg>"};
+const RENK = {"kaltak": "#1d4ed8", "dogtak": "#0f9f7a", "park": "#0d9488", "makine": "#475569", "mqr": "#334155", "mtal": "#4f46e5", "msic": "#ea580c", "ariza": "#b91c1c", "afoto": "#7c3aed", "depo": "#a16207", "liste": "#2563eb", "sert": "#059669", "dogf": "#7c3aed", "rapor": "#0891b2", "dogyap": "#d97706", "qr": "#334155", "karne": "#dc2626", "talimat": "#4f46e5", "takip": "#e11d48", "enerji": "#ca8a04", "etiket": "#be123c", "kalk": "#0f766e", "yonet": "#475569"}, ACIK = {"liste": "Denetim listesi · yazdır / Excel", "sert": "Tüm kalibrasyon sertifikaları", "dogf": "Son doğrulama formları", "rapor": "Ölçüm ve kullanım raporları", "dogyap": "Cihaz seç, doğrulama kartını aç", "qr": "Cihaz kartları (QR sayfası)", "karne": "Bakım · arıza · tamir kayıtları", "talimat": "Kullanım talimatları ve videolar", "takip": "Süresi dolan ve yaklaşanlar", "enerji": "Etiket bilgileri: güç, besleme, kapasite", "etiket": "Hasar gören etiketi yeniden bas", "kalk": "Sertifika değerleri · max hata · sonuç", "yonet": "Yeni cihaz kaydı, bilgi düzeltme, çıkarma"};
 const MOD = {
+  kaltak: { ik:"📅", ad:"Kalibrasyon Takvimi", canli:"kal", f:x => x.kal, alt:"Canlı radar · yaklaşan kalibrasyonlar" },
+  dogtak: { ik:"✅", ad:"Doğrulama Takvimi", canli:"dog", f:x => x.dog, alt:"Canlı radar · yaklaşan doğrulamalar" },
   liste:  { ik:"📋", ad:"Cihaz Listesi", tablo:true },
   sert:   { ik:"📄", ad:"Kalibrasyon Sertifikaları", f:x => x.sl, alt:x => `Sertifika ${x.sert || "–"} · ${fd(x.kt)}${x.firma ? " · " + x.firma : ""}`, ac:x => belge("sertifika", x.id) },
   dogf:   { ik:"📋", ad:"Doğrulama Formları", f:x => x.dl, alt:x => x.bek ? "⚠ Yeni formda doğrulama yok – eski toplu Excel kaydı" : `Doğrulama ${fd(x.dt)} · sonraki ${fd(x.dn)}`, ac:x => belge("dogrulama", x.id) },
@@ -260,11 +263,11 @@ const MOD = {
   enerji: { ik:"⚡", ad:"Enerji / Güç (etiket)", f:x => x.guc || x.bes, alt:x => [x.guc ? "Kurulu güç " + x.guc + " W" : "", x.bes, x.hac, x.mak ? "maks " + x.mak : "", x.std].filter(Boolean).join(" · "), ac:x => enerjiAc(x) },
   takip:  { ik:"⏰", ad:"Takip (süresi dolan / yaklaşan)", takip:true }
 };
-let mod = (location.hash || "#liste").slice(1); if(!MOD[mod] || MOD[mod].link || MOD[mod].yakinda) mod = "liste";
+let mod = (location.hash || "#kaltak").slice(1); if(!MOD[mod] || MOD[mod].link || MOD[mod].yakinda) mod = "kaltak";   // Cihaz Takip canlı kalibrasyon takvimiyle açılır
 // Ana bölümler: Seval Park · Cihaz Takip · Makine Listesi · Arıza Takip · Enerji · Depo
 const GRUPLAR = [
   { k:"park", ad:"Seval Park", gi:"🏭", alt:"3B fabrika · canlı üretim", link:"harita3d.html", modlar:[] },
-  { k:"cihaz", ad:"Cihaz Takip", gi:"🔬", alt:"Kalibrasyon · doğrulama · QR", modlar:["liste","sert","dogf","rapor","dogyap","kalk","talimat","qr","etiket","yonet","takip"] },
+  { k:"cihaz", ad:"Cihaz Takip", gi:"🔬", alt:"Kalibrasyon · doğrulama · QR", modlar:["kaltak","dogtak","liste","sert","dogf","rapor","dogyap","kalk","talimat","qr","etiket","yonet","takip"] },
   { k:"makine", ad:"Makine Listesi", gi:"⚙️", alt:"Makineler · doküman · QR", modlar:["makine","mqr","mtal","msic"] },
   { k:"ariza", ad:"Arıza Takip", gi:"🔧", alt:"Arıza · bakım karnesi", modlar:["ariza","karne","afoto"] },
   { k:"enerji", ad:"Enerji", gi:"⚡", alt:"Güç · besleme", modlar:["enerji"] },
@@ -289,7 +292,8 @@ function tiles(){
 }
 document.addEventListener("click", e => { const t = e.target.closest("#tiles button"); if(!t) return; if(MOD[t.dataset.m] && MOD[t.dataset.m].yakinda){ alert(MOD[t.dataset.m].ad + " hazırlanıyor (" + MOD[t.dataset.m].yakinda + ")."); return; } if(MOD[t.dataset.m] && MOD[t.dataset.m].link){ if(/^https?:/.test(MOD[t.dataset.m].link)) window.open(MOD[t.dataset.m].link, "_blank"); else location.href = MOD[t.dataset.m].link; return; } mod = t.dataset.m; GRUP = (GRUPLAR.find(g => g.modlar.includes(mod)) || GRUPLAR[1]).k; history.replaceState(null, "", "#" + mod); SECILI.clear(); tiles(); ciz(); $("#modad").scrollIntoView({ behavior:"smooth", block:"start" }); });
 function ciz(){
-  const M = MOD[mod]; document.body.classList.toggle("genis", !!M.tablo); document.body.classList.toggle("genis", !!M.tablo); $("#tabloBtn").hidden = !M.tablo; $("#g_liste").hidden = !!M.takip; $("#takip").hidden = !M.takip; $("#liste").hidden = !!M.takip;
+  const M = MOD[mod], CANLI = !!M.canli; $("#canli").hidden = !CANLI; $("#listeKart").hidden = CANLI;
+  if(CANLI){ document.body.classList.add("genis"); $("#liste").hidden = true; $("#takip").hidden = true; CP_MOD = M.canli; canliCiz(); return; } document.body.classList.toggle("genis", !!M.tablo); document.body.classList.toggle("genis", !!M.tablo); $("#tabloBtn").hidden = !M.tablo; $("#g_liste").hidden = !!M.takip; $("#takip").hidden = !M.takip; $("#liste").hidden = !!M.takip;
   if(M.takip){ takipCiz(); return; }
   if(!M.tablo){ const F = filtre().filter(M.f); const tg = mod === "enerji" ? F.reduce((s,x) => s + (parseFloat(String(x.guc).replace(",", ".")) || 0), 0) : 0;
     $("#say").textContent = F.length + " cihaz" + (tg ? " · toplam kurulu güç " + (tg/1000).toLocaleString("tr", { maximumFractionDigits:2 }) + " kW" : "");
@@ -600,5 +604,163 @@ function etiketAyristir(t){
   return A;
 }
 </script>
-
+<style>
+/* ===== Canlı panel: Kalibrasyon / Doğrulama takvimi (yalnız #canli içinde) ===== */
+#canli{max-width:1400px;margin:0 auto 12px}
+#canli .cp{position:relative;overflow:hidden;border-radius:22px;padding:18px;background:linear-gradient(160deg,#f6f9fc 0%,#eaf1f8 45%,#f8f1ec 100%);box-shadow:0 6px 24px rgba(13,27,54,.08)}
+#canli .cp-bg{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;animation:cpSuz 26s ease-in-out infinite alternate;pointer-events:none}
+@keyframes cpSuz{to{transform:translate(50px,30px) scale(1.1)}}
+#canli .cp>*:not(.cp-bg){position:relative}
+#canli .cp-sek{display:inline-flex;gap:4px;background:rgba(255,255,255,.7);padding:4px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(20,48,94,.08)}
+#canli .cp-sek button{background:none;color:#64748b;border:0;border-radius:999px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer}
+#canli .cp-sek button.on{background:#14305e;color:#fff;box-shadow:0 6px 14px rgba(20,48,94,.3)}#canli .cp-sek button.on.dg{background:#0f8f6e;box-shadow:0 6px 14px rgba(15,143,110,.3)}
+#canli .cp-bas{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;margin:14px 0}
+#canli .cp-bas small{color:#64748b;font-size:12px}#canli .cp-bas h2{margin:2px 0 4px;font-size:28px;color:#14305e;letter-spacing:-.02em}#canli .cp-bas p{margin:0;color:#475569;font-size:13.5px}
+#canli .cp-say{display:flex;gap:20px;flex-wrap:wrap}#canli .cp-sy small{display:block;font-size:11px;color:#64748b;margin-bottom:5px}#canli .cp-sy em{display:block;font-style:normal;font-size:11px;color:#64748b;margin-top:5px}
+#canli .cp-hn{display:inline-flex;gap:3px}#canli .cp-hn span{min-width:24px;height:34px;padding:0 3px;border-radius:7px;background:#14305e;color:#fff;font-weight:800;font-size:18px;display:grid;place-items:center;box-shadow:0 4px 10px rgba(20,48,94,.25);animation:cpCevir .9s cubic-bezier(.2,.9,.3,1.3) both}
+#canli .cp-hn span.s{background:none;color:#14305e;box-shadow:none;min-width:0;padding:0 1px}#canli .cp-hn.y span:not(.s){background:#0f8f6e}#canli .cp-hn.a span:not(.s){background:#c98a05}#canli .cp-hn.k span:not(.s){background:#d91e24}
+@keyframes cpCevir{from{transform:rotateX(90deg);opacity:0}}
+#canli .cp-izg{display:grid;grid-template-columns:1.6fr 1fr;gap:14px}#canli .cp-alt{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+#canli .cp-k{background:rgba(255,255,255,.78);border-radius:18px;padding:14px 16px;box-shadow:0 8px 24px rgba(20,48,94,.07)}
+#canli .cp-k h3{margin:0;font-size:14px;color:#14305e}#canli .cp-k h3+small{display:block;color:#64748b;font-size:11.5px;margin-bottom:6px}
+#canli .cp-radar{background:radial-gradient(120% 120% at 30% 20%,#1d4a85 0%,#0f2a52 55%,#0a1d3a 100%);color:#fff;position:relative}#canli .cp-radar h3{color:#fff}#canli .cp-radar h3+small{color:#a9c1e6}
+#canli canvas{display:block;width:100%}
+#canli .cp-lej{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:#cfe0f7;margin-top:6px}#canli .cp-lej i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:-1px}
+#canli .cp-sec{position:absolute;width:240px;z-index:3;background:rgba(255,255,255,.97);color:#0f172a;border-radius:14px;padding:12px 14px;font-size:12.5px;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+#canli .cp-sec b.c{font-size:15px;color:#14305e}#canli .cp-sec .r{display:flex;justify-content:space-between;gap:8px;margin-top:6px;color:#64748b}#canli .cp-sec .r b{color:#0f172a;text-align:right}#canli .cp-sec a{color:#14305e;font-weight:700;text-decoration:none}
+#canli .cp-s{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid rgba(20,48,94,.07);font-size:12.5px;color:inherit;text-decoration:none;animation:cpGir .5s both}
+#canli .cp-s small{display:block;color:#64748b;font-size:11px}#canli .cp-kod{font-weight:800;color:#14305e;min-width:58px}
+@keyframes cpGir{from{opacity:0;transform:translateY(8px)}}
+#canli .cp-gun{font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px;white-space:nowrap}#canli .cp-gk{background:#fde2e1;color:#b91c1c}#canli .cp-ga{background:#fdf0d2;color:#92400e}#canli .cp-gy{background:#d6f3ea;color:#065f46}#canli .cp-gg{background:#e2e8f0;color:#475569}
+#canli .cp-cb{height:5px;border-radius:5px;background:#e8eef5;margin-top:5px;overflow:hidden}#canli .cp-cb i{display:block;height:100%;border-radius:5px;animation:cpDol 1.4s .2s both}
+@keyframes cpDol{from{width:0}}
+#canli .cp-dag{display:flex;height:14px;border-radius:8px;overflow:hidden;margin:10px 0 8px;background:#e2e8f0}#canli .cp-dag i{animation:cpDol 1.4s both}
+#canli .cp-dl{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;color:#475569}#canli .cp-dl b{color:#0f172a}
+#canli .cp-l{display:grid;grid-template-columns:minmax(90px,150px) 1fr 44px;gap:10px;align-items:center;font-size:12px;padding:5px 0}#canli .cp-l .cp-cb{height:8px;margin:0}
+#canli .cp-bos{color:#64748b;font-size:12.5px;padding:8px 0}
+@media(max-width:900px){#canli .cp-izg,#canli .cp-alt{grid-template-columns:1fr}#canli .cp-bas h2{font-size:22px}#canli .cp-say{gap:12px}}
+@media (prefers-reduced-motion:reduce){#canli *{animation:none!important}}
+/* ===== Canlı ana yapı: hareketli arka plan, cam kartlar, sırayla gelen kutular (işlev değişmez) ===== */
+body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;filter:blur(80px);opacity:.42;pointer-events:none;animation:anaSuz 28s ease-in-out infinite alternate}
+body::before{width:520px;height:520px;background:#bfe3dc;left:-160px;top:240px}
+body::after{width:480px;height:480px;background:#c9d8f2;right:-140px;top:560px;animation-duration:34s}
+@keyframes anaSuz{to{transform:translate(70px,50px) scale(1.12)}}
+.app{position:relative;overflow:hidden;background-size:220% 220%;animation:anaArka 18s ease-in-out infinite alternate}
+.app::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.08) 50%,transparent 65%);background-size:250% 100%;animation:anaIsik 9s linear infinite}
+.app>*{position:relative;z-index:1}
+@keyframes anaArka{to{background-position:100% 100%}}@keyframes anaIsik{from{background-position:150% 0}to{background-position:-100% 0}}
+.gruplar button,.tiles button{background:rgba(255,255,255,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:transform .2s,box-shadow .2s,background .2s;animation:anaGir .5s both}
+.gruplar button:hover,.tiles button:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(15,23,42,.12)}
+.gruplar button.on{background:linear-gradient(120deg,#14305e,#1d4a85,#14305e);background-size:200% 100%;animation:anaGir .5s both,anaArka 6s ease-in-out infinite alternate;box-shadow:0 10px 24px rgba(20,48,94,.3)}
+.gruplar button:hover .gi,.tiles button:hover .ik{animation:anaZipla .6s ease}
+@keyframes anaZipla{40%{transform:translateY(-4px) rotate(-4deg)}70%{transform:translateY(1px)}}
+@keyframes anaGir{from{opacity:0;transform:translateY(10px)}}
+.gruplar button:nth-child(2),.tiles button:nth-child(2){animation-delay:.04s}.gruplar button:nth-child(3),.tiles button:nth-child(3){animation-delay:.08s}.gruplar button:nth-child(4),.tiles button:nth-child(4){animation-delay:.12s}.gruplar button:nth-child(5),.tiles button:nth-child(5){animation-delay:.16s}.gruplar button:nth-child(6),.tiles button:nth-child(6){animation-delay:.2s}
+.tiles button:nth-child(7){animation-delay:.24s}.tiles button:nth-child(8){animation-delay:.28s}.tiles button:nth-child(9){animation-delay:.32s}.tiles button:nth-child(10){animation-delay:.36s}.tiles button:nth-child(n+11){animation-delay:.4s}
+.tiles button.on{box-shadow:0 0 0 2px var(--r),0 10px 24px color-mix(in srgb,var(--r) 25%,transparent)}
+.card{background:rgba(255,255,255,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.uyari .k{animation:anaNabiz 2s infinite}@keyframes anaNabiz{0%{box-shadow:0 0 0 0 rgba(220,38,38,.45)}70%{box-shadow:0 0 0 8px rgba(220,38,38,0)}100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}}
+@media (prefers-reduced-motion:reduce){body::before,body::after,.app,.app::after,.gruplar button,.tiles button,.uyari .k{animation:none!important}}
+</style>
+<script>
+// ===== Canlı panel: Kalibrasyon takvimi ve Doğrulama takvimi (bağımsız) · fabrika planında radar =====
+// Plan koordinatları park.html FPLAN ile aynı (Buharkent yerleşim planı). Cihazın yeri: "Bulunduğu Yer"deki makine kodu → o makine; LAB-ARGE / LAB-CPR → Ar-Ge binası; diğerleri "planda yeri girilmemiş" kutusu.
+const CP_PLAN = {"bina":[[385,340,2072,1405],[135,245,400,676],[2082,540,2215,696]],"koridor":[[400,692,2040],[400,1050,2050]],"m":{"AK-04":[434,372,512,390],"AK-03":[434,395,512,412],"AK-08":[434,418,512,436],"AK-01":[434,441,512,458],"AK-10":[434,471,512,489],"AK-05":[434,500,512,517],"KN-03":[528,401,605,419],"KN-07":[526,432,603,450],"KN-01":[694,384,768,403],"KN-06":[694,412,761,452],"KN-02":[816,369,890,386],"KN-10":[816,390,890,408],"KN-11":[816,413,890,431],"KN-09":[816,435,890,453],"KN-12":[1010,365,1080,383],"KN-05":[1010,388,1080,406],"KN-08":[1010,411,1080,429],"KN-13":[1010,434,1080,452],"EK-16":[1143,373,1346,391],"EK-19":[1157,399,1366,417],"EK-11":[1135,426,1343,445],"EK-20":[1408,368,1659,386],"EK-15":[1520,395,1661,412],"EK-07":[1391,421,1659,440],"EK-25":[1281,452,1641,471],"EK-12":[1235,493,1598,514],"EK-24":[1215,521,1658,544],"EK-21":[1287,562,1600,582],"EK-10":[1230,591,1600,610],"EK-03":[1288,618,1603,638],"EK-08":[736,570,988,589],"RJ-08":[455,729,618,749],"ZR-08":[731,726,979,749],"ZR-11":[1119,719,1462,739],"ZR-05":[1688,707,1972,727],"ZR-06":[672,786,841,804],"ZR-09":[886,781,1057,800],"ZR-10":[1234,776,1461,796],"PLANET":[1520,773,1688,792],"ZR-12":[1801,769,1978,787],"EK-04":[843,818,1064,837],"BK-07":[1238,811,1516,831],"BK-09":[1539,809,1692,828],"RJ-02":[1530,834,1692,852],"EK-14":[786,849,1065,869],"RJ-04":[1296,851,1519,871],"RJ-01":[1530,856,1692,875],"RJ-07":[1243,882,1692,902],"CT-03":[1522,922,1697,941],"KT-02":[1813,919,1985,938],"EK-05":[676,930,841,948],"EK-06":[676,953,841,971],"EK-02":[676,975,841,993],"EK-22":[675,998,890,1016],"EK-13":[953,940,1125,959],"EK-18":[953,965,1125,984],"EK-23":[953,992,1125,1011],"CT-02":[1522,952,1697,971],"CT-04":[1233,989,1459,1009],"CT-01":[1522,985,1697,1004],"KT-03":[1828,953,1993,972],"KT-01":[1817,985,1985,1004],"BK-05":[406,954,501,972],"BK-06":[406,979,501,997],"BK-03":[406,1004,501,1022],"BK-01":[511,978,604,996],"BK-08":[511,1004,604,1022],"MB-05":[793,1150,888,1168],"MB-01":[793,1188,888,1206]},"a":[["Sevkiyat",[175,478,352,512]],["Stok alanı",[288,815,365,1088]],["Gerilim test",[951,461,1079,515]],["Hammadde depo",[782,260,1000,300]],["HFFR plastik",[1739,341,1866,402]],["PVC plastik",[1880,338,2008,400]],["Kablo karantina",[1903,590,2028,648]],["Kalay kaplama 2",[1535,1080,1690,1108]],["Kalay kaplama 1",[1535,1127,1690,1155]],["Upcast 1",[1782,1081,1960,1157]],["Upcast 2",[1787,1198,1965,1273]],["Yazı mak.",[400,1080,474,1097]],["İdari bölüm",[385,1285,557,1400]],["Soyunma",[557,1285,728,1400]],["Yemekhane",[728,1285,900,1400]],["Sığınak",[1072,1330,1405,1400]],["Revir",[673,712,727,732]]],"lab":{"LAB-ARGE":[2088,546,2209,616],"LAB-CPR":[2088,620,2209,690]}};
+const CP_BELIRSIZ = [2082, 720, 2215, 1395], CP_SINIR = [135, 245, 2215, 1405];
+const CP_HAREKET = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+let CP_MOD = "kal", CP_N = [], CP_SEC = null, CP_UST = null, CP_O = null, CP_BASLADI = false, CP_W = 0, CP_H = 0;
+const cpMakine = x => { const m = /(?:^|[^A-ZÇĞİÖŞÜ])(AK|BK|CT|CV|DK|EK|KN|KT|OR|PL|RJ|ZR)[\s\-]?0*(\d{1,2})(?!\d)/i.exec(String((x.yer || "") + " " + (/ısı göster|isi göster/i.test(x.ad) ? x.model : "")).toLocaleUpperCase("tr")); return m ? m[1].toUpperCase() + "-" + ("0" + m[2]).slice(-2) : ""; };
+const cpHash = s => { let h = 2166136261; for(const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) / 4294967296; };
+const cpSay = (n, cls) => `<div class="cp-hn ${cls || ""}">${String(n).split("").map((c, i) => /\d/.test(c) ? `<span style="animation-delay:${i * .08}s">${c}</span>` : `<span class="s">${c}</span>`).join("")}</div>`;
+const cpGun = d => Math.round((d - BUGUN) / 864e5);
+const cpSonuc = s => { s = String(s || "").trim(); return !s ? "bos" : /^UYGUN/i.test(s) ? "ok" : /KARAR VER|SONUÇLARINA/i.test(s) ? "kv" : "no"; };
+function canliCiz(){
+  const kal = CP_MOD === "kal", L = D.filter(x => kal ? x.kal : x.dog), tar = x => kal ? x.kn : x.dn, son = x => kal ? x.kkt : x.dt, snc = x => kal ? x.ks : x.dsonuc;
+  const gecerli = L.filter(x => tar(x) && tar(x) >= BUGUN).length, yak = L.filter(x => durumu(tar(x)) === "yak").length, gec = L.filter(x => durumu(tar(x)) === "gec").length, bos = L.filter(x => !String(snc(x) || "").trim()).length;
+  const yuzde = L.length ? (gecerli / L.length * 100).toFixed(1).replace(".", ",") : "0", is = kal ? "kalibrasyon" : "doğrulama", Is = kal ? "Kalibrasyon" : "Doğrulama";
+  const yaklasan = L.filter(x => ["gec", "yak"].includes(durumu(tar(x)))).sort((a, b) => tar(a) - tar(b)).slice(0, 6);
+  const sonlar = L.filter(x => son(x)).sort((a, b) => son(b) - son(a)).slice(0, 4);
+  const say = { ok:0, kv:0, no:0, bos:0 }; L.forEach(x => say[cpSonuc(snc(x))]++);
+  const yerG = {}; L.forEach(x => { const y = x.yer || "Yeri girilmemiş"; (yerG[y] = yerG[y] || [0, 0])[0]++; if(tar(x) && tar(x) >= BUGUN) yerG[y][1]++; });
+  const yerler = Object.entries(yerG).sort((a, b) => b[1][0] - a[1][0]).slice(0, 6);
+  const link = x => (kal ? "kalkontrol.html?id=" : "dogrulama.html?id=") + encodeURIComponent(x.id);
+  const gunEt = d => { const g = cpGun(d); return g < 0 ? `<span class="cp-gun cp-gk">${-g} gün geçti</span>` : `<span class="cp-gun ${g <= 7 ? "cp-ga" : "cp-gy"}">${g} gün</span>`; };
+  const rozet = s => s === "ok" ? "cp-gy" : s === "kv" ? "cp-ga" : s === "no" ? "cp-gk" : "cp-gg";
+  $("#canli").innerHTML = `<div class="cp"><i class="cp-bg" style="width:420px;height:420px;background:#bfe3dc;left:-120px;top:-140px"></i><i class="cp-bg" style="width:380px;height:380px;background:#c9d8f2;right:-100px;top:120px;animation-duration:32s"></i><i class="cp-bg" style="width:320px;height:320px;background:#f6d6c8;left:40%;bottom:-160px;animation-duration:22s"></i>
+    <nav class="cp-sek"><button data-cm="kal" class="${kal ? "on" : ""}">📅 Kalibrasyon takvimi</button><button data-cm="dog" class="dg ${kal ? "" : "on"}">✅ Doğrulama takvimi</button></nav>
+    <div class="cp-bas"><div><small>${BUGUN.toLocaleDateString("tr-TR", { weekday:"long", day:"numeric", month:"long" })} · Kalite Güvence Laboratuvarı</small><h2>${Is} takvimi</h2>
+      <p>${L.length} ${kal ? "kalibrasyonlu" : "doğrulamalı"} cihaz · ${gecerli} geçerli · önümüzdeki 30 günde ${yak} cihazın ${is} süresi doluyor${gec ? " · " + gec + " cihazın süresi geçmiş" : ""}</p></div>
+      <div class="cp-say"><div class="cp-sy"><small>Geçerli</small>${cpSay("%" + yuzde)}<em>${gecerli} / ${L.length} cihaz</em></div>
+        <div class="cp-sy"><small>30 gün içinde dolacak</small>${cpSay(yak, "a")}<em>${is} planlanmalı</em></div>
+        <div class="cp-sy"><small>Süresi geçen</small>${cpSay(gec, gec ? "k" : "y")}<em>${gec ? "hemen " + is + " yapılmalı" : "süresi geçen yok"}</em></div>
+        <div class="cp-sy"><small>${kal ? "Kontrol sonucu yok" : "Sonucu girilmemiş"}</small>${cpSay(bos)}<em>${kal ? "kalibrasyon kontrol formu bekliyor" : "doğrulama formu bekliyor"}</em></div></div></div>
+    <div class="cp-izg"><div class="cp-k cp-radar"><h3>${Is} radarı · fabrika planı</h3><small>Her nokta bir cihaz, bulunduğu makinede ya da laboratuvarda · noktaya tıklayın: cihaz kartı</small>
+        <canvas id="cpRd"></canvas><div class="cp-lej"><span><i style="background:#ff5a5f"></i>Süresi geçen</span><span><i style="background:#ffc247"></i>30 gün içinde</span><span><i style="background:#34d6a8"></i>Geçerli</span><span><i style="background:#94a3b8"></i>Tarihi girilmemiş</span></div>
+        <div class="cp-sec" id="cpSec" hidden></div></div>
+      <div class="cp-k"><h3>Yaklaşan ${kal ? "kalibrasyonlar" : "doğrulamalar"}</h3><small>Süresi geçen ve 30 gün içinde dolacak · tıklayın: ${kal ? "kalibrasyon kontrol" : "Doğrulama Yap"}</small>
+        ${yaklasan.map((x, i) => { const g = cpGun(tar(x)); return `<a class="cp-s" style="animation-delay:${i * .08}s" href="${link(x)}"><span class="cp-kod">${esc(x.id)}</span><div><b>${esc(x.ad)}</b><small>${esc([x.yer, kal ? x.firma : ""].filter(Boolean).join(" · "))}</small><div class="cp-cb"><i style="width:${Math.max(8, Math.min(100, 100 - g * 3))}%;background:${g < 0 ? "#ef4444" : g <= 7 ? "#f59e0b" : "#10b981"}"></i></div></div>${gunEt(tar(x))}</a>`; }).join("") || `<div class="cp-bos">✓ Süresi geçen ya da 30 gün içinde dolacak cihaz yok.</div>`}</div></div>
+    <div class="cp-alt"><div class="cp-k"><h3>Son ${kal ? "kalibrasyon kontrolleri" : "doğrulamalar"}</h3><small>${kal ? "Kal. Kontrol Tarihi" : "Doğrulama Tarihi"} · en yeni önce</small>
+        ${sonlar.map((x, i) => { const s = cpSonuc(snc(x)); return `<a class="cp-s" style="animation-delay:${i * .08}s" href="${kal ? "cihaz.html?id=" + encodeURIComponent(x.id) : link(x)}"><span class="cp-gun ${rozet(s)}">${s === "ok" ? "✓" : s === "kv" ? "?" : s === "no" ? "!" : "…"}</span><div><b>${esc(x.id)} ${esc(x.ad)}</b><small>${esc(String(snc(x) || "sonuç girilmemiş"))} · ${fd(son(x))}</small></div><span></span></a>`; }).join("") || `<div class="cp-bos">Henüz kayıt yok.</div>`}</div>
+      <div class="cp-k"><h3>${Is} sonuçları</h3><small>${L.length} cihaz · son ${kal ? "kalibrasyon kontrolü" : "doğrulama"}</small>
+        <div class="cp-dag">${[["ok", "#10b981"], ["kv", "#f2b33d"], ["no", "#ef4444"], ["bos", "#cbd5e1"]].map(([k, c]) => say[k] ? `<i style="width:${say[k] / Math.max(1, L.length) * 100}%;background:${c}"></i>` : "").join("")}</div>
+        <div class="cp-dl"><span style="color:#0f8f6e">● Uygun</span><b>${say.ok}</b></div><div class="cp-dl"><span style="color:#b45309">● Karar verilemiyor</span><b>${say.kv}</b></div><div class="cp-dl"><span style="color:#b91c1c">● Ölçüm raporuna bakınız</span><b>${say.no}</b></div><div class="cp-dl"><span>● Sonuç girilmemiş</span><b>${say.bos}</b></div></div>
+      <div class="cp-k"><h3>Yerlere göre</h3><small>Geçerli ${is} oranı · en çok cihazı olan yerler</small>
+        ${yerler.map(([y, [n, g]]) => { const p = Math.round(g / n * 100); return `<div class="cp-l"><span>${esc(y)}</span><div class="cp-cb"><i style="width:${p}%;background:${p >= 95 ? "#0f9f7a" : p >= 80 ? "#f2b33d" : "#ef4444"}"></i></div><b>%${p}</b></div>`; }).join("")}</div></div></div>`;
+  $("#canli").hidden = false;
+  // radar noktaları: makine kodu → makine, LAB-ARGE / LAB-CPR → Ar-Ge binası, diğerleri "planda yeri girilmemiş"
+  CP_N = L.map(x => { const r = CP_PLAN.m[cpMakine(x)] || (/^LAB-ARGE/i.test(x.yer) ? CP_PLAN.lab["LAB-ARGE"] : /^LAB-CPR/i.test(x.yer) ? CP_PLAN.lab["LAB-CPR"] : CP_BELIRSIZ), h1 = cpHash(x.id), h2 = cpHash(x.id + "y"), kutu = r[3] - r[1] > 30, ic = r === CP_BELIRSIZ ? 34 : 14;
+    const d = tar(x), dr = !d ? 3 : d < BUGUN ? -1 : durumu(d) === "yak" ? 1 : 2;
+    return { x: r[0] + 6 + h1 * (r[2] - r[0] - 12), y: kutu ? r[1] + ic + h2 * (r[3] - r[1] - ic - 8) : (r[1] + r[3]) / 2 + (h2 - .5) * 5, d: dr, s: 1.6 + h2, c: x }; });
+  CP_SEC = null; cpBoyut();
+  if(!CP_BASLADI){ CP_BASLADI = true; requestAnimationFrame(cpCiz); addEventListener("resize", cpBoyut); }
+}
+function cpBoyut(){ const cv = $("#cpRd"); if(!cv) return; const dpr = window.devicePixelRatio || 1; CP_W = cv.parentElement.clientWidth - 32; CP_H = Math.max(260, Math.min(520, CP_W * .56)); cv.width = CP_W * dpr; cv.height = CP_H * dpr; cv.style.height = CP_H + "px"; cv.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
+  cv.onclick = cpTik; cv.onmousemove = cpUzerinde; cv.onmouseleave = () => { CP_UST = null; }; }
+function cpCiz(zz){
+  requestAnimationFrame(cpCiz); const cv = $("#cpRd"); if(!cv || $("#canli").hidden) return; const cx = cv.getContext("2d"), z = CP_HAREKET ? zz : 0, W = CP_W, H = CP_H, S = CP_SINIR;
+  const k = Math.min(W / (S[2] - S[0] + 20), H / (S[3] - S[1] + 20)), ox = (W - (S[2] - S[0]) * k) / 2, oy = (H - (S[3] - S[1]) * k) / 2, X = x => ox + (x - S[0]) * k, Y = y => oy + (y - S[1]) * k; CP_O = { X, Y, k, ox, oy };
+  const K = (r, f, c, rad, dash) => { cx.beginPath(); cx.roundRect(X(r[0]), Y(r[1]), (r[2] - r[0]) * k, (r[3] - r[1]) * k, rad); if(f){ cx.fillStyle = f; cx.fill(); } if(c){ cx.strokeStyle = c; cx.lineWidth = 1; cx.setLineDash(dash || []); cx.stroke(); cx.setLineDash([]); } };
+  cx.clearRect(0, 0, W, H);
+  CP_PLAN.bina.forEach(b => K(b, "rgba(169,193,230,.035)", "rgba(169,193,230,.32)", 6));
+  CP_PLAN.koridor.forEach(c => { cx.strokeStyle = "rgba(169,193,230,.07)"; cx.lineWidth = Math.max(4, 22 * k); cx.lineCap = "round"; cx.beginPath(); cx.moveTo(X(c[0]) + 6, Y(c[1])); cx.lineTo(X(c[2]) - 6, Y(c[1])); cx.stroke(); cx.lineCap = "butt"; });
+  cx.font = "600 9px system-ui"; cx.textAlign = "center";
+  CP_PLAN.a.forEach(a => { K(a[1], "rgba(169,193,230,.05)", null, 4); if((a[1][2] - a[1][0]) * k > 46){ cx.fillStyle = "rgba(169,193,230,.38)"; cx.fillText(a[0], X((a[1][0] + a[1][2]) / 2), Y((a[1][1] + a[1][3]) / 2) + 3); } });
+  Object.entries(CP_PLAN.lab).forEach(([l, r]) => { K(r, "rgba(52,214,168,.08)", "rgba(52,214,168,.4)", 4); cx.fillStyle = "rgba(140,230,200,.85)"; cx.fillText(l, X((r[0] + r[2]) / 2), Y(r[1]) + 10); });
+  K(CP_BELIRSIZ, "rgba(52,214,168,.03)", "rgba(52,214,168,.3)", 6, [4, 4]); cx.fillStyle = "rgba(140,230,200,.75)"; cx.fillText("Planda yeri", X((CP_BELIRSIZ[0] + CP_BELIRSIZ[2]) / 2), Y(CP_BELIRSIZ[1]) + 12); cx.fillText("girilmemiş", X((CP_BELIRSIZ[0] + CP_BELIRSIZ[2]) / 2), Y(CP_BELIRSIZ[1]) + 23);
+  Object.entries(CP_PLAN.m).forEach(([kod, r]) => { const u = kod === CP_UST; K(r, u ? "rgba(96,165,250,.5)" : "rgba(96,165,250,.22)", u ? "rgba(191,219,254,.9)" : null, 2);
+    if((r[2] - r[0]) > 3 * (r[3] - r[1])){ cx.setLineDash([3, 8]); cx.lineDashOffset = -z / 40; cx.strokeStyle = "rgba(226,240,255,.5)"; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(X(r[2]) - 2, Y((r[1] + r[3]) / 2)); cx.lineTo(X(r[0]) + 2, Y((r[1] + r[3]) / 2)); cx.stroke(); cx.setLineDash([]); cx.lineDashOffset = 0; } });   // kablo akışı doğudan (karantina tarafı) batıya
+  const mx = X((S[0] + S[2]) / 2), my = Y((S[1] + S[3]) / 2), RR = Math.hypot(W, H), sup = (z / 2600) % (Math.PI * 2);
+  if(cx.createConicGradient){ const g = cx.createConicGradient(sup - .9, mx, my); g.addColorStop(0, "rgba(52,214,168,0)"); g.addColorStop(.14, "rgba(52,214,168,.18)"); g.addColorStop(.143, "rgba(52,214,168,0)"); cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+    cx.strokeStyle = "rgba(52,214,168,.5)"; cx.lineWidth = 1.2; cx.beginPath(); cx.moveTo(mx, my); cx.lineTo(mx + Math.cos(sup) * RR, my + Math.sin(sup) * RR); cx.stroke(); }
+  CP_N.forEach(n => { const x = X(n.x), y = Y(n.y), a = Math.atan2(y - my, x - mx), d = ((sup - a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2), p = CP_HAREKET && d < .9 ? 1 - d / .9 : 0;
+    const renk = n.d === 3 ? [148, 163, 184] : n.d < 0 ? [255, 90, 95] : n.d === 1 ? [255, 194, 71] : [52, 214, 168], nb = n.d < 0 && CP_HAREKET ? (Math.sin(z / 250 + n.x) + 1) / 2 : 0;
+    cx.beginPath(); cx.arc(x, y, n.s + p * 1.5 + nb * 1.3, 0, Math.PI * 2); cx.fillStyle = `rgba(${renk},${.5 + p * .5})`; cx.fill();
+    if(n.d === -1 || n.d === 1){ cx.beginPath(); cx.arc(x, y, n.s + 3 + nb * 5, 0, Math.PI * 2); cx.strokeStyle = `rgba(${renk},${.25 + nb * .35})`; cx.lineWidth = 1; cx.stroke(); }
+    if(n === CP_SEC){ const q = (z / 900) % 1; cx.beginPath(); cx.arc(x, y, 5 + q * 14, 0, Math.PI * 2); cx.strokeStyle = `rgba(255,255,255,${.8 - q * .8})`; cx.lineWidth = 1.5; cx.stroke(); } });
+  if(CP_UST){ const r = CP_PLAN.m[CP_UST], tx = X(r[0]), ty = Y(r[1]) - 6; cx.font = "700 11px system-ui"; const w = cx.measureText("UR-" + CP_UST).width + 12; cx.fillStyle = "rgba(255,255,255,.95)"; cx.beginPath(); cx.roundRect(tx, ty - 15, w, 18, 6); cx.fill(); cx.fillStyle = "#14305e"; cx.textAlign = "left"; cx.fillText("UR-" + CP_UST, tx + 6, ty - 2); }
+}
+// üzerine gelince yalnız makine kodu görünür; kart yalnız tıklayınca açılır
+function cpUzerinde(e){ if(!CP_O) return; const b = e.currentTarget.getBoundingClientRect(), x = CP_SINIR[0] + (e.clientX - b.left - CP_O.ox) / CP_O.k, y = CP_SINIR[1] + (e.clientY - b.top - CP_O.oy) / CP_O.k, p = 4 / CP_O.k;
+  CP_UST = (Object.entries(CP_PLAN.m).find(([, r]) => x >= r[0] - p && x <= r[2] + p && y >= r[1] - p && y <= r[3] + p) || [null])[0];
+  e.currentTarget.style.cursor = CP_N.some(n => Math.hypot(CP_O.X(n.x) - (e.clientX - b.left), CP_O.Y(n.y) - (e.clientY - b.top)) < 9) ? "pointer" : "default"; }
+function cpTik(e){
+  const b = e.currentTarget.getBoundingClientRect(), px = e.clientX - b.left, py = e.clientY - b.top, kart = $("#cpSec"); let en = null, ed = 10;
+  CP_N.forEach(n => { const d = Math.hypot(CP_O.X(n.x) - px, CP_O.Y(n.y) - py); if(d < ed){ ed = d; en = n; } });
+  CP_SEC = en; if(!en){ kart.hidden = true; return; }
+  const x = en.c, kal = CP_MOD === "kal", d = kal ? x.kn : x.dn, id = encodeURIComponent(x.id);
+  kart.innerHTML = `<b class="c">${esc(x.id)}</b> · ${esc(x.ad)}<br><span style="color:#64748b">${esc([x.marka, x.yer].filter(Boolean).join(" · "))}</span>
+    <div class="r"><span>${kal ? "Gelecek kalibrasyon" : "Sonraki doğrulama"}</span><b>${fd(d)}</b></div>
+    <div class="r"><span>Durum</span><b style="color:${en.d < 0 ? "#b91c1c" : en.d === 1 ? "#b45309" : en.d === 3 ? "#64748b" : "#047857"}">${en.d < 0 ? -cpGun(d) + " gün geçti" : en.d === 1 ? cpGun(d) + " gün kaldı" : en.d === 3 ? "tarih girilmemiş" : "Geçerli"}</b></div>
+    <div class="r"><span>${kal ? "Son kontrol" : "Son sonuç"}</span><b>${esc((kal ? x.ks : x.dsonuc) || "–")}</b></div>
+    <div class="r"><a href="cihaz.html?id=${id}">Cihaz kartı</a>${kal ? `<a href="kalkontrol.html?id=${id}">Kontrol formu</a><a href="rapor.html?id=${id}">Rapor</a>` : `<a href="dogrulama.html?id=${id}">Doğrulama Yap</a>`}</div>`;
+  const w = e.currentTarget.parentElement.getBoundingClientRect(); kart.style.left = Math.min(Math.max(8, e.clientX - w.left + 12), w.width - 250) + "px"; kart.style.top = Math.min(e.clientY - w.top + 12, w.height - 150) + "px"; kart.hidden = false;
+}
+// canlı ana yapı: kutulardaki sayılar sıfırdan sayarak gelir (yalnız ilk açılışta), tarihin yanında saat işler
+let SAYDI = false;
+const _tiles = tiles; tiles = function(){ _tiles(); if(SAYDI || !D.length || matchMedia("(prefers-reduced-motion: reduce)").matches) return; SAYDI = true;
+  document.querySelectorAll("#tiles .sy").forEach(e => { const n = +e.textContent; if(!n) return; const t0 = performance.now(); (function adim(t){ const k = Math.min(1, (t - t0) / 900); e.textContent = Math.round(n * (1 - Math.pow(1 - k, 3))); if(k < 1) requestAnimationFrame(adim); })(t0); }); };
+const anaSaat = () => { const d = new Date(), e = $("#saat"); if(e && D.length) e.textContent = fd(d) + " · " + d.toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit" }); };
+setInterval(anaSaat, 15000);
+document.addEventListener("click", e => { const b = e.target.closest("#canli .cp-sek button"); if(!b) return; mod = b.dataset.cm === "kal" ? "kaltak" : "dogtak"; history.replaceState(null, "", "#" + mod); tiles(); ciz(); });
+</script>
 </body></html>
