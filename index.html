@@ -98,11 +98,11 @@ async function belgeGetir(istek, sessiz){
  <div class="baslik">Cihaz Takip Sistemi</div>
  <div class="arama"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="ara" placeholder="Cihaz kodu, adı, marka veya seri no ara…" autocomplete="off"></div>
 </div>
-<section id="canli" class="np" hidden></section>
 <div class="gruplar np" id="gruplar"></div>
 <div class="tiles np" id="tiles"></div>
 <main>
- <div class="card np">
+ <section id="canli" class="np" hidden></section>
+ <div class="card np" id="listeKart">
   <div class="dt" id="modad" style="margin-top:12px"></div>
   <div id="g_liste">
    <div class="arama2"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="ara2" placeholder="Bu listede ara: kod, ad, seri no…" autocomplete="off"></div>
@@ -203,7 +203,7 @@ async function yukle(){
   const n = f => D.filter(f).length;
   if(false) $("#kpi").innerHTML = `<div><b>${D.length}</b>Toplam cihaz</div><div><b>${n(x=>x.kal)}</b>Kalibrasyona tabi</div><div><b>${n(x=>x.dog)}</b>Doğrulaması yapılan</div>
     <div><b class="gec">${n(x=>durumu(x.kn)==="gec")}</b>Kalibrasyonu geçmiş</div><div><b class="gec">${n(x=>durumu(x.dn)==="gec")}</b>Doğrulaması geçmiş</div><div><b>${n(x=>x.bek)}</b>Doğrulama bekleyen</div>`;
-  $("#saat").textContent = fd(BUGUN); tiles(); ciz(); canliCiz();
+  $("#saat").textContent = fd(BUGUN); tiles(); ciz(); if(typeof anaSaat === "function") anaSaat();
 }
 function filtre(){
   const q = norm($("#ara").value), tip = $("#f_tip").value, ad = $("#f_ad").value, yer = $("#f_yer").value, dur = $("#f_dur").value;
@@ -237,9 +237,11 @@ function kriter(d, unit){
   if(u === "Ω" && unit === "kΩ") return {tol: tol/1000, u:unit}; if(u === "Ω" && unit === "mΩ") return {tol: tol*1000, u:unit};
   return null;
 }
-const IKON = {"mqr": "<svg viewBox=\"0 0 64 64\"><rect x=\"8\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"38\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"8\" y=\"38\" width=\"18\" height=\"18\"/><path d=\"M38 38h8v8h-8zM50 50h6v6h-6z\"/></svg>", "mtal": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 12h20a6 6 0 0 1 6 6v36a5 5 0 0 0-5-5H8zM56 12H36a6 6 0 0 0-6 6v36a5 5 0 0 1 5-5h21z\"/></svg>", "msic": "<svg viewBox=\"0 0 64 64\"><path d=\"M28 8a6 6 0 0 1 12 0v30a12 12 0 1 1-12 0z\"/><path d=\"M34 26v18\"/></svg>", "afoto": "<svg viewBox=\"0 0 64 64\"><rect x=\"6\" y=\"14\" width=\"52\" height=\"38\" rx=\"5\"/><circle cx=\"22\" cy=\"28\" r=\"5\"/><path d=\"M6 46l16-12 12 10 10-8 14 10\"/></svg>", "depo": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 22L32 10l24 12v30H8z\"/><path d=\"M8 22h48M22 52V34h20v18M22 42h20\"/></svg>", "park": "<svg viewBox=\"0 0 64 64\"><path d=\"M6 56V30l14-8v8l14-8v8l14-8v34z\"/><path d=\"M50 56V12h6v44M14 44h6M26 44h6M38 44h6\"/></svg>", "makine": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"9\"/><path d=\"M32 8v8M32 48v8M8 32h8M48 32h8M15 15l6 6M43 43l6 6M49 15l-6 6M21 43l-6 6\"/></svg>", "ariza": "<svg viewBox=\"0 0 64 64\"><path d=\"M40 10a12 12 0 0 0-14 16L10 42l12 12 16-16a12 12 0 0 0 16-14l-8 8-8-2-2-8z\"/></svg>", "liste": "<svg viewBox=\"0 0 64 64\"><rect x=\"12\" y=\"8\" width=\"40\" height=\"48\" rx=\"4\"/><path d=\"M20 20h24M20 30h24M20 40h16\"/></svg>", "sert": "<svg viewBox=\"0 0 64 64\"><path d=\"M14 6h26l10 10v30H14z\"/><path d=\"M40 6v10h10M20 18h14M20 26h22M20 34h12\"/><circle cx=\"40\" cy=\"44\" r=\"7\"/><path d=\"M36 50l-2 10 6-4 6 4-2-10\"/></svg>", "dogf": "<svg viewBox=\"0 0 64 64\"><rect x=\"14\" y=\"10\" width=\"36\" height=\"46\" rx=\"4\"/><path d=\"M24 6h16v8H24zM22 30l6 6 12-12M22 46h20\"/></svg>", "rapor": "<svg viewBox=\"0 0 64 64\"><path d=\"M10 54h44\"/><rect x=\"14\" y=\"34\" width=\"8\" height=\"18\"/><rect x=\"28\" y=\"22\" width=\"8\" height=\"30\"/><rect x=\"42\" y=\"12\" width=\"8\" height=\"40\"/></svg>", "dogyap": "<svg viewBox=\"0 0 64 64\"><path d=\"M26 6h12M28 6v18L14 50a5 5 0 0 0 4 8h28a5 5 0 0 0 4-8L36 24V6\"/><path d=\"M20 40h24\"/></svg>", "qr": "<svg viewBox=\"0 0 64 64\"><rect x=\"8\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"38\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"8\" y=\"38\" width=\"18\" height=\"18\"/><path d=\"M14 14h6v6h-6zM44 14h6v6h-6zM14 44h6v6h-6zM38 38h6v6M50 38h6v6M38 50h6v6M50 50h6v6M44 44h6\"/></svg>", "karne": "<svg viewBox=\"0 0 64 64\"><path d=\"M40 8a12 12 0 0 0-11 16L10 43a5 5 0 0 0 7 7l19-19a12 12 0 0 0 16-11l-7 4-6-2-2-6z\"/></svg>", "talimat": "<svg viewBox=\"0 0 64 64\"><path d=\"M32 14C24 8 14 8 8 10v40c6-2 16-2 24 4 8-6 18-6 24-4V10c-6-2-16-2-24 4zM32 14v40\"/></svg>", "takip": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"34\" r=\"22\"/><path d=\"M32 20v14l10 6M24 6h16\"/></svg>", "enerji": "<svg viewBox=\"0 0 64 64\"><path d=\"M36 6L14 36h16l-4 22 24-32H34z\"/></svg>", "etiket": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 30V10a2 2 0 0 1 2-2h20l26 26-22 22z\"/><circle cx=\"20\" cy=\"20\" r=\"4\"/></svg>", "kalk": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"24\"/><circle cx=\"32\" cy=\"32\" r=\"14\"/><circle cx=\"32\" cy=\"32\" r=\"4\"/></svg>", "yonet": "<svg viewBox=\"0 0 64 64\"><rect x=\"10\" y=\"10\" width=\"44\" height=\"44\" rx=\"8\"/><path d=\"M32 22v20M22 32h20\"/></svg>"};
-const RENK = {"park": "#0d9488", "makine": "#475569", "mqr": "#334155", "mtal": "#4f46e5", "msic": "#ea580c", "ariza": "#b91c1c", "afoto": "#7c3aed", "depo": "#a16207", "liste": "#2563eb", "sert": "#059669", "dogf": "#7c3aed", "rapor": "#0891b2", "dogyap": "#d97706", "qr": "#334155", "karne": "#dc2626", "talimat": "#4f46e5", "takip": "#e11d48", "enerji": "#ca8a04", "etiket": "#be123c", "kalk": "#0f766e", "yonet": "#475569"}, ACIK = {"liste": "Denetim listesi · yazdır / Excel", "sert": "Tüm kalibrasyon sertifikaları", "dogf": "Son doğrulama formları", "rapor": "Ölçüm ve kullanım raporları", "dogyap": "Cihaz seç, doğrulama kartını aç", "qr": "Cihaz kartları (QR sayfası)", "karne": "Bakım · arıza · tamir kayıtları", "talimat": "Kullanım talimatları ve videolar", "takip": "Süresi dolan ve yaklaşanlar", "enerji": "Etiket bilgileri: güç, besleme, kapasite", "etiket": "Hasar gören etiketi yeniden bas", "kalk": "Sertifika değerleri · max hata · sonuç", "yonet": "Yeni cihaz kaydı, bilgi düzeltme, çıkarma"};
+const IKON = {"kaltak": "<svg viewBox=\"0 0 64 64\"><rect x=\"10\" y=\"14\" width=\"44\" height=\"40\" rx=\"6\"/><path d=\"M10 26h44M22 8v12M42 8v12\"/><circle cx=\"32\" cy=\"40\" r=\"7\"/></svg>", "dogtak": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"22\"/><path d=\"M21 33l8 8 15-17\"/></svg>", "mqr": "<svg viewBox=\"0 0 64 64\"><rect x=\"8\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"38\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"8\" y=\"38\" width=\"18\" height=\"18\"/><path d=\"M38 38h8v8h-8zM50 50h6v6h-6z\"/></svg>", "mtal": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 12h20a6 6 0 0 1 6 6v36a5 5 0 0 0-5-5H8zM56 12H36a6 6 0 0 0-6 6v36a5 5 0 0 1 5-5h21z\"/></svg>", "msic": "<svg viewBox=\"0 0 64 64\"><path d=\"M28 8a6 6 0 0 1 12 0v30a12 12 0 1 1-12 0z\"/><path d=\"M34 26v18\"/></svg>", "afoto": "<svg viewBox=\"0 0 64 64\"><rect x=\"6\" y=\"14\" width=\"52\" height=\"38\" rx=\"5\"/><circle cx=\"22\" cy=\"28\" r=\"5\"/><path d=\"M6 46l16-12 12 10 10-8 14 10\"/></svg>", "depo": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 22L32 10l24 12v30H8z\"/><path d=\"M8 22h48M22 52V34h20v18M22 42h20\"/></svg>", "park": "<svg viewBox=\"0 0 64 64\"><path d=\"M6 56V30l14-8v8l14-8v8l14-8v34z\"/><path d=\"M50 56V12h6v44M14 44h6M26 44h6M38 44h6\"/></svg>", "makine": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"9\"/><path d=\"M32 8v8M32 48v8M8 32h8M48 32h8M15 15l6 6M43 43l6 6M49 15l-6 6M21 43l-6 6\"/></svg>", "ariza": "<svg viewBox=\"0 0 64 64\"><path d=\"M40 10a12 12 0 0 0-14 16L10 42l12 12 16-16a12 12 0 0 0 16-14l-8 8-8-2-2-8z\"/></svg>", "liste": "<svg viewBox=\"0 0 64 64\"><rect x=\"12\" y=\"8\" width=\"40\" height=\"48\" rx=\"4\"/><path d=\"M20 20h24M20 30h24M20 40h16\"/></svg>", "sert": "<svg viewBox=\"0 0 64 64\"><path d=\"M14 6h26l10 10v30H14z\"/><path d=\"M40 6v10h10M20 18h14M20 26h22M20 34h12\"/><circle cx=\"40\" cy=\"44\" r=\"7\"/><path d=\"M36 50l-2 10 6-4 6 4-2-10\"/></svg>", "dogf": "<svg viewBox=\"0 0 64 64\"><rect x=\"14\" y=\"10\" width=\"36\" height=\"46\" rx=\"4\"/><path d=\"M24 6h16v8H24zM22 30l6 6 12-12M22 46h20\"/></svg>", "rapor": "<svg viewBox=\"0 0 64 64\"><path d=\"M10 54h44\"/><rect x=\"14\" y=\"34\" width=\"8\" height=\"18\"/><rect x=\"28\" y=\"22\" width=\"8\" height=\"30\"/><rect x=\"42\" y=\"12\" width=\"8\" height=\"40\"/></svg>", "dogyap": "<svg viewBox=\"0 0 64 64\"><path d=\"M26 6h12M28 6v18L14 50a5 5 0 0 0 4 8h28a5 5 0 0 0 4-8L36 24V6\"/><path d=\"M20 40h24\"/></svg>", "qr": "<svg viewBox=\"0 0 64 64\"><rect x=\"8\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"38\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"8\" y=\"38\" width=\"18\" height=\"18\"/><path d=\"M14 14h6v6h-6zM44 14h6v6h-6zM14 44h6v6h-6zM38 38h6v6M50 38h6v6M38 50h6v6M50 50h6v6M44 44h6\"/></svg>", "karne": "<svg viewBox=\"0 0 64 64\"><path d=\"M40 8a12 12 0 0 0-11 16L10 43a5 5 0 0 0 7 7l19-19a12 12 0 0 0 16-11l-7 4-6-2-2-6z\"/></svg>", "talimat": "<svg viewBox=\"0 0 64 64\"><path d=\"M32 14C24 8 14 8 8 10v40c6-2 16-2 24 4 8-6 18-6 24-4V10c-6-2-16-2-24 4zM32 14v40\"/></svg>", "takip": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"34\" r=\"22\"/><path d=\"M32 20v14l10 6M24 6h16\"/></svg>", "enerji": "<svg viewBox=\"0 0 64 64\"><path d=\"M36 6L14 36h16l-4 22 24-32H34z\"/></svg>", "etiket": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 30V10a2 2 0 0 1 2-2h20l26 26-22 22z\"/><circle cx=\"20\" cy=\"20\" r=\"4\"/></svg>", "kalk": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"24\"/><circle cx=\"32\" cy=\"32\" r=\"14\"/><circle cx=\"32\" cy=\"32\" r=\"4\"/></svg>", "yonet": "<svg viewBox=\"0 0 64 64\"><rect x=\"10\" y=\"10\" width=\"44\" height=\"44\" rx=\"8\"/><path d=\"M32 22v20M22 32h20\"/></svg>"};
+const RENK = {"kaltak": "#1d4ed8", "dogtak": "#0f9f7a", "park": "#0d9488", "makine": "#475569", "mqr": "#334155", "mtal": "#4f46e5", "msic": "#ea580c", "ariza": "#b91c1c", "afoto": "#7c3aed", "depo": "#a16207", "liste": "#2563eb", "sert": "#059669", "dogf": "#7c3aed", "rapor": "#0891b2", "dogyap": "#d97706", "qr": "#334155", "karne": "#dc2626", "talimat": "#4f46e5", "takip": "#e11d48", "enerji": "#ca8a04", "etiket": "#be123c", "kalk": "#0f766e", "yonet": "#475569"}, ACIK = {"liste": "Denetim listesi · yazdır / Excel", "sert": "Tüm kalibrasyon sertifikaları", "dogf": "Son doğrulama formları", "rapor": "Ölçüm ve kullanım raporları", "dogyap": "Cihaz seç, doğrulama kartını aç", "qr": "Cihaz kartları (QR sayfası)", "karne": "Bakım · arıza · tamir kayıtları", "talimat": "Kullanım talimatları ve videolar", "takip": "Süresi dolan ve yaklaşanlar", "enerji": "Etiket bilgileri: güç, besleme, kapasite", "etiket": "Hasar gören etiketi yeniden bas", "kalk": "Sertifika değerleri · max hata · sonuç", "yonet": "Yeni cihaz kaydı, bilgi düzeltme, çıkarma"};
 const MOD = {
+  kaltak: { ik:"📅", ad:"Kalibrasyon Takvimi", canli:"kal", f:x => x.kal, alt:"Canlı radar · yaklaşan kalibrasyonlar" },
+  dogtak: { ik:"✅", ad:"Doğrulama Takvimi", canli:"dog", f:x => x.dog, alt:"Canlı radar · yaklaşan doğrulamalar" },
   liste:  { ik:"📋", ad:"Cihaz Listesi", tablo:true },
   sert:   { ik:"📄", ad:"Kalibrasyon Sertifikaları", f:x => x.sl, alt:x => `Sertifika ${x.sert || "–"} · ${fd(x.kt)}${x.firma ? " · " + x.firma : ""}`, ac:x => belge("sertifika", x.id) },
   dogf:   { ik:"📋", ad:"Doğrulama Formları", f:x => x.dl, alt:x => x.bek ? "⚠ Yeni formda doğrulama yok – eski toplu Excel kaydı" : `Doğrulama ${fd(x.dt)} · sonraki ${fd(x.dn)}`, ac:x => belge("dogrulama", x.id) },
@@ -261,11 +263,11 @@ const MOD = {
   enerji: { ik:"⚡", ad:"Enerji / Güç (etiket)", f:x => x.guc || x.bes, alt:x => [x.guc ? "Kurulu güç " + x.guc + " W" : "", x.bes, x.hac, x.mak ? "maks " + x.mak : "", x.std].filter(Boolean).join(" · "), ac:x => enerjiAc(x) },
   takip:  { ik:"⏰", ad:"Takip (süresi dolan / yaklaşan)", takip:true }
 };
-let mod = (location.hash || "#liste").slice(1); if(!MOD[mod] || MOD[mod].link || MOD[mod].yakinda) mod = "liste";
+let mod = (location.hash || "#kaltak").slice(1); if(!MOD[mod] || MOD[mod].link || MOD[mod].yakinda) mod = "kaltak";   // Cihaz Takip canlı kalibrasyon takvimiyle açılır
 // Ana bölümler: Seval Park · Cihaz Takip · Makine Listesi · Arıza Takip · Enerji · Depo
 const GRUPLAR = [
   { k:"park", ad:"Seval Park", gi:"🏭", alt:"3B fabrika · canlı üretim", link:"harita3d.html", modlar:[] },
-  { k:"cihaz", ad:"Cihaz Takip", gi:"🔬", alt:"Kalibrasyon · doğrulama · QR", modlar:["liste","sert","dogf","rapor","dogyap","kalk","talimat","qr","etiket","yonet","takip"] },
+  { k:"cihaz", ad:"Cihaz Takip", gi:"🔬", alt:"Kalibrasyon · doğrulama · QR", modlar:["kaltak","dogtak","liste","sert","dogf","rapor","dogyap","kalk","talimat","qr","etiket","yonet","takip"] },
   { k:"makine", ad:"Makine Listesi", gi:"⚙️", alt:"Makineler · doküman · QR", modlar:["makine","mqr","mtal","msic"] },
   { k:"ariza", ad:"Arıza Takip", gi:"🔧", alt:"Arıza · bakım karnesi", modlar:["ariza","karne","afoto"] },
   { k:"enerji", ad:"Enerji", gi:"⚡", alt:"Güç · besleme", modlar:["enerji"] },
@@ -290,7 +292,8 @@ function tiles(){
 }
 document.addEventListener("click", e => { const t = e.target.closest("#tiles button"); if(!t) return; if(MOD[t.dataset.m] && MOD[t.dataset.m].yakinda){ alert(MOD[t.dataset.m].ad + " hazırlanıyor (" + MOD[t.dataset.m].yakinda + ")."); return; } if(MOD[t.dataset.m] && MOD[t.dataset.m].link){ if(/^https?:/.test(MOD[t.dataset.m].link)) window.open(MOD[t.dataset.m].link, "_blank"); else location.href = MOD[t.dataset.m].link; return; } mod = t.dataset.m; GRUP = (GRUPLAR.find(g => g.modlar.includes(mod)) || GRUPLAR[1]).k; history.replaceState(null, "", "#" + mod); SECILI.clear(); tiles(); ciz(); $("#modad").scrollIntoView({ behavior:"smooth", block:"start" }); });
 function ciz(){
-  const M = MOD[mod]; document.body.classList.toggle("genis", !!M.tablo); document.body.classList.toggle("genis", !!M.tablo); $("#tabloBtn").hidden = !M.tablo; $("#g_liste").hidden = !!M.takip; $("#takip").hidden = !M.takip; $("#liste").hidden = !!M.takip;
+  const M = MOD[mod], CANLI = !!M.canli; $("#canli").hidden = !CANLI; $("#listeKart").hidden = CANLI;
+  if(CANLI){ document.body.classList.add("genis"); $("#liste").hidden = true; $("#takip").hidden = true; CP_MOD = M.canli; canliCiz(); return; } document.body.classList.toggle("genis", !!M.tablo); document.body.classList.toggle("genis", !!M.tablo); $("#tabloBtn").hidden = !M.tablo; $("#g_liste").hidden = !!M.takip; $("#takip").hidden = !M.takip; $("#liste").hidden = !!M.takip;
   if(M.takip){ takipCiz(); return; }
   if(!M.tablo){ const F = filtre().filter(M.f); const tg = mod === "enerji" ? F.reduce((s,x) => s + (parseFloat(String(x.guc).replace(",", ".")) || 0), 0) : 0;
     $("#say").textContent = F.length + " cihaz" + (tg ? " · toplam kurulu güç " + (tg/1000).toLocaleString("tr", { maximumFractionDigits:2 }) + " kW" : "");
@@ -603,7 +606,7 @@ function etiketAyristir(t){
 </script>
 <style>
 /* ===== Canlı panel: Kalibrasyon / Doğrulama takvimi (yalnız #canli içinde) ===== */
-#canli{max-width:1400px;margin:16px auto 0;padding:0 12px}
+#canli{max-width:1400px;margin:0 auto 12px}
 #canli .cp{position:relative;overflow:hidden;border-radius:22px;padding:18px;background:linear-gradient(160deg,#f6f9fc 0%,#eaf1f8 45%,#f8f1ec 100%);box-shadow:0 6px 24px rgba(13,27,54,.08)}
 #canli .cp-bg{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;animation:cpSuz 26s ease-in-out infinite alternate;pointer-events:none}
 @keyframes cpSuz{to{transform:translate(50px,30px) scale(1.1)}}
@@ -637,6 +640,27 @@ function etiketAyristir(t){
 #canli .cp-bos{color:#64748b;font-size:12.5px;padding:8px 0}
 @media(max-width:900px){#canli .cp-izg,#canli .cp-alt{grid-template-columns:1fr}#canli .cp-bas h2{font-size:22px}#canli .cp-say{gap:12px}}
 @media (prefers-reduced-motion:reduce){#canli *{animation:none!important}}
+/* ===== Canlı ana yapı: hareketli arka plan, cam kartlar, sırayla gelen kutular (işlev değişmez) ===== */
+body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;filter:blur(80px);opacity:.42;pointer-events:none;animation:anaSuz 28s ease-in-out infinite alternate}
+body::before{width:520px;height:520px;background:#bfe3dc;left:-160px;top:240px}
+body::after{width:480px;height:480px;background:#c9d8f2;right:-140px;top:560px;animation-duration:34s}
+@keyframes anaSuz{to{transform:translate(70px,50px) scale(1.12)}}
+.app{position:relative;overflow:hidden;background-size:220% 220%;animation:anaArka 18s ease-in-out infinite alternate}
+.app::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.08) 50%,transparent 65%);background-size:250% 100%;animation:anaIsik 9s linear infinite}
+.app>*{position:relative;z-index:1}
+@keyframes anaArka{to{background-position:100% 100%}}@keyframes anaIsik{from{background-position:150% 0}to{background-position:-100% 0}}
+.gruplar button,.tiles button{background:rgba(255,255,255,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:transform .2s,box-shadow .2s,background .2s;animation:anaGir .5s both}
+.gruplar button:hover,.tiles button:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(15,23,42,.12)}
+.gruplar button.on{background:linear-gradient(120deg,#14305e,#1d4a85,#14305e);background-size:200% 100%;animation:anaGir .5s both,anaArka 6s ease-in-out infinite alternate;box-shadow:0 10px 24px rgba(20,48,94,.3)}
+.gruplar button:hover .gi,.tiles button:hover .ik{animation:anaZipla .6s ease}
+@keyframes anaZipla{40%{transform:translateY(-4px) rotate(-4deg)}70%{transform:translateY(1px)}}
+@keyframes anaGir{from{opacity:0;transform:translateY(10px)}}
+.gruplar button:nth-child(2),.tiles button:nth-child(2){animation-delay:.04s}.gruplar button:nth-child(3),.tiles button:nth-child(3){animation-delay:.08s}.gruplar button:nth-child(4),.tiles button:nth-child(4){animation-delay:.12s}.gruplar button:nth-child(5),.tiles button:nth-child(5){animation-delay:.16s}.gruplar button:nth-child(6),.tiles button:nth-child(6){animation-delay:.2s}
+.tiles button:nth-child(7){animation-delay:.24s}.tiles button:nth-child(8){animation-delay:.28s}.tiles button:nth-child(9){animation-delay:.32s}.tiles button:nth-child(10){animation-delay:.36s}.tiles button:nth-child(n+11){animation-delay:.4s}
+.tiles button.on{box-shadow:0 0 0 2px var(--r),0 10px 24px color-mix(in srgb,var(--r) 25%,transparent)}
+.card{background:rgba(255,255,255,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.uyari .k{animation:anaNabiz 2s infinite}@keyframes anaNabiz{0%{box-shadow:0 0 0 0 rgba(220,38,38,.45)}70%{box-shadow:0 0 0 8px rgba(220,38,38,0)}100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}}
+@media (prefers-reduced-motion:reduce){body::before,body::after,.app,.app::after,.gruplar button,.tiles button,.uyari .k{animation:none!important}}
 </style>
 <script>
 // ===== Canlı panel: Kalibrasyon takvimi ve Doğrulama takvimi (bağımsız) · fabrika planında radar =====
@@ -731,6 +755,12 @@ function cpTik(e){
     <div class="r"><a href="cihaz.html?id=${id}">Cihaz kartı</a>${kal ? `<a href="kalkontrol.html?id=${id}">Kontrol formu</a><a href="rapor.html?id=${id}">Rapor</a>` : `<a href="dogrulama.html?id=${id}">Doğrulama Yap</a>`}</div>`;
   const w = e.currentTarget.parentElement.getBoundingClientRect(); kart.style.left = Math.min(Math.max(8, e.clientX - w.left + 12), w.width - 250) + "px"; kart.style.top = Math.min(e.clientY - w.top + 12, w.height - 150) + "px"; kart.hidden = false;
 }
-document.addEventListener("click", e => { const b = e.target.closest("#canli .cp-sek button"); if(!b) return; CP_MOD = b.dataset.cm; canliCiz(); });
+// canlı ana yapı: kutulardaki sayılar sıfırdan sayarak gelir (yalnız ilk açılışta), tarihin yanında saat işler
+let SAYDI = false;
+const _tiles = tiles; tiles = function(){ _tiles(); if(SAYDI || !D.length || matchMedia("(prefers-reduced-motion: reduce)").matches) return; SAYDI = true;
+  document.querySelectorAll("#tiles .sy").forEach(e => { const n = +e.textContent; if(!n) return; const t0 = performance.now(); (function adim(t){ const k = Math.min(1, (t - t0) / 900); e.textContent = Math.round(n * (1 - Math.pow(1 - k, 3))); if(k < 1) requestAnimationFrame(adim); })(t0); }); };
+const anaSaat = () => { const d = new Date(), e = $("#saat"); if(e && D.length) e.textContent = fd(d) + " · " + d.toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit" }); };
+setInterval(anaSaat, 15000);
+document.addEventListener("click", e => { const b = e.target.closest("#canli .cp-sek button"); if(!b) return; mod = b.dataset.cm === "kal" ? "kaltak" : "dogtak"; history.replaceState(null, "", "#" + mod); tiles(); ciz(); });
 </script>
 </body></html>

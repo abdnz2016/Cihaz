@@ -283,6 +283,8 @@ async function yukle(){
     const GEN = { verici:3.3, toplayici:4.0, ekstruder:2.8, kalip:1.4, cap:1.8, spark:2.6, yazi:2.0, katarpil:3.8, akum:2.0, yard:1.6 };
     let x = 0, pano = null; ist = [];
     KB.istasyonlar(true, cih.concat(elle), key(id)).forEach(st => { const c = CMAP[st.tip] || "yard", ara = /ara/i.test(st.ad), w = c === "tekne" ? (ara ? 4 : 9) : c === "katarpil" ? 3 : c === "ekstruder" ? 1.6 : undefined;
+      const on = ist[ist.length - 1];   // listede art arda gelen ekstruder adları tek gövdedir (ör. "Mail. 120 Ekstruder" + "UME60" = ana ekstruder): tek makine çizilir
+      if(c === "ekstruder" && on && on.c === "ekstruder" && !on.kapali && !st.kapali){ on.ad += " + " + st.ad; on.cihazlar = on.cihazlar.concat(st.cihaz); on.w = 2.4; on.turAd = "ana ekstruder (tek gövde)"; x += .8; return; }
       const m = ["verici", "toplayici", "ekstruder", "yazi"].includes(c) ? kopya(c) : {};
       ist.push({ c, x, w, ad:st.ad, turAd:TURAD[c], kapali:st.kapali, cihazlar:st.cihaz, bilgi:m.bilgi, yer:m.yer, parca:m.parca });
       if(c === "tekne" && pano === null && !ara) pano = x + 2;
