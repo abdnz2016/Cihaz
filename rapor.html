@@ -187,12 +187,12 @@ async function load(){
       const dn = norm(DEV[id].ad), kul = (AYAR_RE.test(dn) && !/resistomat|spark|yüksek gerilim|oto trafo/.test(dn)) ? "ayar" : "ölçüm";
       let set = ref, olc = ol; const sm = /^Set\s+(-?[\d,]+)/i.exec(ar);
       if(sm){ const X = parseFloat(sm[1].replace(",", ".")); if(Math.abs(ol - X) < Math.abs(ref - X)) { set = ol; olc = ref; } }   // kabin: set = cihaza girilen, ölçülen = kabin ortalaması
-      const tur = /^0\s*-|^\d/.test(ar) ? ar : (buy || "Ölçüm");
-      (NK[id] = NK[id] || []).push({ set, olc, u, unit, tur, dec: Math.max(dc(ng(r,"referans")), dc(ng(r,"ölçülen"))), kul, karar: String(txt(ng(r,"karar")) || ""), nkSert: String(txt(ng(r,"sertifika no")) || "") });
+      const tur = (!/^(kabin\s+)?set\b/i.test(ar.trim()) && ar.trim()) || buy || "Ölçüm", kr = sn(ng(r,"kriter (±)"));   // her tablo/eksen/yön ayrı grup; kabin set satırları büyüklükte toplanır
+      (NK[id] = NK[id] || []).push({ set, olc, u, unit, tur, kr, dec: Math.max(dc(ng(r,"referans")), dc(ng(r,"ölçülen"))), kul, karar: String(txt(ng(r,"karar")) || ""), nkSert: String(txt(ng(r,"sertifika no")) || "") });
     });
     Object.keys(NK).forEach(id => { MEAS[id] = NK[id]; DEV[id].kaynakNK = true; DEV[id].olcDurum = ""; if(NK[id][0].nkSert) DEV[id].sert = DEV[id].sert || NK[id][0].nkSert; });
   }catch(e){ /* sekme yoksa Ölçümler ile devam */ }
-  IDS = Object.keys(MEAS).filter(id => DEV[id]);
+  IDS = Object.keys(DEV).filter(id => MEAS[id] || DEV[id].sert || DEV[id].kt);   // kalibrasyon sertifikası olan her cihazın raporu var (değerleri okunmamış olsa da)
 }
 function report(id){
   const d = DEV[id], all = (MEAS[id] || []).slice();
@@ -200,22 +200,23 @@ function report(id){
   const keys = Object.keys(groups), multi = keys.length > 1;
   let durum = null, kritTxt = "", fark = 0, kv = false;   // Rev 1: kriter F7.10-02 Rev 1 listesinden, karar U ile üç durumlu
   const tables = keys.map(k => {
-    const rows = groups[k].sort((a,b)=>a.set-b.set), u = rows[0].unit, dec = rows[0].dec, olcum = rows[0].kul === "ölçüm", hasU = true;   // tam okuma: U ve karar sütunları her zaman
+    const rows = groups[k].sort((a,b)=>a.set-b.set), u = rows[0].unit, dec = rows[0].dec, olcum = rows[0].kul === "ölçüm", hasU = true;   // U sütunu her zaman; sertifikada U yoksa hücre boş
     const tz = teraziKrit(d, u), kr = tz ? null : kriter(d, u);
     if(tz && !kritTxt) kritTxt = tz.yazi; else if(kr && !kritTxt) kritTxt = kr.pct ? "± %" + String(kr.tol).replace(".", ",") : "± " + String(kr.tol).replace(".", ",") + " " + kr.u;
     const body = rows.map(m => {
-      const e = m.olc - m.set, T = tz ? tz.T(m.set) : (kr ? (kr.pct ? Math.abs(m.set) * kr.tol / 100 : kr.tol) : null), Uu = (m.u !== undefined && !isNaN(m.u)) ? m.u : 0;
+      const e = m.olc - m.set, T = m.kr !== undefined && !isNaN(m.kr) ? m.kr : tz ? tz.T(m.set) : (kr ? (kr.pct ? Math.abs(m.set) * kr.tol / 100 : kr.tol) : null), Uu = (m.u !== undefined && !isNaN(m.u)) ? m.u : 0;
       const ok = T === null ? null : Math.abs(e) <= T + 1e-9, kvN = ok === true && Math.abs(e) + Uu > T + 1e-9;
       if(kvN) kv = true;   // |hata| ≤ kriter < |hata| + U
       if(ok === false) durum = false; else if(ok === true && durum === null) durum = true;
       if(Math.abs(e) > 1e-9) fark++;
-      return `<tr><td>${fset(m.set)}</td><td>${fnum(m.olc, dec)}</td><td class="${ok===false ? "kotu" : ""}">${(e>0?"+":"") + fnum(e, dec)}</td><td class="gir">${olcum ? ((-e > 0 ? "+" : "") + fnum(-e, dec)) : gYaz(m.set, m.olc, dec, d)}</td>${hasU ? `<td>${m.u !== undefined && !isNaN(m.u) ? String(m.u).replace(".", ",") : "—"}</td>` : ""}<td class="${ok === false ? "kotu" : ""}" title="${T === null ? "kriter yok" : "sınır ± " + String(+T.toPrecision(3)).replace(".", ",") + " " + u}" style="font-weight:800;color:${ok === false ? "#b91c1c" : kvN ? "#b45309" : "#047857"}">${ok === null ? "—" : ok === false ? "✗" : kvN ? "?" : "✓"}</td></tr>`; }).join("");
+      return `<tr><td>${fset(m.set)}</td><td>${fnum(m.olc, dec)}</td><td class="${ok===false ? "kotu" : ""}">${(e>0?"+":"") + fnum(e, dec)}</td><td class="gir">${olcum ? ((-e > 0 ? "+" : "") + fnum(-e, dec)) : gYaz(m.set, m.olc, dec, d)}</td>${hasU ? `<td>${m.u !== undefined && !isNaN(m.u) ? String(m.u).replace(".", ",") : ""}</td>` : ""}</tr>`; }).join("");
     return `<div class="tw">${multi ? `<div class="tt" style="text-transform:none">${esc(rows[0].tur)}</div>` : `<div class="tt">${olcum ? "Ölçüm sonuçları" : "Ayar ve kullanım değerleri"}</div>`}<table class="olc">
-      ${olcum ? `<tr><th>REFERANS<br>${esc(u)}</th><th>CİHAZ OKUMASI<br>${esc(u)}</th><th>HATA<br>${esc(u)}</th><th>DÜZELTME<br>${esc(u)}</th>${hasU ? `<th>BELİRSİZLİK<br>± ${esc(u)}</th>` : ""}<th>KARAR</th></tr>` : `<tr><th>SET<br>${esc(u)}</th><th>ÖLÇÜLEN<br>${esc(u)}</th><th>HATA<br>${esc(u)}</th><th>GİRİLECEK<br>${esc(u)}</th>${hasU ? `<th>BELİRSİZLİK<br>± ${esc(u)}</th>` : ""}<th>KARAR</th></tr>`}
+      ${olcum ? `<tr><th>REFERANS<br>${esc(u)}</th><th>CİHAZ OKUMASI<br>${esc(u)}</th><th>HATA<br>${esc(u)}</th><th>DÜZELTME<br>${esc(u)}</th>${hasU ? `<th>BELİRSİZLİK<br>± ${esc(u)}</th>` : ""}</tr>` : `<tr><th>SET<br>${esc(u)}</th><th>ÖLÇÜLEN<br>${esc(u)}</th><th>HATA<br>${esc(u)}</th><th>GİRİLECEK<br>${esc(u)}</th>${hasU ? `<th>BELİRSİZLİK<br>± ${esc(u)}</th>` : ""}</tr>`}
       ${body}
     </table></div>`;
   }).join("");
   if(kv && durum !== false) durum = null;
+  const krSat = [...new Set(all.filter(m => m.kr !== undefined && !isNaN(m.kr)).map(m => m.unit))].map(b => { const k = [...new Set(all.filter(m => m.unit === b && !isNaN(m.kr)).map(m => m.kr))]; return k.length === 1 ? "± " + String(k[0]).replace(".", ",") + " " + b : b + " satır bazında"; });   // satırların kriteri (Kalibrasyon_Noktalari)
   const dTxt = durum === false ? "ÖLÇÜM RAPORUNA BAKINIZ" : (kv ? "ÖLÇÜM SONUÇLARINA BAKINIZ" : (durum === null ? "—" : "UYGUN"));   // P7.10 Rev 1 B8 gösterimi
   const olcumTum = all.length && all.every(m => m.kul === "ölçüm");
   const kul = olcumTum
@@ -228,13 +229,13 @@ function report(id){
       <span class="durum ${kv && durum !== false ? "bak" : (durum === null ? "yok" : (durum ? "ok" : "bak"))}">${dTxt}</span></div>
     <div class="kutu">
       <div><small>Kalibrasyon sertifika no</small><b>${esc(d.sert || "—")}</b></div>
-      <div><small>Kabul kriteri</small><b>${esc(kritTxt || "—")}</b></div>
+      <div><small>Kabul kriteri</small><b>${esc(krSat.join("; ") || d.kabul || kritTxt || "—")}</b></div>
       <div><small>Kalibrasyon tarihi</small><b>${fmt(d.kt)}</b></div>
       <div><small>Gelecek kalibrasyon</small><b>${fmt(d.next)}</b></div>
       <div><small>Ölçüm aralığı</small><b>${esc(d.aralik || "—")}</b></div>
       <div><small>Çözünürlük</small><b>${esc(d.coz || "—")}</b></div>
     </div>
-    ${tables}
+    ${tables || `<div class="uyar">Bu cihazın sertifika değerleri henüz okunmadı (Kalibrasyon_Noktalari'nda satır yok).</div>`}
     ${/otomatik/.test(norm(d.olcDurum || "")) ? `<div class="uyar">UYARI: Bu değerler sertifikadan otomatik okundu, henüz kontrol edilmedi.</div>` : ""}
     ${/yeni sertifika/.test(norm(d.olcDurum || "")) ? `<div class="uyar">UYARI: Sertifika yenilenmiş, bu değerler eski sertifikaya ait olabilir.</div>` : ""}
     <div class="not">ℹ️ ${esc(kul)} Ölçülen değerler ve belirsizlikler (U, k=2) yukarıdaki kalibrasyon sertifikasına aittir; ${olcumTum ? "hata = cihaz okuması − referans değer" : "hata = ölçülen − set; girilecek değer cihaz çözünürlüğüne yuvarlanmıştır"}. Karar: |hata| + U ≤ kabul kriteri (F7.10-02 / P7.10 Rev 1).</div>
@@ -248,7 +249,7 @@ function parseFilter(s){
     const m = t.match(/^(\d+)-(\d+)$/);
     if(m){ const n = num2(id); return n >= +m[1] && n <= +m[2]; }
     const k = id.toLocaleLowerCase("tr");
-    return k === t || k.startsWith(t + "/") || DEV[id].ad.toLocaleLowerCase("tr").includes(t) || MEAS[id].some(m => m.tur.toLocaleLowerCase("tr") === t);
+    return k === t || k.startsWith(t + "/") || DEV[id].ad.toLocaleLowerCase("tr").includes(t) || (MEAS[id] || []).some(m => m.tur.toLocaleLowerCase("tr") === t);
   });
 }
 function draw(){
@@ -260,7 +261,8 @@ function draw(){
 (async function(){
   try{
     await load();
-    $("#cnt").textContent = IDS.length + " cihaz";
+    const okunan = IDS.filter(id => MEAS[id]).length;
+    $("#cnt").textContent = IDS.length + " kalibrasyonlu cihaz" + (okunan < IDS.length ? " · " + (IDS.length - okunan) + " cihazın sertifika değerleri henüz okunmadı" : "");
     const q = new URLSearchParams(location.search).get("id");
     if(q) $("#flt").value = q;
     draw();
