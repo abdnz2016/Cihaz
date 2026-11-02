@@ -34,6 +34,8 @@ a.cc small{display:block;color:#64748b;margin-top:2px;font-size:11.5px}
 .akan{stroke-dasharray:3 16;animation:akan 1.1s linear infinite}.durdu .akan,.durdu .don,.durdu .su,.durdu .kivilcim,.durdu .bant{animation-play-state:paused}
 @keyframes akan{to{stroke-dashoffset:-19}}
 .don{animation:don 2.4s linear infinite}.don.yavas{animation-duration:4.5s}@keyframes don{to{transform:rotate(360deg)}}
+.sar-bosal{animation:bosal 40s linear infinite}.sar-topla{animation:topla 40s linear infinite}@keyframes bosal{from{transform:scale(1)}to{transform:scale(.45)}}@keyframes topla{from{transform:scale(.45)}to{transform:scale(1)}}
+.durdu .sar-bosal,.durdu .sar-topla{animation-play-state:paused}
 .su{animation:su 3s ease-in-out infinite alternate}@keyframes su{from{opacity:.55}to{opacity:.9}}
 .dalga{stroke-dasharray:10 22;animation:akan 2.6s linear infinite}
 .kivilcim{animation:kiv 1.3s steps(1) infinite;transform-box:fill-box;transform-origin:50% 50%}@keyframes kiv{0%,40%,100%{opacity:1}45%,55%{opacity:.15}60%{opacity:1;transform:scale(1.15)}}
@@ -87,12 +89,13 @@ function kutu(x, y, z, w, d, h, r, cizgi){ const st = `stroke="${cizgi || ton(r,
   return `<polygon points="${pts([P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)])}" fill="${ton(r, 1.18)}" ${st}/>` +
          `<polygon points="${pts([P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)])}" fill="${ton(r, .78)}" ${st}/>` +
          `<polygon points="${pts([P(x, y, z), P(x + w, y, z), P(x + w, y, z + h), P(x, y, z + h)])}" fill="${r}" ${st}/>`; }
-function disk(x, y, z, r, d, renk){ const [a, b] = P(x, y + d, z), [c, e] = P(x, y, z), R = r * S;
+// mod: "bosal" (kablo veren makara) / "topla" (saran makara) – yalnız bunlar döner
+function disk(x, y, z, r, d, renk, mod){ const [a, b] = P(x, y + d, z), [c, e] = P(x, y, z), R = r * S;
   return `<circle cx="${a.toFixed(1)}" cy="${b.toFixed(1)}" r="${R}" fill="${ton(renk, .7)}" stroke="${ton(renk, .5)}"/>` +
     `<polygon points="${pts([[a, b - R], [c, e - R], [c, e + R], [a, b + R]])}" fill="${ton(renk, .82)}"/>` +
     `<circle cx="${c.toFixed(1)}" cy="${e.toFixed(1)}" r="${R}" fill="${renk}" stroke="${ton(renk, .55)}" stroke-width="1.5"/>` +
-    `<circle cx="${c.toFixed(1)}" cy="${e.toFixed(1)}" r="${R * .62}" fill="${ton(renk, 1.15)}" stroke="${ton(renk, .6)}"/>` +
-    `<g class="don${R > 30 ? " yavas" : ""}" style="transform-origin:${c.toFixed(1)}px ${e.toFixed(1)}px">${[0, 60, 120].map(a => { const t = a * Math.PI / 180, q = R * .58; return `<line x1="${(c - Math.cos(t) * q).toFixed(1)}" y1="${(e - Math.sin(t) * q).toFixed(1)}" x2="${(c + Math.cos(t) * q).toFixed(1)}" y2="${(e + Math.sin(t) * q).toFixed(1)}" stroke="${ton(renk, .6)}" stroke-width="2.2" stroke-linecap="round"/>`; }).join("")}<circle cx="${(c + R * .4).toFixed(1)}" cy="${e.toFixed(1)}" r="${(R * .07).toFixed(1)}" fill="#78350f"/></g>` +
+    `<circle cx="${c.toFixed(1)}" cy="${e.toFixed(1)}" r="${R * .62}" fill="${ton(renk, 1.15)}" stroke="${ton(renk, .6)}"${mod ? ` class="sar-${mod}" style="transform-origin:${c.toFixed(1)}px ${e.toFixed(1)}px"` : ""}/>` +
+    `<g class="${mod ? "don" : ""}${R > 30 ? " yavas" : ""}" style="transform-origin:${c.toFixed(1)}px ${e.toFixed(1)}px">${[0, 60, 120].map(a => { const t = a * Math.PI / 180, q = R * .58; return `<line x1="${(c - Math.cos(t) * q).toFixed(1)}" y1="${(e - Math.sin(t) * q).toFixed(1)}" x2="${(c + Math.cos(t) * q).toFixed(1)}" y2="${(e + Math.sin(t) * q).toFixed(1)}" stroke="${ton(renk, .6)}" stroke-width="2.2" stroke-linecap="round"/>`; }).join("")}<circle cx="${(c + R * .4).toFixed(1)}" cy="${e.toFixed(1)}" r="${(R * .07).toFixed(1)}" fill="#78350f"/></g>` +
     `<circle cx="${c.toFixed(1)}" cy="${e.toFixed(1)}" r="${R * .16}" fill="#78350f"/>`; }
 function kafes(x, y, z, w, d, h){ const k = "#eab308", c = [[x, y], [x + w, y], [x + w, y + d], [x, y + d]], tel = [];
   for(let i = 0; i <= 4; i++){ const a = x + w * i / 4; tel.push([[a, y, z], [a, y, z + h]]); }
@@ -104,7 +107,7 @@ function kafes(x, y, z, w, d, h){ const k = "#eab308", c = [[x, y], [x + w, y], 
 const etiketYer = (s, sira) => s.c === "pano" ? P(merkez(s), 3.4, 4.75) : (() => { const [a, b] = P(merkez(s), -3.1, 0); return [a, b + sira * 15]; })();
 const etiket = (s, sira, metin) => { const [a, b] = etiketYer(s, sira); return `<text class="et" x="${a.toFixed(1)}" y="${b.toFixed(1)}">${esc(metin)}</text>`; };
 const CIZ = {
-  verici: s => kafes(s.x - 0.3, -1.2, 0, 3.4, 2.6, 2.4) + kutu(s.x, -0.9, 0, 2.6, 1.8, 0.25, "#475569") + kutu(s.x + 0.2, -0.2, 0.25, 0.3, 0.4, 1.4, "#64748b") + kutu(s.x + 2.1, -0.2, 0.25, 0.3, 0.4, 1.4, "#64748b") + disk(s.x + 1.3, -0.5, 1.45, 1.15, 0.9, "#f59e0b") + kutu(s.x + 2.4, 0.9, 0.25, 0.7, 0.7, 0.8, "#94a3b8"),
+  verici: s => kafes(s.x - 0.3, -1.2, 0, 3.4, 2.6, 2.4) + kutu(s.x, -0.9, 0, 2.6, 1.8, 0.25, "#475569") + kutu(s.x + 0.2, -0.2, 0.25, 0.3, 0.4, 1.4, "#64748b") + kutu(s.x + 2.1, -0.2, 0.25, 0.3, 0.4, 1.4, "#64748b") + disk(s.x + 1.3, -0.5, 1.45, 1.15, 0.9, "#f59e0b", s.aktif) + kutu(s.x + 2.4, 0.9, 0.25, 0.7, 0.7, 0.8, "#94a3b8"),
   ekstruder: s => { const w = s.w || 1.6, b = w > 1.6;
     return kutu(s.x - 0.2, 0.4, 0, w + 0.4, 6.4, 0.5, "#334155") + kutu(s.x - 0.1, 5.2, 0.5, w + 0.2, 1.6, 1.7, "#1e3a8a") + kutu(s.x + w * 0.2, 0.9, 0.9, w * 0.6, 4.6, 0.75, "#2563eb") +
       kutu(s.x + w * 0.15, 0.5, 0.5, w * 0.7, 0.5, 0.4, "#1e40af") + kutu(s.x + w * 0.3, 3.7, 1.65, w * 0.4, 0.6, 0.5, "#1e40af") +
@@ -126,7 +129,7 @@ const CIZ = {
       kutu(s.x + 0.25, -0.62, KZ + 0.1, s.w - 0.5, 0.02, 0.5, "#1f2937") + kutu(s.x + 0.25, -0.62, KZ - 0.6, s.w - 0.5, 0.02, 0.5, "#1f2937") + kutu(s.x + s.w, 0.1, 0.35, 0.6, 0.6, 0.9, "#1e3a8a") +
       [KZ + 0.35, KZ - 0.35].map(z => `<line x1="${P(s.x + .3, -0.64, z)[0]}" y1="${P(s.x + .3, -0.64, z)[1]}" x2="${P(s.x + s.w - .3, -0.64, z)[0]}" y2="${P(s.x + s.w - .3, -0.64, z)[1]}" stroke="#64748b" stroke-width="2" class="bant"/>`).join(""),
   toplayici: s => kutu(s.x - 0.1, -0.9, 0, 3.1, 1.8, 0.25, "#475569") + kutu(s.x + 0.1, -0.2, 0.25, 0.3, 0.4, 1.6, "#64748b") + kutu(s.x + 2.4, -0.2, 0.25, 0.3, 0.4, 1.6, "#64748b") +
-      disk(s.x + 1.45, -0.5, 1.6, 1.35, 1.0, "#f59e0b") + kutu(s.x + 2.75, 0.1, 0.25, 0.75, 0.7, 1.0, "#94a3b8") + kafes(s.x - 0.4, -1.3, 0, 3.9, 2.8, 3.1)
+      disk(s.x + 1.45, -0.5, 1.6, 1.35, 1.0, "#f59e0b", s.aktif) + kutu(s.x + 2.75, 0.1, 0.25, 0.75, 0.7, 1.0, "#94a3b8") + kafes(s.x - 0.4, -1.3, 0, 3.9, 2.8, 3.1)
 };
 CIZ.kalip = s => kutu(s.x + .3, -0.3, 0, .35, .35, .6, "#475569") + kutu(s.x, -0.45, .6, 1.0, .9, .7, "#1e3a8a");
 CIZ.akum = s => kutu(s.x, -0.6, 0, 1.4, 1.2, 0.2, "#475569") + kutu(s.x + .1, -0.2, .2, .12, .12, 2.2, "#94a3b8") + kutu(s.x + 1.18, -0.2, .2, .12, .12, 2.2, "#94a3b8") + kutu(s.x, -0.4, 2.3, 1.4, .8, .15, "#64748b");
@@ -231,10 +234,10 @@ function planCiz(id, ctx){   // kuş bakışı: makine rengi kendi durumu, cihaz
       ${KB.ciz(x + 2, y + 1, x + w - 2, h - 2, KB.istasyonlar(true, cc, kod), false, true)}
       ${calis ? `<line x1="${x + w - 2}" y1="${y + h / 2}" x2="${x + 2}" y2="${y + h / 2}" stroke="#fff" stroke-width="1.1" class="akan" opacity=".9" pointer-events="none"/>` : ""}
       <text x="${x - (se ? 8 : 4)}" y="${y + h / 2 + 4}" font-size="${se ? 13 : 10}" font-weight="800" text-anchor="end" fill="${se ? "#b88b36" : cz}">${ad}</text></g>`; });
-  return `<div class="kart"><b style="color:#14305e">📍 Fabrikadaki yeri</b> <small style="color:#64748b">Buharkent yerleşim planı · kuzey hol, kuş bakışı · çerçeve: makine çalışıyor (yeşil) / duruyor (kırmızı) · noktalar cihazların kendi yerinde · akış karantina tarafından</small>
+  return `<details class="kart"><summary style="cursor:pointer"><b style="color:#14305e">📍 Fabrikadaki yeri</b> <small style="color:#64748b">Buharkent yerleşim planı · kuzey hol, kuş bakışı · çerçeve: makine çalışıyor (yeşil) / duruyor (kırmızı) · noktalar cihazların kendi yerinde · akış karantina tarafından · açmak için tıklayın</small></summary>
     <svg viewBox="-40 -14 1060 ${H + 24}" style="width:100%;max-width:1400px;display:block;margin:8px auto 0"><rect x="0" y="0" width="1000" height="${H}" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/>
       ${PLAN.alanlar.filter(a => a[2] >= y0 && a[4] <= y1).map(a => `<rect x="${X(a[1])}" y="${Y(a[2])}" width="${((a[3] - a[1]) * k).toFixed(1)}" height="${((a[4] - a[2]) * k).toFixed(1)}" fill="#e2e8f0" stroke="#cbd5e1"/><text x="${X((a[1] + a[3]) / 2)}" y="${Y((a[2] + a[4]) / 2 + 5)}" font-size="11" text-anchor="middle" fill="#64748b">${a[0]}</text>`).join("")}
-      ${g}</svg></div>`; }
+      ${g}</svg></details>`; }
 async function sekme(ad){
   const r = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(ad)}&t=${Date.now()}`), t = await r.text();
   const j = JSON.parse(t.substring(t.indexOf("{"), t.lastIndexOf("}") + 1)); if(!j.table) return [];
@@ -284,6 +287,8 @@ async function yukle(){
     const GEN = { cap:2.3, spark:3.0, yazi:2.4 }; let kay = 0;
     for(let i = 0; i < ist.length; i++){ const s = ist[i]; if(GEN[s.c] && !s.cihazlar.length){ kay += GEN[s.c]; ist.splice(i, 1); i--; continue; } s.x -= kay; }
   }
+  // hangi verici / toplayıcının çalıştığı kayıtlı değil: ilk (kullanılan) verici kablo verir, ilk toplayıcı sarar
+  [["verici", "bosal"], ["toplayici", "topla"]].forEach(([c, m]) => { const s = ist.find(x => x.c === c && !x.kapali); if(s) s.aktif = m; });
   // makine parça listesi → istasyon ("Kullanıldığı Yer"), depo stoğu
   const DEP = DP.map(r => ({ kod:v(r["malzeme kodu"]), barkod:v(r["barkod"]), ad:v(r["malzeme adı"]), model:v(r["model / ölçü"]), not:v(r["not"]), stok:Number(v(r["stok"]).replace(",", ".")) || 0, birim:v(r["birim"]) || "adet" })).filter(x => x.kod);
   const depo = (kod, ack) => { const k = sade(kod), a = sade(ack); return DEP.find(d => k.length >= 4 && [d.barkod, d.model, d.not, d.ad].some(x => sade(x).includes(k))) || DEP.find(d => a.length >= 6 && sade(d.ad) === a) || null; };
