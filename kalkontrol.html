@@ -325,7 +325,7 @@ $("#kaydet").onclick = async () => {
   }catch(err){ $("#msg").textContent = "⚠ Servise ulaşılamadı: " + err.message; }
 };
 (async function(){
-  try{ await load(); $("#cnt").textContent = Object.keys(DEV).length + " cihaz";
+  try{ await load(); $("#cnt").textContent = Object.keys(DEV).filter(id => MEAS[id] || DEV[id].sert || DEV[id].kt).length + " kalibrasyonlu cihaz";   // ölçüm ve kullanım raporuyla aynı küme
     const q = new URLSearchParams(location.search).get("id"); if(q){ $("#flt").value = q; ac(q); } else $("#msg").textContent = "Cihaz kodunu yazıp Aç'a basın.";
   }catch(e){ $("#msg").innerHTML = "Veriler alınamadı.<br><small>" + esc(e.message) + "</small>"; }
 })();

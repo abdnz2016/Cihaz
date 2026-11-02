@@ -192,7 +192,7 @@ async function load(){
     });
     Object.keys(NK).forEach(id => { MEAS[id] = NK[id]; DEV[id].kaynakNK = true; DEV[id].olcDurum = ""; if(NK[id][0].nkSert) DEV[id].sert = DEV[id].sert || NK[id][0].nkSert; });
   }catch(e){ /* sekme yoksa Ölçümler ile devam */ }
-  IDS = Object.keys(MEAS).filter(id => DEV[id]);
+  IDS = Object.keys(DEV).filter(id => MEAS[id] || DEV[id].sert || DEV[id].kt);   // kalibrasyon sertifikası olan her cihazın raporu var (değerleri okunmamış olsa da)
 }
 function report(id){
   const d = DEV[id], all = (MEAS[id] || []).slice();
@@ -234,7 +234,7 @@ function report(id){
       <div><small>Ölçüm aralığı</small><b>${esc(d.aralik || "—")}</b></div>
       <div><small>Çözünürlük</small><b>${esc(d.coz || "—")}</b></div>
     </div>
-    ${tables}
+    ${tables || `<div class="uyar">Bu cihazın sertifika değerleri henüz okunmadı (Kalibrasyon_Noktalari'nda satır yok).</div>`}
     ${/otomatik/.test(norm(d.olcDurum || "")) ? `<div class="uyar">UYARI: Bu değerler sertifikadan otomatik okundu, henüz kontrol edilmedi.</div>` : ""}
     ${/yeni sertifika/.test(norm(d.olcDurum || "")) ? `<div class="uyar">UYARI: Sertifika yenilenmiş, bu değerler eski sertifikaya ait olabilir.</div>` : ""}
     <div class="not">ℹ️ ${esc(kul)} Ölçülen değerler ve belirsizlikler (U, k=2) yukarıdaki kalibrasyon sertifikasına aittir; ${olcumTum ? "hata = cihaz okuması − referans değer" : "hata = ölçülen − set; girilecek değer cihaz çözünürlüğüne yuvarlanmıştır"}. Karar: |hata| + U ≤ kabul kriteri (F7.10-02 / P7.10 Rev 1).</div>
@@ -248,7 +248,7 @@ function parseFilter(s){
     const m = t.match(/^(\d+)-(\d+)$/);
     if(m){ const n = num2(id); return n >= +m[1] && n <= +m[2]; }
     const k = id.toLocaleLowerCase("tr");
-    return k === t || k.startsWith(t + "/") || DEV[id].ad.toLocaleLowerCase("tr").includes(t) || MEAS[id].some(m => m.tur.toLocaleLowerCase("tr") === t);
+    return k === t || k.startsWith(t + "/") || DEV[id].ad.toLocaleLowerCase("tr").includes(t) || (MEAS[id] || []).some(m => m.tur.toLocaleLowerCase("tr") === t);
   });
 }
 function draw(){
@@ -260,7 +260,8 @@ function draw(){
 (async function(){
   try{
     await load();
-    $("#cnt").textContent = IDS.length + " / " + Object.keys(DEV).length + " cihazın ölçüm değeri var";   // kalibrasyon kontrol tüm cihazları sayar
+    const okunan = IDS.filter(id => MEAS[id]).length;
+    $("#cnt").textContent = IDS.length + " kalibrasyonlu cihaz" + (okunan < IDS.length ? " · " + (IDS.length - okunan) + " cihazın sertifika değerleri henüz okunmadı" : "");
     const q = new URLSearchParams(location.search).get("id");
     if(q) $("#flt").value = q;
     draw();
