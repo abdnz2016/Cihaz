@@ -196,6 +196,7 @@ const KB = {
     } else { L.push(["verici", "Verici", []], ["govde", "Makine", by("diger").concat(by("dolgu"), by("ana"))]);
       cap.forEach(c => L.push(["cap", "Çap ölçer", [c]])); sp.forEach(c => L.push(["spark", "Spark", [c]])); yz.forEach(c => L.push(["yazi", "Yazı mak.", [c]])); mt.forEach(c => L.push(["metre", "Metre sayacı", [c]]));
       L.push(["topla", "Toplayıcı", []]); }
+    for(let i = L.length - 1; i > 0; i--) if(L[i][0] === "ekstr" && L[i - 1][0] === "ekstr" && !L[i][3] && !L[i - 1][3]){ L[i - 1] = ["ekstr", L[i - 1][1] + " + " + L[i][1], L[i - 1][2].concat(L[i][2]), false]; L.splice(i, 1); }   // art arda ekstruder adları tek gövde (hat görünümüyle aynı)
     const W = { verici:5, ekstr:4, kalip:2, cap:2.4, havuz:16, spark:3.6, yazi:2.8, katarpil:5, topla:6, govde:28, metre:2.8, akum:3.4, yard:2.2 }, gap = 1.4;
     const gen = x => x[0] === "havuz" && /ara/i.test(x[1]) ? 7 : W[x[0]] || 2.2;
     const top = L.reduce((s, x) => s + gen(x), 0) + gap * (L.length - 1); let t = 0;
@@ -282,11 +283,11 @@ async function yukle(){
     const TURAD = { verici:"boşaltıcı / verici", toplayici:"toplayıcı", ekstruder:"ekstruder", kalip:"kalıp", cap:"çap ölçer", tekne:"soğutma havuzu", spark:"spark tester", yazi:"metraj / markalama", katarpil:"katerpil / kapstan", akum:"akümülatör / dancer", yard:"yardımcı ekipman" };
     const GEN = { verici:3.3, toplayici:4.0, ekstruder:2.8, kalip:1.4, cap:1.8, spark:2.6, yazi:2.0, katarpil:3.8, akum:2.0, yard:1.6 };
     let x = 0, pano = null; ist = [];
-    KB.istasyonlar(true, cih.concat(elle), key(id)).forEach(st => { const c = CMAP[st.tip] || "yard", ara = /ara/i.test(st.ad), w = c === "tekne" ? (ara ? 4 : 9) : c === "katarpil" ? 3 : c === "ekstruder" ? 1.6 : undefined;
+    KB.istasyonlar(true, cih.concat(elle), key(id)).forEach(st => { const c = CMAP[st.tip] || "yard", ara = /ara/i.test(st.ad), w = c === "tekne" ? (ara ? 4 : 9) : c === "katarpil" ? 3 : c === "ekstruder" ? (/ \+ /.test(st.ad) ? 2.4 : 1.6) : undefined;
       const on = ist[ist.length - 1];   // listede art arda gelen ekstruder adları tek gövdedir (ör. "Mail. 120 Ekstruder" + "UME60" = ana ekstruder): tek makine çizilir
       if(c === "ekstruder" && on && on.c === "ekstruder" && !on.kapali && !st.kapali){ on.ad += " + " + st.ad; on.cihazlar = on.cihazlar.concat(st.cihaz); on.w = 2.4; on.turAd = "ana ekstruder (tek gövde)"; x += .8; return; }
       const m = ["verici", "toplayici", "ekstruder", "yazi"].includes(c) ? kopya(c) : {};
-      ist.push({ c, x, w, ad:st.ad, turAd:TURAD[c], kapali:st.kapali, cihazlar:st.cihaz, bilgi:m.bilgi, yer:m.yer, parca:m.parca });
+      ist.push({ c, x, w, ad:st.ad, turAd:w === 2.4 ? "ana ekstruder (tek gövde)" : TURAD[c], kapali:st.kapali, cihazlar:st.cihaz, bilgi:m.bilgi, yer:m.yer, parca:m.parca }); if(w === 2.4) x += .8;
       if(c === "tekne" && pano === null && !ara) pano = x + 2;
       x += (c === "tekne" ? w : GEN[c] || 1.6) + .6; });
     const PN = (HATLAR[key(id)] || []).find(x => x.c === "pano"); if(pano !== null && PN) ist.unshift(Object.assign({}, PN, { x:pano, cihazlar:[], turAd:"elektrik panosu" }));
@@ -341,9 +342,9 @@ async function yukle(){
         <div class="ozet ur-i"><span><b>${tumC.length}</b>ölçüm cihazı</span><span><b>${tumC.filter(c => c.renk === "s").length}</b>kalibrasyonda / yaklaşan</span><span class="kr"><b>${tumC.filter(c => c.renk === "k").length}</b>arıza / süresi geçmiş</span></div>
         <div class="ozet bk-i"><span class="kr"><b>${ARm.filter(acikMi).length}</b>açık kayıt</span><span><b>${AR12.filter(a => !/bakım|bakim/i.test(a.tur)).length}</b>arıza (12 ay)</span><span><b>${String(+AR12.reduce((t, a) => t + a.saat, 0).toFixed(1)).replace(".", ",")}</b>sa duruş (12 ay)</span><span><b>${AR12.filter(a => /evet/i.test(a.durdu)).length}</b>kez üretim durdu</span></div></div>
       <div class="lej"><span><span class="nok g"></span> hazır</span><span><span class="nok s"></span> kalibrasyonda</span><span><span class="nok k"></span> arıza / süresi geçmiş</span></div></div></div>
-<div class="sahne">${svg}</div><div class="sahne3" id="u3" hidden></div><div class="akis">Kablonun akışı soldan sağa → · Makinenin üzerine gelin ya da dokunun: teknik verisi ve parçaları aşağıda görünür · 360°: sürükleyerek döndürün, tekerlekle yakınlaştırın <button class="b360" id="b360">🔄 360° görünüm</button></div>
+<div class="sahne">${svg}</div><div class="sahne3" id="u3" hidden></div><div class="akis">Kablonun akışı soldan sağa → · Makineye tıklayın ya da dokunun: bilgisi ve parçaları aşağıda açılır · 360°: sürükleyerek döndürün, tekerlekle yakınlaştırın <button class="b360" id="b360">🔄 360° görünüm</button></div>
     ${planCiz(id, { TUM, calis })}
-    <div id="detay"><div class="msg">🔎 Bir makinenin üzerine gelin ya da dokunun.</div></div>
+    <div id="detay"><div class="msg">🔎 Bir makineye tıklayın ya da dokunun.</div></div>
     <div class="kart bk-i"><b style="color:#14305e">Parça listesi (${MPm.length})</b> <small style="color:#64748b">· üzerine gelin: makinedeki yeri parlar</small>
       ${MPm.map(p => { const d = depo(p.kod, p.ack), st = PY.get(p); return `<div class="pr" data-pi="${st ? ist.indexOf(st) : -1}" data-pt="${esc(p.ack)}"><b>${esc(p.marka)}</b><span>${esc(p.kod || "—")}</span><span>${esc(p.ack)}<small style="display:block;color:#64748b">${st ? "📍 " + esc(st.ad) : "yeri hatta yok"}</small></span><span>${d ? `<b style="color:${d.stok > 0 ? "#047857" : "#b91c1c"}">📦 ${String(d.stok).replace(".", ",")} ${esc(d.birim)}</b>` : '<span style="color:#94a3b8">depoda yok</span>'}</span></div>`; }).join("") || '<div class="msg">Bu makine için parça girilmedi.</div>'}</div>
     <div class="kart bk-i"><b style="color:#14305e">Arıza / bakım kayıtları (${ARm.length})</b> <a href="makine.html?id=${encodeURIComponent(id)}" style="float:right;font-size:13px;font-weight:700;color:#dc2626">🔴 Arıza / Bakım aç</a>
@@ -374,7 +375,7 @@ async function yukle(){
   // görünmez yakalama alanı: istasyonun çevresinde her yer seçer (ince makinelerde de)
   document.querySelectorAll(".ist").forEach(e => { const b = e.querySelector(".sekil").getBBox(), r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     r.setAttribute("x", b.x + 2); r.setAttribute("y", b.y); r.setAttribute("width", Math.max(8, b.width - 4)); r.setAttribute("height", b.height + 6); r.setAttribute("fill", "transparent"); e.insertBefore(r, e.firstChild); });
-  document.querySelectorAll(".ist").forEach(e => { const i = +e.dataset.i; e.addEventListener("mouseenter", () => { e._sonraki = e.nextSibling; e.parentNode.appendChild(e); goster(i); });
+  document.querySelectorAll(".ist").forEach(e => { const i = +e.dataset.i; e.addEventListener("mouseenter", () => { e._sonraki = e.nextSibling; e.parentNode.appendChild(e); });   // üzerine gelince yalnız büyür; bilgi ve parçalar tıklayınca açılır
     e.addEventListener("mouseleave", () => { if(e._sonraki && e._sonraki.parentNode === e.parentNode) e.parentNode.insertBefore(e, e._sonraki); }); e.addEventListener("click", () => goster(i)); e.addEventListener("focus", () => goster(i)); });
 }
 // ===== 360° hat görünümü: aynı istasyonlar, Three.js r128 ile (harita3d.html ile aynı kaynak; ilk açılışta yüklenir) =====
