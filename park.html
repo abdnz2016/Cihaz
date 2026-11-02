@@ -246,6 +246,7 @@ const KB = {
     } else { L.push(["verici", "Verici", []], ["govde", "Makine", by("diger").concat(by("dolgu"), by("ana"))]);
       cap.forEach(c => L.push(["cap", "Çap ölçer", [c]])); sp.forEach(c => L.push(["spark", "Spark", [c]])); yz.forEach(c => L.push(["yazi", "Yazı mak.", [c]])); mt.forEach(c => L.push(["metre", "Metre sayacı", [c]]));
       L.push(["topla", "Toplayıcı", []]); }
+    for(let i = L.length - 1; i > 0; i--) if(L[i][0] === "ekstr" && L[i - 1][0] === "ekstr" && !L[i][3] && !L[i - 1][3]){ L[i - 1] = ["ekstr", L[i - 1][1] + " + " + L[i][1], L[i - 1][2].concat(L[i][2]), false]; L.splice(i, 1); }   // art arda ekstruder adları tek gövde (hat görünümüyle aynı)
     const W = { verici:5, ekstr:4, kalip:2, cap:2.4, havuz:16, spark:3.6, yazi:2.8, katarpil:5, topla:6, govde:28, metre:2.8, akum:3.4, yard:2.2 }, gap = 1.4;
     const gen = x => x[0] === "havuz" && /ara/i.test(x[1]) ? 7 : W[x[0]] || 2.2;
     const top = L.reduce((s, x) => s + gen(x), 0) + gap * (L.length - 1); let t = 0;
