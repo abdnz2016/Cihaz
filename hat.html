@@ -50,6 +50,13 @@ a.cc small{display:block;color:#64748b;margin-top:2px;font-size:11.5px}
 .ozet{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#475569}.ozet b{font-size:18px;color:#14305e;margin-right:4px}.ozet .kr b{color:#dc2626}
 .mod-uretim .bk-i,.mod-bakim .ur-i{display:none}
 .ark{display:grid;grid-template-columns:90px 1fr 140px;gap:8px;font-size:13px;padding:7px 0;border-bottom:1px solid #f1f5f9;align-items:center}.ark small{display:block;color:#64748b}
+/* 360° görünüm ve parça vurgusu */
+.sahne3{position:relative;height:min(62vh,560px);border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;background:#eef2f7}.sahne3 canvas{display:block;touch-action:none}
+.u3-etk{position:absolute;inset:0;pointer-events:none}.u3-etk span{position:absolute;transform:translate(-50%,-100%);font:700 11px Arial;color:#14305e;background:rgba(255,255,255,.75);padding:1px 6px;border-radius:6px;white-space:nowrap}.u3-etk span.on{background:#dc2626;color:#fff}
+.u3-pin{position:absolute;transform:translate(-50%,-140%);background:#dc2626;color:#fff;font:700 12px Arial;padding:4px 9px;border-radius:8px;white-space:nowrap;box-shadow:0 6px 14px rgba(220,38,38,.35)}
+.b360{background:#14305e;color:#fff;border:0;border-radius:999px;padding:6px 14px;font-weight:800;font-size:12.5px;cursor:pointer;margin-left:8px}
+.ist.vurgu .sekil{filter:drop-shadow(0 0 5px #ef4444) drop-shadow(0 0 12px rgba(239,68,68,.8))}
+[data-pi]{cursor:default}[data-pi]:hover{background:#fef2f2}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 .sat{display:grid;grid-template-columns:20px 90px 1fr 220px;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;align-items:center}.sat a{color:#14305e;font-weight:700}
 </style></head><body>
@@ -332,26 +339,35 @@ async function yukle(){
         <div class="ozet ur-i"><span><b>${tumC.length}</b>ölçüm cihazı</span><span><b>${tumC.filter(c => c.renk === "s").length}</b>kalibrasyonda / yaklaşan</span><span class="kr"><b>${tumC.filter(c => c.renk === "k").length}</b>arıza / süresi geçmiş</span></div>
         <div class="ozet bk-i"><span class="kr"><b>${ARm.filter(acikMi).length}</b>açık kayıt</span><span><b>${AR12.filter(a => !/bakım|bakim/i.test(a.tur)).length}</b>arıza (12 ay)</span><span><b>${String(+AR12.reduce((t, a) => t + a.saat, 0).toFixed(1)).replace(".", ",")}</b>sa duruş (12 ay)</span><span><b>${AR12.filter(a => /evet/i.test(a.durdu)).length}</b>kez üretim durdu</span></div></div>
       <div class="lej"><span><span class="nok g"></span> hazır</span><span><span class="nok s"></span> kalibrasyonda</span><span><span class="nok k"></span> arıza / süresi geçmiş</span></div></div></div>
-<div class="sahne">${svg}</div><div class="akis">Kablonun akışı soldan sağa → · Makinenin üzerine gelin ya da dokunun: büyür, teknik verisi ve parçaları aşağıda görünür</div>
+<div class="sahne">${svg}</div><div class="sahne3" id="u3" hidden></div><div class="akis">Kablonun akışı soldan sağa → · Makinenin üzerine gelin ya da dokunun: teknik verisi ve parçaları aşağıda görünür · 360°: sürükleyerek döndürün, tekerlekle yakınlaştırın <button class="b360" id="b360">🔄 360° görünüm</button></div>
     ${planCiz(id, { TUM, calis })}
     <div id="detay"><div class="msg">🔎 Bir makinenin üzerine gelin ya da dokunun.</div></div>
+    <div class="kart bk-i"><b style="color:#14305e">Parça listesi (${MPm.length})</b> <small style="color:#64748b">· üzerine gelin: makinedeki yeri parlar</small>
+      ${MPm.map(p => { const d = depo(p.kod, p.ack), st = PY.get(p); return `<div class="pr" data-pi="${st ? ist.indexOf(st) : -1}" data-pt="${esc(p.ack)}"><b>${esc(p.marka)}</b><span>${esc(p.kod || "—")}</span><span>${esc(p.ack)}<small style="display:block;color:#64748b">${st ? "📍 " + esc(st.ad) : "yeri hatta yok"}</small></span><span>${d ? `<b style="color:${d.stok > 0 ? "#047857" : "#b91c1c"}">📦 ${String(d.stok).replace(".", ",")} ${esc(d.birim)}</b>` : '<span style="color:#94a3b8">depoda yok</span>'}</span></div>`; }).join("") || '<div class="msg">Bu makine için parça girilmedi.</div>'}</div>
     <div class="kart bk-i"><b style="color:#14305e">Arıza / bakım kayıtları (${ARm.length})</b> <a href="makine.html?id=${encodeURIComponent(id)}" style="float:right;font-size:13px;font-weight:700;color:#dc2626">🔴 Arıza / Bakım aç</a>
       ${ARm.map(a => `<div class="ark"><span><b>${esc(a.no)}</b><small>${fz(a.acl)}</small></span><span>${esc(a.tur)}${a.alt ? " · " + esc(a.alt) : ""}<small>${esc(a.tanim)}</small></span><span style="color:${acikMi(a) ? "#dc2626" : "#64748b"};font-weight:700">${esc(a.durum || "Açık")}${a.saat ? " · " + String(a.saat).replace(".", ",") + " sa" : ""}</span></div>`).join("") || '<div class="msg">Bu makine için arıza / bakım kaydı yok.</div>'}</div>
     <div class="kart ur-i"><b style="color:#14305e">Hattaki ölçüm cihazları (${tumC.length})</b>
       ${tumC.map(c => `<div class="sat"><span class="nok ${c.renk}"></span><a href="cihaz.html?id=${encodeURIComponent(c.id)}">${esc(c.id)}</a><span>${esc(c.ad)}${c.marka ? " · " + esc(c.marka) : ""}</span><span style="color:#64748b">${esc(c.neden)}</span></div>`).join("") || '<div class="msg">Bu makineye bağlı ölçüm cihazı yok.</div>'}</div>`;
   const goster = i => { const s = ist[i]; if(MOD === "bakim") return gosterBakim(i); document.querySelectorAll(".ist.secili").forEach(x => x.classList.remove("secili")); document.querySelector(`.ist[data-i="${i}"]`).classList.add("secili");
     $("#detay").innerHTML = `<h2>${esc(s.ad)}${s.turAd ? ` <small style="color:#64748b;font-size:13px;font-weight:600">· ${esc(s.turAd)}${s.kapali ? " · kullanılmıyor" : ""}</small>` : ""}</h2>${(s.bilgi || []).length ? `<div class="tb">${s.bilgi.map(b => `<div><small>${esc(b[0])}</small><b>${esc(b[1])}</b></div>`).join("")}</div>` : ""}
-      ${s.parcalar.length ? `<div class="bas">PARÇALAR</div>${s.parcalar.map(p => { const d = depo(p.kod, p.ack); return `<div class="pr"><b>${esc(p.marka)}</b><span>${esc(p.kod || "—")}</span><span>${esc(p.ack)}</span><span>${d ? `<b style="color:${d.stok > 0 ? "#047857" : "#b91c1c"}">📦 ${String(d.stok).replace(".", ",")} ${esc(d.birim)}</b>` : '<span style="color:#94a3b8">depoda yok</span>'}</span></div>`; }).join("")}` : ""}
+      ${s.parcalar.length ? `<div class="bas">PARÇALAR</div>${s.parcalar.map(p => { const d = depo(p.kod, p.ack); return `<div class="pr" data-pi="${i}" data-pt="${esc(p.ack)}"><b>${esc(p.marka)}</b><span>${esc(p.kod || "—")}</span><span>${esc(p.ack)}</span><span>${d ? `<b style="color:${d.stok > 0 ? "#047857" : "#b91c1c"}">📦 ${String(d.stok).replace(".", ",")} ${esc(d.birim)}</b>` : '<span style="color:#94a3b8">depoda yok</span>'}</span></div>`; }).join("")}` : ""}
       ${s.cihazlar.length ? `<div class="bas">ÖLÇÜM CİHAZLARI</div>${s.cihazlar.map(c => `<a class="cc" href="cihaz.html?id=${encodeURIComponent(c.id)}"><span class="nok ${c.renk}"></span> <b>${esc(c.id)}</b> · ${esc(c.ad)}<small>${esc([c.marka, /^EK[\s-]?\d/i.test(c.model) ? "" : c.model, c.neden].filter(Boolean).join(" · "))}<br>Sonraki kal.: ${fz(c.kn)} · doğ.: ${fz(c.dn)}</small></a>`).join("")}` : ""}
       ${!(s.bilgi || []).length && !s.parcalar.length && !s.cihazlar.length ? '<div class="msg">Teknik bilgi ve parça girilmedi.</div>' : ""}`; };
   // Bakım / Arıza sekmesi: istasyonun parçaları (depo stoğu) ve o istasyonun arıza / bakım kayıtları
   const gosterBakim = i => { const s = ist[i]; document.querySelectorAll(".ist.secili").forEach(x => x.classList.remove("secili")); document.querySelector(`.ist[data-i="${i}"]`).classList.add("secili");
     $("#detay").innerHTML = `<h2>${esc(s.ad)} <small style="color:#64748b;font-size:13px;font-weight:600">· bakım / arıza</small></h2>
-      <div class="bas">PARÇALAR (${s.parcalar.length})</div>${s.parcalar.map(p => { const d = depo(p.kod, p.ack); return `<div class="pr"><b>${esc(p.marka)}</b><span>${esc(p.kod || "—")}</span><span>${esc(p.ack)}</span><span>${d ? `<b style="color:${d.stok > 0 ? "#047857" : "#b91c1c"}">📦 ${String(d.stok).replace(".", ",")} ${esc(d.birim)}</b>` : '<span style="color:#94a3b8">depoda yok</span>'}</span></div>`; }).join("") || '<div class="msg">Bu istasyon için parça girilmedi.</div>'}
+      <div class="bas">PARÇALAR (${s.parcalar.length})</div>${s.parcalar.map(p => { const d = depo(p.kod, p.ack); return `<div class="pr" data-pi="${i}" data-pt="${esc(p.ack)}"><b>${esc(p.marka)}</b><span>${esc(p.kod || "—")}</span><span>${esc(p.ack)}</span><span>${d ? `<b style="color:${d.stok > 0 ? "#047857" : "#b91c1c"}">📦 ${String(d.stok).replace(".", ",")} ${esc(d.birim)}</b>` : '<span style="color:#94a3b8">depoda yok</span>'}</span></div>`; }).join("") || '<div class="msg">Bu istasyon için parça girilmedi.</div>'}
       <div class="bas">ARIZA / BAKIM KAYITLARI (${s.arizalar.length})</div>${s.arizalar.map(a => `<div class="ark"><span><b>${esc(a.no)}</b><small>${fz(a.acl)}</small></span><span>${esc(a.tur)}<small>${esc(a.tanim)}</small></span><span style="color:${acikMi(a) ? "#dc2626" : "#64748b"};font-weight:700">${esc(a.durum || "Açık")}</span></div>`).join("") || '<div class="msg">Bu istasyonda kayıt yok.</div>'}
       <div style="margin-top:10px"><a href="makine.html?id=${encodeURIComponent(id)}" style="color:#dc2626;font-weight:800">🔴 Arıza / Bakım aç</a></div>`; };
   const sahneK = $(".sahne").parentElement; sahneK.classList.add("mod-uretim");
-  document.querySelectorAll(".sekme a").forEach(a => a.onclick = () => { MOD = a.dataset.s; document.querySelectorAll(".sekme a").forEach(x => x.classList.toggle("on", x === a)); sahneK.classList.toggle("mod-uretim", MOD === "uretim"); sahneK.classList.toggle("mod-bakim", MOD === "bakim");
+  // parça satırının üzerine gelince: 2B çizimde istasyon parlar, 360° görünümde kamera döner ve parçanın yerine iğne konur
+  let sonPr = null; document.addEventListener("mouseover", e => { const r = e.target.closest("[data-pi]"); if(r === sonPr) return; sonPr = r;
+    if(!r) return;   // vurgu, başka bir parçanın üzerine gelinceye kadar kalır
+    document.querySelectorAll(".ist.vurgu").forEach(x => x.classList.remove("vurgu")); const i = +r.dataset.pi; if(i < 0){ if(U3) U3.vurgula(-1); return; } const g = document.querySelector(`.ist[data-i="${i}"]`); if(g){ g.classList.add("vurgu"); g.parentNode.appendChild(g); } if(U3) U3.vurgula(i, r.dataset.pt); });
+  document.addEventListener("click", e => { if(!e.target.closest("[data-pi]")) return; const k = $("#u3").hidden ? $(".sahne") : $("#u3"); k.scrollIntoView({ behavior:"smooth", block:"center" }); });   // parçaya tıklayınca hat görünür
+  $("#b360").onclick = async () => { const u = $("#u3"), b = $("#b360"), ac = u.hidden; u.hidden = !ac; $(".sahne").hidden = ac; b.textContent = ac ? "🧭 2B çizim" : "🔄 360° görünüm"; if(!ac) return;
+    if(!U3){ u.innerHTML = '<div class="msg" style="padding:16px">3B görünüm yükleniyor…</div>'; try{ await ucYukle(); u.innerHTML = ""; U3 = ucKur(u, ist, buCalis, i => goster(i)); U3.mod(MOD); }catch(err){ u.innerHTML = `<div class="msg" style="padding:16px">⚠ ${esc(err.message)}</div>`; } } else U3.boyut(); };
+  document.querySelectorAll(".sekme a").forEach(a => a.onclick = () => { MOD = a.dataset.s; document.querySelectorAll(".sekme a").forEach(x => x.classList.toggle("on", x === a)); sahneK.classList.toggle("mod-uretim", MOD === "uretim"); sahneK.classList.toggle("mod-bakim", MOD === "bakim"); if(U3) U3.mod(MOD);
     const sec = document.querySelector(".ist.secili"); if(sec) goster(+sec.dataset.i); else $("#detay").innerHTML = `<div class="msg">🔎 Bir makineye tıklayın: ${MOD === "bakim" ? "parçaları ve arıza kayıtları" : "teknik bilgisi ve ölçüm cihazları"} açılır.</div>`; });
   // görünmez yakalama alanı: istasyonun çevresinde her yer seçer (ince makinelerde de)
   document.querySelectorAll(".ist").forEach(e => { const b = e.querySelector(".sekil").getBBox(), r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -359,5 +375,86 @@ async function yukle(){
   document.querySelectorAll(".ist").forEach(e => { const i = +e.dataset.i; e.addEventListener("mouseenter", () => { e._sonraki = e.nextSibling; e.parentNode.appendChild(e); goster(i); });
     e.addEventListener("mouseleave", () => { if(e._sonraki && e._sonraki.parentNode === e.parentNode) e.parentNode.insertBefore(e, e._sonraki); }); e.addEventListener("click", () => goster(i)); e.addEventListener("focus", () => goster(i)); });
 }
+// ===== 360° hat görünümü: aynı istasyonlar, Three.js r128 ile (harita3d.html ile aynı kaynak; ilk açılışta yüklenir) =====
+// 2B çizimdeki kutu / disk / kafes çağrıları 3B karşılıklarıyla yeniden kullanılır; parçanın üzerine gelince istasyon parlar ve parçanın yerine iğne konur.
+let U3 = null;
+function ucYukle(){
+  if(window.THREE && THREE.OrbitControls) return Promise.resolve();
+  const yukle = src => new Promise((ok, red) => { const a = document.createElement("script"); a.src = src; a.onload = ok; a.onerror = () => red(new Error("3B kütüphanesi yüklenemedi (internet bağlantısını kontrol edin)")); document.head.appendChild(a); });
+  return (window.THREE ? Promise.resolve() : yukle("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js")).then(() => yukle("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"));
+}
+function ucKur(kap, ist, calis, sec){
+  const T = THREE, sahne = new T.Scene(), W = () => kap.clientWidth, H = () => kap.clientHeight;
+  sahne.background = new T.Color(0xeef2f7); sahne.fog = new T.Fog(0xeef2f7, 70, 160);
+  const kam = new T.PerspectiveCamera(42, W() / H(), 0.1, 400), ciz = new T.WebGLRenderer({ antialias:true });
+  ciz.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); ciz.setSize(W(), H()); kap.appendChild(ciz.domElement);
+  const etk = document.createElement("div"); etk.className = "u3-etk"; kap.appendChild(etk);
+  sahne.add(new T.HemisphereLight(0xffffff, 0x9aa7b8, .85)); const gun = new T.DirectionalLight(0xffffff, .75); gun.position.set(-20, 40, -30); sahne.add(gun);
+  const M = r => new T.MeshStandardMaterial({ color:r, roughness:.55, metalness:.15 });
+  let G = null; const gruplar = [];
+  // 2B imzalarla 3B karşılıkları (x: hat boyunca, y: derinlik – 3B'de önü +z olacak şekilde ters çevrilir, z: yükseklik)
+  const kutu3 = (x, y, z, w, d, h, r) => { const m = new T.Mesh(new T.BoxGeometry(Math.max(w, .02), Math.max(h, .02), Math.max(d, .02)), M(r)); m.position.set(x + w / 2, z + h / 2, -(y + d / 2)); G.add(m); return ""; };
+  const disk3 = (x, y, z, r, d, renk, mod) => { const g = new T.Group(); g.position.set(x, z, -(y + d / 2)); G.add(g);
+    [-d / 2, d / 2].forEach(o => { const f = new T.Mesh(new T.CylinderGeometry(r, r, .08, 40), M(renk)); f.rotation.x = Math.PI / 2; f.position.z = o; g.add(f); });
+    const sar = new T.Mesh(new T.CylinderGeometry(r * .62, r * .62, d * .92, 40), M(0xb87333)); sar.rotation.x = Math.PI / 2; g.add(sar);
+    const kol = new T.Group(); [0, 60, 120].forEach(a => { const k = new T.Mesh(new T.BoxGeometry(r * 1.7, .1, .06), M(0x92400e)); k.rotation.z = a * Math.PI / 180; k.position.z = d / 2 + .06; kol.add(k); }); g.add(kol);
+    const mil = new T.Mesh(new T.CylinderGeometry(r * .16, r * .16, d + .4, 16), M(0x78350f)); mil.rotation.x = Math.PI / 2; g.add(mil);
+    G.userData.makara = { kol, sar, mod }; G.userData.cpa = { motor:new T.Vector3(x, z, -(y - .2)) }; return ""; };
+  const kafes3 = (x, y, z, w, d, h) => { const k = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(w, h, d)), new T.LineBasicMaterial({ color:0xeab308 })); k.position.set(x + w / 2, z + h / 2, -(y + d / 2)); G.add(k); return ""; };
+  const k2 = kutu, d2 = disk, f2 = kafes; kutu = kutu3; disk = disk3; kafes = kafes3;
+  try{ ist.forEach((s, i) => { G = new T.Group(); G.userData = { i, cpa:{} }; try{ CIZ[s.c](s); }catch(e){} if(s.kapali) G.traverse(o => { if(o.material){ o.material.transparent = true; o.material.opacity = .35; } }); sahne.add(G); gruplar.push(G); }); }
+  finally{ kutu = k2; disk = d2; kafes = f2; }
+  const sonX = Math.max(...ist.map(s => s.x + (s.w || 3))) + 2, orta = sonX / 2;
+  const zemin = new T.Mesh(new T.BoxGeometry(sonX + 4, .1, 11), M(0xcfd5dc)); zemin.position.set(orta, -.05, -2.9); sahne.add(zemin);
+  [2, -7.6].forEach(z => { const s = new T.Mesh(new T.BoxGeometry(sonX + 2, .02, .12), new T.MeshBasicMaterial({ color:0xeab308 })); s.position.set(orta, .01, z); sahne.add(s); });
+  const kablo = new T.Mesh(new T.CylinderGeometry(.07, .07, sonX + 1, 12), M(0x111827)); kablo.rotation.z = Math.PI / 2; kablo.position.set(orta - .5, KZ, 0); sahne.add(kablo);
+  const akis = []; for(let k = 0; k < Math.floor(sonX / 1.5); k++){ const a = new T.Mesh(new T.BoxGeometry(.25, .1, .1), new T.MeshBasicMaterial({ color:0xffffff })); a.position.set(k * 1.5, KZ, 0); sahne.add(a); akis.push(a); }
+  // istasyon başına bağlantı noktaları (parça → yer) ve durum ışıkları
+  gruplar.forEach((g, i) => { const s = ist[i], b = new T.Box3().setFromObject(g), c = b.getCenter(new T.Vector3()); if(b.isEmpty()) return;
+    const A = g.userData.cpa; A.ust = new T.Vector3(c.x, b.max.y + .3, c.z);
+    if(s.c === "ekstruder") A.motor = new T.Vector3(s.x + (s.w || 1.6) / 2, 1.4, -6.6);
+    if(s.c === "katarpil") A.kayis = new T.Vector3(s.x + (s.w || 3) / 2, KZ, .7);
+    if(s.c === "pano") A.pano = new T.Vector3(s.x + 2.6, 2.2, -3.3);
+    if(s.c === "yazi") A.kafa = new T.Vector3(s.x + .68, 1.4, .3);
+    const isik = new T.Mesh(new T.SphereGeometry(.22, 16, 12), new T.MeshBasicMaterial({ color:0x16a34a })); isik.position.copy(A.ust); isik.visible = false; sahne.add(isik); g.userData.isik = isik; });
+  const halka = new T.Mesh(new T.SphereGeometry(.35, 20, 14), new T.MeshBasicMaterial({ color:0xef4444, transparent:true, opacity:.5 })); halka.visible = false; sahne.add(halka);
+  const kontrol = new T.OrbitControls(kam, ciz.domElement); kontrol.enableDamping = true; kontrol.maxPolarAngle = Math.PI / 2.05; kontrol.minDistance = 4; kontrol.maxDistance = 110;
+  kam.position.set(orta - 4, Math.max(12, sonX * .25), Math.max(24, sonX * .5)); kontrol.target.set(orta, 1, -1.5);   // hattın tamamı görünsün
+  let hedef = null, hedefKam = null, vurgulu = -1, mod = "uretim", pin = null;
+  const etiketler = ist.map((s, i) => { const e = document.createElement("span"); e.textContent = s.ad; etk.appendChild(e); return e; });
+  const pinEl = document.createElement("b"); pinEl.className = "u3-pin"; pinEl.hidden = true; etk.appendChild(pinEl);
+  const isiklar = () => gruplar.forEach((g, i) => { const s = ist[i], l = g.userData.isik; if(!l) return;
+    const r = mod === "bakim" ? (s.acikAr ? 0xdc2626 : null) : (s.cihazlar.some(c => c.renk === "k") ? 0xdc2626 : s.cihazlar.some(c => c.renk === "s") ? 0xeab308 : s.cihazlar.length ? 0x16a34a : null);
+    l.visible = r !== null; if(r !== null) l.material.color.setHex(r); });
+  isiklar();
+  const parla = (i, acik) => gruplar[i] && gruplar[i].traverse(o => { if(o.material && o.material.emissive){ if(acik){ o.userData.e0 = o.userData.e0 ?? o.material.emissive.getHex(); o.material.emissive.setHex(0x7f1d1d); } else if(o.userData.e0 !== undefined) o.material.emissive.setHex(o.userData.e0); } });
+  const ray = new T.Raycaster(), fare = new T.Vector2();
+  const isabet = e => { const b = ciz.domElement.getBoundingClientRect(); fare.set((e.clientX - b.left) / b.width * 2 - 1, -(e.clientY - b.top) / b.height * 2 + 1); ray.setFromCamera(fare, kam);
+    const h = ray.intersectObjects(gruplar, true)[0]; let o = h && h.object; while(o && !(o.userData && o.userData.i !== undefined && gruplar.includes(o))) o = o.parent; return o ? o.userData.i : -1; };
+  let bas = null; ciz.domElement.addEventListener("pointerdown", e => { bas = [e.clientX, e.clientY]; hedef = hedefKam = null; });
+  ciz.domElement.addEventListener("pointerup", e => { if(!bas || Math.hypot(e.clientX - bas[0], e.clientY - bas[1]) > 5) return; const i = isabet(e); if(i >= 0) sec(i); });
+  ciz.domElement.addEventListener("pointermove", e => { ciz.domElement.style.cursor = isabet(e) >= 0 ? "pointer" : "grab"; });
+  const v = new T.Vector3(), yansit = (p, el) => { v.copy(p).project(kam); const on = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1; el.style.display = on ? "" : "none"; if(on){ el.style.left = ((v.x + 1) / 2 * W()) + "px"; el.style.top = ((1 - v.y) / 2 * H()) + "px"; } };
+  let son = 0;
+  (function don(t){ if(!kap.isConnected) return; requestAnimationFrame(don); const dt = Math.min(.05, (t - son) / 1000 || 0); son = t;
+    if(calis && HAREKET3){ gruplar.forEach(g => { const m = g.userData.makara; if(m && m.mod){ m.kol.rotation.z -= dt * 2.4; const f = ((t / 40000) % 1); const sc = m.mod === "bosal" ? 1 - f * .5 : .5 + f * .5; m.sar.scale.set(sc, 1, sc); } }); akis.forEach(a => { a.position.x += dt * 2.2; if(a.position.x > sonX) a.position.x -= sonX + .5; }); }
+    gruplar.forEach(g => { const l = g.userData.isik; if(l && l.visible) l.scale.setScalar(1 + .25 * Math.sin(t / 220)); });
+    if(hedef){ kontrol.target.lerp(hedef, .08); if(kontrol.target.distanceTo(hedef) < .01) hedef = null; }
+    if(hedefKam){ kam.position.lerp(hedefKam, .06); if(kam.position.distanceTo(hedefKam) < .05) hedefKam = null; }
+    if(pin){ halka.position.copy(pin); halka.scale.setScalar(1 + .6 * ((t / 700) % 1)); halka.material.opacity = .55 * (1 - (t / 700) % 1); yansit(pin, pinEl); }
+    kontrol.update(); ciz.render(sahne, kam);
+    gruplar.forEach((g, i) => { const A = g.userData.cpa; if(A && A.ust) yansit(A.ust, etiketler[i]); etiketler[i].classList.toggle("on", i === vurgulu); }); })(0);
+  const boyut = () => { kam.aspect = W() / H(); kam.updateProjectionMatrix(); ciz.setSize(W(), H()); }; addEventListener("resize", boyut);
+  return {
+    boyut, mod(m){ mod = m; isiklar(); },
+    // parçanın yeri: motor / kayış / pano / yazı kafası, yoksa istasyonun üstü
+    vurgula(i, metin){ if(vurgulu >= 0) parla(vurgulu, false); vurgulu = i; if(i < 0 || !gruplar[i]){ halka.visible = false; pinEl.hidden = true; pin = null; return; }
+      parla(i, true); const A = gruplar[i].userData.cpa || {}, n = norm(metin || "");
+      const yer = (/motor|servo/.test(n) && A.motor) || (/kayış|kayis/.test(n) && A.kayis) || (/plc|cpu|sürücü|surucu|sinamics|klima|pano/.test(n) && A.pano) || (/mürekkep|murekkep|incelt|inkjet|yazı|yazi/.test(n) && A.kafa) || A.ust;
+      if(!yer) return; pin = yer.clone(); halka.visible = !!metin; pinEl.hidden = !metin; pinEl.textContent = "📍 " + (String(metin || "").length > 42 ? String(metin).slice(0, 40) + "…" : (metin || ""));
+      hedef = new T.Vector3(yer.x, Math.min(yer.y, 2), yer.z); hedefKam = new T.Vector3(yer.x - 3, 7, yer.z + 12); }   // kamera parçaya yaklaşır; sonra fareyle serbestçe döndürülür
+  };
+}
+const HAREKET3 = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 yukle();
 </script></body></html>
