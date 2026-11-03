@@ -184,8 +184,10 @@ async function load(){
       const id = idOf(ng(r,"kayıt no")); if(!id || !DEV[id]) return;
       const ref = sn(ng(r,"referans")), ol = sn(ng(r,"ölçülen")); if(isNaN(ref) || isNaN(ol)) return;
       const ar = String(txt(ng(r,"aralık")) || ""), buy = String(txt(ng(r,"büyüklük")) || ""), unit = String(txt(ng(r,"birim")) || ""), u = sn(ng(r,"belirsizlik (u)"));
-      const dn = norm(DEV[id].ad), kul = (AYAR_RE.test(dn) && !/resistomat|spark|yüksek gerilim|oto trafo/.test(dn)) ? "ayar" : "ölçüm";
+      const dn = norm(DEV[id].ad), kul = (AYAR_RE.test(dn) && !/resistomat/.test(dn)) ? "ayar" : "ölçüm";
       let set = ref, olc = ol; const sm = /^Set\s+(-?[\d,]+)/i.exec(ar);
+      // gerilim kaynakları (YG, spark, oto trafo): sertifikada referans = gerçek gerilim, okuma = cihaz göstergesi → SET = gösterge, ÖLÇÜLEN = gerçek; böylece GİRİLECEK değer verilir
+      if(/spark|yüksek gerilim|oto trafo/.test(dn)) { set = ol; olc = ref; }
       if(sm){ const X = parseFloat(sm[1].replace(",", ".")); if(Math.abs(ol - X) < Math.abs(ref - X)) { set = ol; olc = ref; } }   // kabin: set = cihaza girilen, ölçülen = kabin ortalaması
       const tur = (!/^(kabin\s+)?set\b/i.test(ar.trim()) && ar.trim()) || buy || "Ölçüm", kr = sn(ng(r,"kriter (±)"));   // her tablo/eksen/yön ayrı grup; kabin set satırları büyüklükte toplanır
       (NK[id] = NK[id] || []).push({ set, olc, u, unit, tur, kr, dec: Math.max(dc(ng(r,"referans")), dc(ng(r,"ölçülen"))), kul, karar: String(txt(ng(r,"karar")) || ""), nkSert: String(txt(ng(r,"sertifika no")) || "") });
