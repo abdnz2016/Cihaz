@@ -134,6 +134,9 @@ const REFU = {
 };
 /* Kategori şablonları. Yeni kategori eklemek için buraya bir blok eklenir. */
 const CATS = {
+  phmetre: { ad:"pH / İLETKENLİK METRE", kod:"F7.10-24", match:/ph metre/, klTip:"ph", noktalar:[], refs:[] },
+  havaAkis: { ad:"EN 50399 HAVA AKIŞI", kod:"F7.10-21", match:/50399/, klTip:"hava", noktalar:[], refs:[] },
+  alev60332: { ad:"EN 60332-1-2 ALEV KAYNAĞI", kod:"F7.10-20", match:/60332-1-2/, klTip:"alev", noktalar:[], refs:[] },
   kumpas: {
     ad:"KUMPAS", adDev:true, kod:"F7.10-07", match:/kumpas|komparatör|komparator/i,
     birim:"mm", refUnit:"µm", refDiv:1000, dec:2, res:0.01, minU:0.01, tol:0.03, kapasite:"0-150 mm", cevre:"22 ± 2 °C",
@@ -659,13 +662,15 @@ const rsf = x => isNaN(x) ? "" : String(Number(x.toFixed(6))).replace(".", ",");
 function resInit(){
   const tip = CAT.rtip, T = RS_TIP[tip];
   let rows = T.rows.map(([id,unit,ref,U,not]) => ({id,unit,ref:String(ref),U:String(U),not,olc:""}));
-  if(tip === "sehpa"){ const m2 = /2/.test(DEV.model||""); rows = [m2 ? {id:"KK-304",unit:"mΩ",ref:"0.1809",U:"0.00073",not:"Ø11 bakır çubuk",olc:""} : {id:"KK-133",unit:"mΩ",ref:"1.994",U:"0.055",not:"Ø4 bakır çubuk",olc:""}]; }
+  if(tip === "sehpa"){ const m2 = sehpa2m(); rows = [m2 ? {id:"KK-304",unit:"mΩ",ref:"0.1809",U:"0.00073",not:"Ø11 bakır çubuk",olc:""} : {id:"KK-133",unit:"mΩ",ref:"1.994",U:"0.055",not:"Ø4 bakır çubuk",olc:""}]; }
   const mm = norm((DEV.marka||"") + " " + (DEV.model||""));   // F7.10-02 Rev 1: üretici doğruluğu (% okuma + dijit); sehpa 1 m ±%0,5, 2 m ±%2
-  const tolP = tip === "sehpa" ? (/2/.test(DEV.model||"") ? "2" : "0.5") : (/aesa/.test(mm) ? "2" : /2304/.test(mm) ? "0.01" : /2316/.test(mm) ? "0.03" : "0.05");
+  const tolP = tip === "sehpa" ? (sehpa2m() ? "2" : "0.5") : (/aesa/.test(mm) ? "2" : /2304/.test(mm) ? "0.01" : /2316/.test(mm) ? "0.03" : "0.05");
   RS = { tip, tarih:isoD(new Date()), tolP, dijit:(tip === "resistomat" && !/aesa/.test(mm)) ? "2" : "0", tolT:"0.5", yer:DEV.yer, tid:T.tempRef, tref:"", tolc:"", rows };
   resRender(); resBind();
 }
 const RS_F = {"µΩ":1e-6, "mΩ":1e-3, "Ω":1};
+// KK-301 / KK-302: Sheet'te "Resistomat" yazsa da 2 m'lik direnç ölçüm sehpasıdır (Ø11 bakır çubuk KK-304, ± %2)
+const SEHPA_2M = /^KK-30[12]$/i, sehpa2m = () => SEHPA_2M.test(DEV.id) || /2/.test(DEV.model || "");
 // P7.10 Rev 1: sınır = %okuma + dijit (dijit = okumanın son basamağı); U = 2·√((U_std/2)² + (dijit/2√3)²); üç durumlu karar
 function rsRow(r){ const ref = pf(r.ref), o = pf(r.olc), tol = pf(RS.tolP); if(isNaN(ref) || isNaN(o)) return {ok:null};
   const sap = o - ref, dec = (String(r.olc).trim().split(/[.,]/)[1] || "").length, d1 = Math.pow(10, -dec);
@@ -897,6 +902,97 @@ function asBind(){
     AS.rows.forEach((r,i) => { const h = asHes(r); const c = $("#ash"+i); if(c) c.textContent = h===null ? "" : nf(h,2); });
     const D = asDurum(); $("#asa").value = asI(D.a); $("#asb").value = asI(D.b); $("#asc").textContent = asI(D.c); asSum(); asSheet(); });
   $("#app").addEventListener("click", e => { if(e.target.dataset.aadd){ AS.rows.push({mes:"",sn:""}); asRender(); } });
+}
+/* ===================================================================== */
+
+/* ===================== KONTROL LİSTESİ FORMLARI (F7.10-24 pH/iletkenlik · F7.10-21 EN 50399 hava akışı · F7.10-20 EN 60332-1-2 alev kaynağı) ===================== */
+// satır: ad, tolYazi (formdaki tolerans), nom ± tol (sayısal sınır; tol yoksa metin kontrolü), birim, n (ortalaması alınan giriş sayısı), hes (ortalamadan türetilen değer), vars (Excel'deki son değerler: örnek)
+const KL_SPEC = {
+  ph: { kod:"F7.10-24", std:"TS EN 60754-2", refs:["KK-06"], cevre:"23 ± 5 °C",
+    satirlar:[ { ad:"Standart çözelti (pH)", nomGir:"7,413", tolTip:"mutlak", tol:"0,05", birim:"pH" },
+               { ad:"Standart çözelti (iletkenlik)", nomGir:"0,147", tolTip:"yuzde", tol:"3", birim:"mS/cm" } ],
+    not:"Kabul sınırı F7.10-02 Rev 1: pH ± 0,05; iletkenlik ± %3 okuma. Sapma = ölçülen − standart çözelti değeri." },
+  hava: { kod:"F7.10-21", std:"EN 50399", refs:["KK-06","KK-65"], cevre:"23 ± 5 °C",
+    satirlar:[ { ad:"Hava akış miktarı", n:7, girisAd:"Ölçülen hava akış hızı (m/s)", ek:{ ad:"Hava çıkış çapı (m)", v:"0,2" }, hes:(ort, d) => d * d * 0.785 * ort * 60 * 1000, nom:8000, tol:400, tolYazi:"8000 ± 400 lt/dk", birim:"lt/dk" } ],
+    not:"Hava akış miktarı = çap² × 0,785 × ortalama hız × 60 × 1000 (lt/dk). EN 50399: 8000 ± 400 lt/dk." },
+  alev: { kod:"F7.10-20", std:"EN 60332-1-1, EN 60332-1-2, EN 60695-11-2", refs:["KK-06","KK-145","KK-145/1","KR-132","KK-38","KK-39","KK-32","KK-320","KK-166"], cevre:"23 ± 5 °C",
+    satirlar:[ { ad:"Yakıt kaynağı", tolYazi:"%98 saflıkta propan gazı", metin:true },
+               { ad:"Gaz debisi", nom:650, tol:13, tolYazi:"650 ± 13 mL/sn", birim:"mL/sn" },
+               { ad:"Hava debisi", nom:10, tol:0.2, tolYazi:"10 ± 0,2 mL/sn", birim:"mL/sn" },
+               { ad:"Isıl çift", tolYazi:"Ø 0,5 mm (K tipi)", metin:true },
+               { ad:"Bakır blok – kütle (delinmemiş)", nom:10, tol:0.05, tolYazi:"10,00 ± 0,05 g", birim:"g" },
+               { ad:"Bakır blok – toplam uzunluk", nom:20.64, tol:0.04, tolYazi:"20,64 ± 0,04 mm", birim:"mm" },
+               { ad:"Bakır blok – silindir uzunluğu", nom:19.14, tol:0.02, tolYazi:"19,14 ± 0,02 mm", birim:"mm" },
+               { ad:"Bakır blok – üst silindir yüksekliği", nom:6, tol:0.02, tolYazi:"6 ± 0,02 mm", birim:"mm" },
+               { ad:"Bakır blok – dış çap", nom:9, tol:0.01, tolYazi:"Ø 9 ± 0,01 mm", birim:"mm" },
+               { ad:"Bakır blok – delik çapı", tolYazi:"Ø 0,5 mm", metin:true },
+               { ad:"Bakır blok – açı", nom:45, tol:0.5, tolYazi:"45° ± 0,5°", birim:"°" },
+               { ad:"Bakır blok 100 ± 5 °C → 700 ± 3 °C süresi", n:3, nom:46, tol:6, tolYazi:"46 ± 6 sn", birim:"sn" } ],
+    not:"Bakır bloğun sıcaklığı 100 ± 5 °C'den 700 ± 3 °C'ye 46 ± 6 sn'de ulaşmalıdır (3 ölçümün ortalaması)." }
+};
+let KL = null;
+function klInit(){ const sp = KL_SPEC[CAT.klTip]; KL = { sp, tarih:isoD(new Date()), yer:DEV.yer, sic:"", v:sp.satirlar.map(r => r.metin ? "UYGUN" : (r.n ? Array(r.n).fill("") : "")), nom:sp.satirlar.map(r => r.nomGir || ""), tol:sp.satirlar.map(r => r.tol === undefined ? "" : String(r.tol).replace(".", ",")), ek:sp.satirlar.map(r => r.ek ? r.ek.v : "") }; klRender(); klBind(); }
+function klHes(i){ const r = KL.sp.satirlar[i], v = KL.v[i];
+  if(r.metin) return { ok: v === "UYGUN" ? true : (v ? false : null), yazi: v };
+  const xs = r.n ? v.map(pf).filter(x => !isNaN(x)) : [pf(v)].filter(x => !isNaN(x)); if(!xs.length || (r.n && xs.length < r.n)) return { ok:null };
+  const ort = xs.reduce((a, b) => a + b, 0) / xs.length, d = pf(KL.ek[i]), deg = r.hes ? r.hes(ort, d) : ort;
+  const nom = r.nomGir !== undefined ? pf(KL.nom[i]) : r.nom, tl = pf(KL.tol[i]); if(isNaN(deg) || isNaN(nom) || isNaN(tl)) return { ok:null };
+  const sinir = r.tolTip === "yuzde" ? Math.abs(nom) * tl / 100 : tl, sap = deg - nom;
+  return { ok: Math.abs(sap) <= sinir + 1e-9, deg, ort, sap, sinir }; }
+function klDurum(){ const R = KL.sp.satirlar.map((r, i) => klHes(i)); if(R.some(x => x.ok === null)) return R.some(x => x.ok === false) ? "ÖLÇÜM RAPORUNA BAKINIZ" : ""; return R.every(x => x.ok) ? "UYGUN" : "ÖLÇÜM RAPORUNA BAKINIZ"; }
+const klDec = x => { const s = String(x); return Math.min(4, Math.max(0, (s.split(/[.,]/)[1] || "").length)); };
+function klDegYazi(i){ const r = KL.sp.satirlar[i], x = klHes(i); if(r.metin) return KL.v[i]; if(x.ok === null) return ""; return nf(x.deg, r.hes ? 0 : Math.max(2, klDec(r.n ? KL.v[i][0] : KL.v[i]))) + " " + r.birim; }
+function klTolYazi(i){ const r = KL.sp.satirlar[i]; if(r.tolYazi) return r.tolYazi; return (r.tolTip === "yuzde" ? KL.nom[i] + " ± %" + KL.tol[i] : KL.nom[i] + " ± " + KL.tol[i]) + " " + r.birim; }
+function klRender(){
+  const d = DEV, sp = KL.sp;
+  const satir = sp.satirlar.map((r, i) => { const x = klHes(i);
+    const giris = r.metin ? `<select data-kv="${i}"><option${KL.v[i]==="UYGUN"?" selected":""}>UYGUN</option><option${KL.v[i]==="UYGUN DEĞİL"?" selected":""}>UYGUN DEĞİL</option></select>`
+      : r.n ? KL.v[i].map((v, j) => `<input inputmode="decimal" style="width:70px" data-kv="${i}.${j}" value="${esc(v)}" placeholder="${j + 1}">`).join(" ")
+      : `<input inputmode="decimal" data-kv="${i}" value="${esc(KL.v[i])}">`;
+    const ust = r.nomGir !== undefined ? `<label class="small">Standart değer <input inputmode="decimal" style="width:80px" data-kn="${i}" value="${esc(KL.nom[i])}"></label> <label class="small">Sınır ${r.tolTip === "yuzde" ? "± %" : "±"} <input inputmode="decimal" style="width:60px" data-kt="${i}" value="${esc(KL.tol[i])}"></label><br>` : "";
+    const ek = r.ek ? `<br><label class="small">${esc(r.ek.ad)} <input inputmode="decimal" style="width:70px" data-ke="${i}" value="${esc(KL.ek[i])}"></label>` : "";
+    return `<tr><td><b>${esc(r.ad)}</b>${r.girisAd ? `<br><span class="small">${esc(r.girisAd)}</span>` : ""}</td><td class="small">${esc(r.tolYazi || "")}</td><td>${ust}${giris}${ek}</td><td id="kld${i}">${esc(klDegYazi(i))}</td><td id="klk${i}" class="${x.ok === false ? "bad" : x.ok ? "ok" : ""}">${x.ok === null ? "" : x.ok ? "✓" : "✗"}</td></tr>`; }).join("");
+  $("#app").innerHTML = `<div class="card"><h3>${esc(d.id)} · ${esc(d.ad)} <span class="small">(${esc(sp.kod)} · ${esc(sp.std)})</span></h3><div class="grid">
+    <label>Cihaz Yeri<input data-kf="yer" value="${esc(KL.yer)}"></label><label>Doğrulama Tarihi<input type="date" data-kf="tarih" value="${esc(KL.tarih)}"></label>
+    <label>Ortam sıcaklığı (°C)<input inputmode="decimal" data-kf="sic" value="${esc(KL.sic)}" placeholder="ör. 23,5"></label><label>Gelecek Doğ. Tarihi<input readonly value="${esc(fmtD(nextDogrulama(fromIso(KL.tarih), d.dogPer)))}"></label></div>
+    <div class="small" style="margin-top:6px">Referanslar: ${sp.refs.map(esc).join(", ")}</div></div>
+   <div class="card"><h3>DOĞRULAMA ÖLÇÜM SONUÇLARI</h3><table class="pt"><tr><th>Ölçü</th><th>Tolerans</th><th>Ölçülen</th><th>Sonuç değeri</th><th></th></tr>${satir}</table><div class="small" style="margin-top:6px">${esc(sp.not)}</div></div>
+   <div class="card" id="klsum"></div>`;
+  klSum(); klSheet(); $("#hint").hidden = false; $("#sheet").hidden = false;
+}
+function klSum(){ const D = klDurum(), fn = `${String(DEV.id).replace(/\//g,"-")}_${slug(DEV.ad)}_Dogrulama_${KL.tarih}.pdf`;
+  $("#klsum").innerHTML = (D ? `<div class="sum ${D === "UYGUN" ? "ok" : "bad"}">SONUÇ: ${D}</div>` : `<div class="small">Ölçülen değerleri girin; sonuç otomatik hesaplanır.</div>`)
+   + `<div class="small" style="margin-top:8px">Kayıt adı önerisi: <b>${esc(fn)}</b></div><button class="btn" onclick="window.print()">Yazdır / PDF</button>`; }
+function klSheet(){
+  const d = DEV, sp = KL.sp, dt = fromIso(KL.tarih), nx = nextDogrulama(dt, d.dogPer), D = klDurum();
+  const refTbl = sp.refs.map(id => { const x = ALL[id]; return x ? `<tr><td>${esc(x.ad)}</td><td>${esc(x.marka)}</td><td>${esc(x.seri)}</td><td>${esc(id)}</td><td class="c">${esc(fmtD(x.kt))}</td><td>${esc(x.sert)}</td></tr>` : `<tr><td colspan="3"></td><td>${esc(id)}</td><td colspan="2"></td></tr>`; }).join("");
+  const sat = sp.satirlar.map((r, i) => { const x = klHes(i); const olc = r.metin ? KL.v[i] : r.n ? KL.v[i].filter(v => String(v).trim() !== "").join(" · ") + (r.hes ? " m/s" : " " + r.birim) : (String(KL.v[i]).trim() ? KL.v[i] + " " + r.birim : "");
+    return `<tr><td>${esc(r.ad)}</td><td class="c">${esc(klTolYazi(i))}</td><td class="c">${esc(olc)}${r.ek ? "<br>" + esc(r.ek.ad) + ": " + esc(KL.ek[i]) : ""}</td><td class="c">${r.metin || r.n ? esc(klDegYazi(i)) : (x.ok === null ? "" : (x.sap > 0 ? "+" : "") + nf(x.sap, Math.max(2, klDec(KL.v[i]))))}</td><td class="c">${x.ok === null ? "" : x.ok ? "UYGUN" : "UYGUN DEĞİL"}</td></tr>`; }).join("");
+  $("#sheet").innerHTML = `
+  <table class="hd"><tr><td style="width:30%"><img src="${CONFIG.LOGO}" alt="Seval Kablo"></td><td class="t">CİHAZ DOĞRULAMA FORMU</td></tr></table>
+  <table><tr><td colspan="4" class="sec">MAKİNA / CİHAZ</td></tr>
+   <tr><td class="k">Cihaz Adı</td><td>${esc(d.ad)}</td><td class="k">Cihaz Yeri</td><td>${esc(KL.yer)}</td></tr>
+   <tr><td class="k">Cihaz Marka</td><td>${esc(d.marka)}</td><td class="k">Kalibrasyon Tarihi</td><td>${esc(fmtD(d.kt))}</td></tr>
+   <tr><td class="k">Cihaz Model</td><td>${esc(d.model)}</td><td class="k">Gelecek Kal. Tarihi</td><td>${esc(fmtD(d.nextKal))}</td></tr>
+   <tr><td class="k">Seri No</td><td>${esc(d.seri)}</td><td class="k">Doğrulama Tarihi</td><td>${esc(fmtD(dt))}</td></tr>
+   <tr><td class="k">Kayıt No</td><td>${esc(d.id)}</td><td class="k">Gelecek Doğ. Tarihi</td><td>${esc(fmtD(nx))}</td></tr>
+   <tr><td colspan="4" class="sec">Metod ve talimatlar</td></tr><tr><td colspan="4">Cihaz doğrulaması ${esc(sp.std)} standartlarındaki talimatına uygun olarak yapılmıştır.</td></tr>
+   <tr><td colspan="4" class="sec">Referans Cihazlar</td></tr></table>
+  <table><tr><th>Cihaz Adı</th><th>Cihaz Marka</th><th>Cihaz Seri No</th><th>Kayıt No</th><th>Kalibrasyon Tarihi</th><th>Kalibrasyon Sertifika No</th></tr>${refTbl}</table>
+  <table><tr><td class="sec">İZLENEBİLİRLİK</td></tr><tr><td>Doğrulama belirtilen referans cihazlar kullanılarak yapılmıştır. Referans cihaz izlenebilirliği TSE kalibrasyon laboratuarlarında kalibre ettirilmiş referanslarla sağlanmıştır.</td></tr>
+   <tr><td class="sec">DOĞRULAMA ÇEVRE ŞARTLARI</td></tr><tr><td>${KL.sic ? esc(KL.sic) + " °C" : esc(sp.cevre)}</td></tr><tr><td class="sec">DOĞRULAMA ÖLÇÜM SONUÇLARI</td></tr></table>
+  <table><tr><th>Ölçü</th><th>Tolerans</th><th>Ölçülen</th><th>${sp.satirlar.some(r => r.n) ? "Sonuç değeri / Sapma" : "Sapma"}</th><th>Sonuç</th></tr>${sat}
+   <tr><td colspan="5"><b>SONUÇ: ${esc(D)}</b> <span style="font-size:2.6mm">(${esc(sp.not)})</span></td></tr></table>
+  <table class="sign"><tr><td class="sign">${esc(CONFIG.PERSONEL)}<br>Lab.Personeli</td></tr></table><div class="fc">${esc(sp.kod)}</div>`;
+}
+function klBind(){
+  $("#app").addEventListener("input", e => { const t = e.target, d = t.dataset;
+    if(d.kf){ KL[d.kf] = t.value; if(d.kf === "tarih"){ klRender(); return; } }
+    else if(d.kv !== undefined){ const [i, j] = d.kv.split("."); if(j === undefined) KL.v[+i] = t.value; else KL.v[+i][+j] = t.value; }
+    else if(d.kn !== undefined) KL.nom[+d.kn] = t.value; else if(d.kt !== undefined) KL.tol[+d.kt] = t.value; else if(d.ke !== undefined) KL.ek[+d.ke] = t.value;
+    else return;
+    KL.sp.satirlar.forEach((r, i) => { const x = klHes(i), a = $("#kld" + i), b = $("#klk" + i); if(a) a.textContent = klDegYazi(i); if(b){ b.textContent = x.ok === null ? "" : x.ok ? "✓" : "✗"; b.className = x.ok === false ? "bad" : x.ok ? "ok" : ""; } });
+    klSum(); klSheet(); });
 }
 /* ===================================================================== */
 
@@ -1150,7 +1246,9 @@ async function kalNoktaUygula(){
     CAT = Object.values(CATS).find(c => c.match.test(norm(DEV.ad + " " + DEV.model)));
     CAT_KEY = Object.keys(CATS).find(k => CATS[k] === CAT) || "genel";
     $("#msg").hidden = true; $("#app").hidden = false;
+    if(SEHPA_2M.test(DEV.id)){ CAT = CATS.sehpa; CAT_KEY = "sehpa"; }
     if(!CAT) CAT = genelCat();
+    if(CAT.klTip){ klInit(); return; }
     if(CAT.asTip){ asInit(); return; }
     if(CAT.hizTip){ hzInit(); return; }
     if(CAT.rtip){ resInit(); return; }
