@@ -204,7 +204,7 @@ function report(id){
     const rows = groups[k].sort((a,b)=>a.set-b.set), u = rows[0].unit, dec = rows[0].dec, kr = kriter(d, u), olcum = rows[0].kul === "ölçüm", hasU = rows.some(m => m.u !== undefined && !isNaN(m.u));
     if(kr && !kritTxt) kritTxt = kr.pct ? "± %" + String(kr.tol).replace(".", ",") : "± " + String(kr.tol).replace(".", ",") + " " + kr.u;
     const body = rows.map(m => {
-      const e = m.olc - m.set, ok = kr ? (kr.pct ? (m.set ? Math.abs(e)/Math.abs(m.set)*100 <= kr.tol + 1e-9 : Math.abs(e) <= 1e-9) : Math.abs(e) <= kr.tol + 1e-9) : null;
+      const e = m.olc - m.set, U = m.u !== undefined && !isNaN(m.u) ? m.u : 0, ok = kr ? (kr.pct ? (m.set ? (Math.abs(e) + U)/Math.abs(m.set)*100 <= kr.tol + 1e-9 : Math.abs(e) + U <= 1e-9) : Math.abs(e) + U <= kr.tol + 1e-9) : null;   // |hata| + U ≤ kriter → uygun
       if(ok === false) durum = false; else if(ok === true && durum === null) durum = true;
       if(Math.abs(e) > 1e-9) fark++;
       return `<tr><td>${fset(m.set)}</td><td>${fnum(m.olc, dec)}</td><td class="${ok===false ? "kotu" : ""}">${(e>0?"+":"") + fnum(e, dec)}</td><td class="gir">${olcum ? ((-e > 0 ? "+" : "") + fnum(-e, dec)) : fnum(girilecek(m.set, m.olc, dec), dec)}</td>${hasU ? `<td>${m.u !== undefined && !isNaN(m.u) ? String(m.u).replace(".", ",") : "—"}</td>` : ""}</tr>`; }).join("");
@@ -213,7 +213,7 @@ function report(id){
       ${body}
     </table></div>`;
   }).join("");
-  const dTxt = durum === null ? "—" : (durum ? "UYGUN" : "ÖLÇÜM SONUÇLARINA BAKINIZ");
+  const dTxt = durum === null ? "—" : (durum ? "UYGUN" : "ÖLÇÜM VE KULLANIM RAPORUNA BAKINIZ");
   const olcumTum = all.length && all.every(m => m.kul === "ölçüm");
   const kul = olcumTum
     ? (durum === false ? "Hata kabul kriterini aşan nokta var: cihazla alınan okumalara tablodaki DÜZELTME değeri eklenerek kullanılır." : "Cihazla alınan okumalara gerektiğinde DÜZELTME değeri eklenir (gerçek değer = okuma + düzeltme).")
@@ -261,7 +261,7 @@ function kritOku(s, unit){ const m = /([\d.,]+)\s*(µΩ|μΩ|mΩ|kΩ|MΩ|Ω|µm|
 const brCarp = (from, to) => (from === to || BR_CARP[from] === undefined || BR_CARP[to] === undefined) ? 1 : BR_CARP[from] / BR_CARP[to];
 // "± 1 °C; ± 3,5 %rh": her satıra kendi biriminin kriteri uygulanır
 function hesap(){
-  const unit = KK.unit, parca = $("#kr").value.split(";"), krP = parca.map(x => kritOku(x, unit)).filter(Boolean), kr = krP[0] || null; let maxE = null, maxP = null, maxD = KK.dec, maxB = unit, maxTaban = -1, tumOk = true, kvVar = false, n = 0;
+  const unit = KK.unit, parca = $("#kr").value.split(";"), krP = parca.map(x => kritOku(x, unit)).filter(Boolean), kr = krP[0] || null; let maxE = null, maxP = null, maxD = KK.dec, maxB = unit, maxTaban = -1, tumOk = true, n = 0;
   const elle = $("#kr").value !== KK.krIlk;   // kriter kutusu değiştirildiyse her satıra o uygulanır; değilse satırın kendi kriteri (Kalibrasyon_Noktalari)
   document.querySelectorAll("#satirlar tr").forEach(tr => {
     if(!tr.querySelector(".s")) return;   // tablo başlığı satırı
@@ -276,13 +276,12 @@ function hesap(){
     const sk = !elle && tr.dataset.kr !== "" ? +tr.dataset.kr : NaN, pct = isNaN(sk) && kr && kr.pct;
     const tol = !isNaN(sk) ? sk : (kr && !kr.pct ? kr.tol * brCarp(kr.u, br) : (kr ? kr.tol : 0)), var_ = !isNaN(sk) || kr;
     const uu = parseFloat((tr.querySelector(".u").value || "").replace(",", ".")), U = isNaN(uu) ? 0 : uu;   // Rev 1: |hata| + U ≤ kriter
-    const ok = var_ ? (pct ? p <= kr.tol + 1e-9 : Math.abs(e) <= tol + 1e-12) : null;
-    const kv = ok === true && (pct ? p + (s ? U / Math.abs(s) * 100 : 0) > kr.tol + 1e-9 : Math.abs(e) + U > tol + 1e-12);
-    if(ok === false) tumOk = false; if(kv) kvVar = true;
-    kc.innerHTML = ok === null ? "—" : (ok === false ? '<span class="no">✗</span>' : kv ? '<span class="no" title="Ölçüm sonuçlarına bakınız: |hata| + U kriteri aşıyor (karar verilemiyor)">?</span>' : '<span class="ok">✓</span>');
+    const ok = var_ ? (pct ? p + (s ? U / Math.abs(s) * 100 : 0) <= kr.tol + 1e-9 : Math.abs(e) + U <= tol + 1e-12) : null;   // iki durum: |hata| + U ≤ kriter → UYGUN, değilse ölçüm ve kullanım raporu
+    if(ok === false) tumOk = false;
+    kc.innerHTML = ok === null ? "—" : (ok === false ? '<span class="no" title="|hata| + U kabul kriterini aşıyor: ölçüm ve kullanım raporuna bakınız">✗</span>' : '<span class="ok">✓</span>');
   });
   KK.maxTxt = maxE === null ? "—" : (kr && kr.pct ? "%" + fnum(maxP, 3) + (KK.karisik ? "" : " (" + (maxE > 0 ? "+" : "") + fnum(maxE, maxD) + " " + maxB + ")") : (maxE > 0 ? "+" : "") + fnum(maxE, maxD) + " " + maxB);
-  KK.sonuc = !n || !(kr || document.querySelector('#satirlar tr[data-kr]:not([data-kr=""])')) ? "—" : (!tumOk ? "Ölçüm raporuna bakınız" : kvVar ? "Ölçüm sonuçlarına bakınız" : "UYGUN");
+  KK.sonuc = !n || !(kr || document.querySelector('#satirlar tr[data-kr]:not([data-kr=""])')) ? "—" : (!tumOk ? "Ölçüm ve kullanım raporuna bakınız" : "UYGUN");
   $("#mx").textContent = KK.maxTxt; const so = $("#so"); so.textContent = KK.sonuc; so.parentElement.className = KK.sonuc === "UYGUN" ? "iyi" : (KK.sonuc === "—" ? "" : "bak");
 }
 // her satır kendi birimi ve ondalığıyla (resistomat: µΩ … kΩ aynı sertifikada)
@@ -314,7 +313,7 @@ function ac(id){
     <div class="tw"><div class="tt">Sertifika değerleri${karisik ? "" : " (" + esc(unit) + ")"}</div><table class="olc"><tr><th>BİRİM</th><th>REFERANS / SET</th><th>ÖLÇÜLEN</th><th>HATA</th><th>BELİRSİZLİK ±</th><th>KRİTER</th></tr><tbody id="satirlar">${rows.length ? grp.map(g => (grp.length > 1 ? `<tr class="grp"><td colspan="6">${esc(g.tur)}</td></tr>` : "") + g.r.map(m => satir(fnum(m.set, m.dec ?? dec), fnum(m.olc, m.dec ?? dec), m.u !== undefined && !isNaN(m.u) ? String(m.u).replace(".", ",") : "", m.unit, m.dec, m.kr)).join("")).join("") : [1,2,3].map(() => satir()).join("")}</tbody></table></div>
     <button class="ekle" id="sEkle">+ satır ekle</button>
     <div class="ozet"><div><small>En büyük hata (max)</small><b id="mx">—</b></div><div><small>Sonuç</small><b id="so">—</b></div></div>
-    <div class="not">ℹ️ Hata = ölçülen − referans. Her nokta belirsizlik dahil kabul kriteriyle karşılaştırılır (P7.10 Rev 1: |hata| + U ≤ kriter → UYGUN; |hata| ≤ kriter < |hata| + U → ÖLÇÜM SONUÇLARINA BAKINIZ / karar verilemiyor); kriteri aşan nokta varsa "Ölçüm raporuna bakınız" (girilecek/düzeltme değeriyle kullanılır).</div>
+    <div class="not">ℹ️ Hata = ölçülen − referans. Her nokta belirsizlik dahil kabul kriteriyle karşılaştırılır: |hata| + U ≤ kriter → UYGUN (✓); |hata| + U > kriter → ÖLÇÜM VE KULLANIM RAPORUNA BAKINIZ (✗) – cihaz rapordaki düzeltme / girilecek değerle kullanılır.</div>
     <div class="alt2"><span class="form">Kontrol tarihi: ${fmt(new Date())}</span><span class="imza"><b>${esc(CONFIG.PERSONEL)}</b>Lab. Personeli</span></div>
   </div>`;
   $("#list").oninput = hesap; $("#sEkle").onclick = () => { $("#satirlar").insertAdjacentHTML("beforeend", satir()); };
