@@ -200,15 +200,14 @@ function report(id){
   const d = DEV[id], all = (MEAS[id] || []).slice();
   const groups = {}; all.forEach(m => { const k = m.tur + "|" + m.unit + "|" + m.dec + "|" + m.kul; (groups[k] = groups[k] || []).push(m); });
   const keys = Object.keys(groups), multi = keys.length > 1;
-  let durum = null, kritTxt = "", fark = 0, kv = false;   // Rev 1: kriter F7.10-02 Rev 1 listesinden, karar U ile üç durumlu
+  let durum = null, kritTxt = "", fark = 0;   // kriter F7.10-02 Rev 1 listesinden; karar iki durumlu: |hata| + U ≤ kriter → UYGUN
   const tables = keys.map(k => {
     const rows = groups[k].sort((a,b)=>a.set-b.set), u = rows[0].unit, dec = rows[0].dec, olcum = rows[0].kul === "ölçüm", hasU = true;   // U sütunu her zaman; sertifikada U yoksa hücre boş
     const tz = teraziKrit(d, u), kr = tz ? null : kriter(d, u);
     if(tz && !kritTxt) kritTxt = tz.yazi; else if(kr && !kritTxt) kritTxt = kr.pct ? "± %" + String(kr.tol).replace(".", ",") : "± " + String(kr.tol).replace(".", ",") + " " + kr.u;
     const body = rows.map(m => {
       const e = m.olc - m.set, T = m.kr !== undefined && !isNaN(m.kr) ? m.kr : tz ? tz.T(m.set) : (kr ? (kr.pct ? Math.abs(m.set) * kr.tol / 100 : kr.tol) : null), Uu = (m.u !== undefined && !isNaN(m.u)) ? m.u : 0;
-      const ok = T === null ? null : Math.abs(e) <= T + 1e-9, kvN = ok === true && Math.abs(e) + Uu > T + 1e-9;
-      if(kvN) kv = true;   // |hata| ≤ kriter < |hata| + U
+      const ok = T === null ? null : Math.abs(e) + Uu <= T + 1e-9;   // iki durum: |hata| + U ≤ kriter → UYGUN, değilse ölçüm ve kullanım raporuna bakınız
       if(ok === false) durum = false; else if(ok === true && durum === null) durum = true;
       if(Math.abs(e) > 1e-9) fark++;
       return `<tr><td>${fset(m.set)}</td><td>${fnum(m.olc, dec)}</td><td class="${ok===false ? "kotu" : ""}">${(e>0?"+":"") + fnum(e, dec)}</td><td class="gir">${olcum ? ((-e > 0 ? "+" : "") + fnum(-e, dec)) : gYaz(m.set, m.olc, dec, d)}</td>${hasU ? `<td>${m.u !== undefined && !isNaN(m.u) ? String(m.u).replace(".", ",") : ""}</td>` : ""}</tr>`; }).join("");
@@ -217,18 +216,17 @@ function report(id){
       ${body}
     </table></div>`;
   }).join("");
-  if(kv && durum !== false) durum = null;
   const krSat = [...new Set(all.filter(m => m.kr !== undefined && !isNaN(m.kr)).map(m => m.unit))].map(b => { const k = [...new Set(all.filter(m => m.unit === b && !isNaN(m.kr)).map(m => m.kr))]; return k.length === 1 ? "± " + String(k[0]).replace(".", ",") + " " + b : b + " satır bazında"; });   // satırların kriteri (Kalibrasyon_Noktalari)
-  const dTxt = durum === false ? "ÖLÇÜM RAPORUNA BAKINIZ" : (kv ? "ÖLÇÜM SONUÇLARINA BAKINIZ" : (durum === null ? "—" : "UYGUN"));   // P7.10 Rev 1 B8 gösterimi
+  const dTxt = durum === false ? "ÖLÇÜM VE KULLANIM RAPORUNA BAKINIZ" : (durum === null ? "—" : "UYGUN");
   const olcumTum = all.length && all.every(m => m.kul === "ölçüm");
   const kul = olcumTum
-    ? (durum === false ? "Hata kabul kriterini aşan nokta var: cihazla alınan okumalara tablodaki DÜZELTME değeri eklenerek kullanılır." : "Cihazla alınan okumalara gerektiğinde DÜZELTME değeri eklenir (gerçek değer = okuma + düzeltme).")
-    : (durum === false ? "Hata kabul kriterini aşan nokta var: cihaz tablodaki GİRİLECEK DEĞER girilerek kullanılır."
+    ? (durum === false ? "Hata + belirsizlik kabul kriterini aşan nokta var: cihazla alınan okumalara tablodaki DÜZELTME değeri eklenerek kullanılır." : "Cihazla alınan okumalara gerektiğinde DÜZELTME değeri eklenir (gerçek değer = okuma + düzeltme).")
+    : (durum === false ? "Hata + belirsizlik kabul kriterini aşan nokta var: cihaz tablodaki GİRİLECEK DEĞER girilerek kullanılır."
             : "Set değerine ulaşmak için cihaza GİRİLECEK DEĞER girilmelidir.");
   return `<div class="rep">
     <div class="ust"><img src="${CONFIG.LOGO}" alt="Seval Kablo"><div class="bt">CİHAZ ÖLÇÜM VE<br>KULLANIM RAPORU</div></div>
     <div class="serit"><div><div class="kod">${esc(d.id)}</div><div class="ad">${esc(d.ad)}</div><div class="alt">${esc([d.marka, d.model].filter(Boolean).join(" "))}${d.seri ? " · S/N " + esc(d.seri) : ""}</div></div>
-      <span class="durum ${kv && durum !== false ? "bak" : (durum === null ? "yok" : (durum ? "ok" : "bak"))}">${dTxt}</span></div>
+      <span class="durum ${durum === null ? "yok" : (durum ? "ok" : "bak")}">${dTxt}</span></div>
     <div class="kutu">
       <div><small>Kalibrasyon sertifika no</small><b>${esc(d.sert || "—")}</b></div>
       <div><small>Kabul kriteri</small><b>${esc(krSat.join("; ") || d.kabul || kritTxt || "—")}</b></div>
