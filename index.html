@@ -706,12 +706,12 @@ const cpSay = (n, cls) => `<div class="cp-hn ${cls || ""}">${String(n).split("")
 const cpGun = d => Math.round((d - BUGUN) / 864e5);
 const cpSonuc = s => { s = String(s || "").trim(); return !s ? "bos" : /^UYGUN/i.test(s) ? "ok" : /KARAR VER|SONUÇLARINA/i.test(s) ? "kv" : "no"; };
 function canliCiz(){
-  const kal = CP_MOD === "kal", L = D.filter(x => kal ? x.kal : x.dog), tar = x => kal ? x.kn : x.dn, son = x => kal ? x.kkt : x.dt, snc = x => kal ? x.ks : x.dsonuc;
+  const kal = CP_MOD === "kal", sk = x => { const s = cpSonuc(snc(x)); return kal && s === "kv" ? "no" : s; }, L = D.filter(x => kal ? x.kal : x.dog), tar = x => kal ? x.kn : x.dn, son = x => kal ? x.kkt : x.dt, snc = x => kal ? x.ks : x.dsonuc;
   const gecerli = L.filter(x => tar(x) && tar(x) >= BUGUN).length, yak = L.filter(x => durumu(tar(x)) === "yak").length, gec = L.filter(x => durumu(tar(x)) === "gec").length, bos = L.filter(x => !String(snc(x) || "").trim()).length;
   const yuzde = L.length ? (gecerli / L.length * 100).toFixed(1).replace(".", ",") : "0", is = kal ? "kalibrasyon" : "doğrulama", Is = kal ? "Kalibrasyon" : "Doğrulama";
   const yaklasan = L.filter(x => ["gec", "yak"].includes(durumu(tar(x)))).sort((a, b) => tar(a) - tar(b)).slice(0, 6);
   const sonlar = L.filter(x => son(x)).sort((a, b) => son(b) - son(a)).slice(0, 4);
-  const say = { ok:0, kv:0, no:0, bos:0 }; L.forEach(x => say[cpSonuc(snc(x))]++);
+  const say = { ok:0, kv:0, no:0, bos:0 }; L.forEach(x => say[sk(x)]++);   // kalibrasyon iki durumlu: karar verilemiyor → ölçüm ve kullanım raporu
   const yerG = {}; L.forEach(x => { const y = x.yer || "Yeri girilmemiş"; (yerG[y] = yerG[y] || [0, 0])[0]++; if(tar(x) && tar(x) >= BUGUN) yerG[y][1]++; });
   const yerler = Object.entries(yerG).sort((a, b) => b[1][0] - a[1][0]).slice(0, 6);
   const link = x => (kal ? "kalkontrol.html?id=" : "dogrulama.html?id=") + encodeURIComponent(x.id);
@@ -731,10 +731,10 @@ function canliCiz(){
       <div class="cp-k"><h3>Yaklaşan ${kal ? "kalibrasyonlar" : "doğrulamalar"}</h3><small>Süresi geçen ve 30 gün içinde dolacak · tıklayın: ${kal ? "kalibrasyon kontrol" : "Doğrulama Yap"}</small>
         ${yaklasan.map((x, i) => { const g = cpGun(tar(x)); return `<a class="cp-s" style="animation-delay:${i * .08}s" href="${link(x)}"><span class="cp-kod">${esc(x.id)}</span><div><b>${esc(x.ad)}</b><small>${esc([x.yer, kal ? x.firma : ""].filter(Boolean).join(" · "))}</small><div class="cp-cb"><i style="width:${Math.max(8, Math.min(100, 100 - g * 3))}%;background:${g < 0 ? "#ef4444" : g <= 7 ? "#f59e0b" : "#10b981"}"></i></div></div>${gunEt(tar(x))}</a>`; }).join("") || `<div class="cp-bos">✓ Süresi geçen ya da 30 gün içinde dolacak cihaz yok.</div>`}</div></div>
     <div class="cp-alt"><div class="cp-k"><h3>Son ${kal ? "kalibrasyon kontrolleri" : "doğrulamalar"}</h3><small>${kal ? "Kal. Kontrol Tarihi" : "Doğrulama Tarihi"} · en yeni önce</small>
-        ${sonlar.map((x, i) => { const s = cpSonuc(snc(x)); return `<a class="cp-s" style="animation-delay:${i * .08}s" href="${kal ? "cihaz.html?id=" + encodeURIComponent(x.id) : link(x)}"><span class="cp-gun ${rozet(s)}">${s === "ok" ? "✓" : s === "kv" ? "?" : s === "no" ? "!" : "…"}</span><div><b>${esc(x.id)} ${esc(x.ad)}</b><small>${esc(String(snc(x) || "sonuç girilmemiş"))} · ${fd(son(x))}</small></div><span></span></a>`; }).join("") || `<div class="cp-bos">Henüz kayıt yok.</div>`}</div>
+        ${sonlar.map((x, i) => { const s = sk(x); return `<a class="cp-s" style="animation-delay:${i * .08}s" href="${kal ? "cihaz.html?id=" + encodeURIComponent(x.id) : link(x)}"><span class="cp-gun ${rozet(s)}">${s === "ok" ? "✓" : s === "kv" ? "?" : s === "no" ? "!" : "…"}</span><div><b>${esc(x.id)} ${esc(x.ad)}</b><small>${esc(String(snc(x) || "sonuç girilmemiş"))} · ${fd(son(x))}</small></div><span></span></a>`; }).join("") || `<div class="cp-bos">Henüz kayıt yok.</div>`}</div>
       <div class="cp-k"><h3>${Is} sonuçları</h3><small>${L.length} cihaz · son ${kal ? "kalibrasyon kontrolü" : "doğrulama"}</small>
         <div class="cp-dag">${[["ok", "#10b981"], ["kv", "#f2b33d"], ["no", "#ef4444"], ["bos", "#cbd5e1"]].map(([k, c]) => say[k] ? `<i style="width:${say[k] / Math.max(1, L.length) * 100}%;background:${c}"></i>` : "").join("")}</div>
-        <div class="cp-dl"><span style="color:#0f8f6e">● Uygun</span><b>${say.ok}</b></div><div class="cp-dl"><span style="color:#b45309">● Karar verilemiyor</span><b>${say.kv}</b></div><div class="cp-dl"><span style="color:#b91c1c">● Ölçüm raporuna bakınız</span><b>${say.no}</b></div><div class="cp-dl"><span>● Sonuç girilmemiş</span><b>${say.bos}</b></div></div>
+        <div class="cp-dl"><span style="color:#0f8f6e">● Uygun</span><b>${say.ok}</b></div>${kal ? "" : `<div class="cp-dl"><span style="color:#b45309">● Karar verilemiyor</span><b>${say.kv}</b></div>`}<div class="cp-dl"><span style="color:#b91c1c">● ${kal ? "Ölçüm ve kullanım raporuna bakınız" : "Ölçüm raporuna bakınız"}</span><b>${say.no}</b></div><div class="cp-dl"><span>● Sonuç girilmemiş</span><b>${say.bos}</b></div></div>
       <div class="cp-k"><h3>Yerlere göre</h3><small>Geçerli ${is} oranı · en çok cihazı olan yerler</small>
         ${yerler.map(([y, [n, g]]) => { const p = Math.round(g / n * 100); return `<div class="cp-l"><span>${esc(y)}</span><div class="cp-cb"><i style="width:${p}%;background:${p >= 95 ? "#0f9f7a" : p >= 80 ? "#f2b33d" : "#ef4444"}"></i></div><b>%${p}</b></div>`; }).join("")}</div></div></div>`;
   $("#canli").hidden = false;
