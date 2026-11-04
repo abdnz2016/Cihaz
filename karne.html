@@ -57,7 +57,7 @@ async function belgeGetir(istek, sessiz){
  <div class="card" id="cihaz">Yükleniyor…</div>
  <div class="card"><div class="dt">PERFORMANS (SON 12 AY)</div><div class="kpi" id="kpi"></div></div>
  <div class="card"><div class="dt">YENİ KAYIT (ARIZA / TAMİR / BAKIM / KALİBRASYON / SÖKÜM-TAKMA)</div>
-  <label>Tür<select id="tur"><option>Arıza</option><option>Tamir</option><option>Bakım</option><option>Planlı Bakım</option><option>Kalibrasyon</option><option>Söküm / Takma</option><option>Kontrol</option><option>Not</option></select></label>
+  <label>Tür<select id="tur"><option value="">— seçin —</option><option>Arıza</option><option>Tamir</option><option>Bakım</option><option>Planlı Bakım</option><option>Kalibrasyon</option><option>Söküm / Takma</option><option>Kontrol</option><option>Not</option></select></label>
   <label>Başlangıç (tarih ve saat)<input type="datetime-local" id="bas"></label>
   <label>Bitiş (tarih ve saat) – devam ediyorsa boş bırakın<input type="datetime-local" id="bit"></label>
   <div class="msg" id="sureGoster"></div>
@@ -95,7 +95,7 @@ async function yukle(){
     <div><b>${say("Tamir")}</b>Tamir</div><div><b>${say("Bakım") + say("Planlı Bakım")}</b>Bakım</div><div><b>${say("Söküm / Takma")}</b>Söküm / Takma</div>
     <div><b>${ariza.length > 1 ? Math.round(365 / ariza.length) : "–"}</b>Arızalar arası ort. gün</div>`;
   $("#gecmis").innerHTML = L.length ? L.map(x => { const fid = (/\/d\/([\w-]{10,})/.exec(x.link) || [])[1];
-    return `<div class="ol"><span class="chip ${esc(x.tur.split(" ")[0])}">${esc(x.tur)}</span> <b>${x.bas ? fs(x.bas) : fd(x.t)}</b>${x.bit ? " → <b>" + fs(x.bit) + "</b>" : (x.bas && /Arıza|Tamir|Kalibrasyon/.test(x.tur) ? " → <span class='gec'>devam ediyor</span>" : "")}${x.s ? ` · ${String(x.s).replace(".",",")} saat` : ""}<br>${esc(x.a)}${x.kim ? ` <small>— ${esc(x.kim)}</small>` : ""}
+    return `<div class="ol"><span class="chip ${esc(x.tur.split(" ")[0])}">${esc(x.tur)}</span> <b>${x.bas ? fs(x.bas) : fd(x.t)}</b>${x.bit ? " → <b>" + fs(x.bit) + "</b>" : (x.bas && /Arıza|Tamir|Kalibrasyon/.test(x.tur) ? ` → <span class='gec'>devam ediyor</span> <button class="l" data-bitir="${esc(x.tur)}|${x.bas.getFullYear()}-${String(x.bas.getMonth()+1).padStart(2,"0")}-${String(x.bas.getDate()).padStart(2,"0")}T${String(x.bas.getHours()).padStart(2,"0")}:${String(x.bas.getMinutes()).padStart(2,"0")}">Bitir</button>` : "")}${x.s ? ` · ${String(x.s).replace(".",",")} saat` : ""}<br>${esc(x.a)}${x.kim ? ` <small>— ${esc(x.kim)}</small>` : ""}
       ${fid ? `<br><button class="l" data-fid="${esc(fid)}">🔒 Belgeyi aç</button>` : ""}</div>`; }).join("") : "Henüz kayıt yok.";
 }
 document.addEventListener("click", async e => {
@@ -103,13 +103,26 @@ document.addEventListener("click", async e => {
   let pin = sessionStorage.getItem("erisimPin"); if(!pin){ pin = (prompt("Şifre:") || "").trim(); if(!pin) return; }
   if(await belgeGetir({ islem:"dosya", tur:"karne", id, fid:b.dataset.fid, pin })) sessionStorage.setItem("erisimPin", pin);
 });
+// Açık kaydı (devam ediyor) kapatır: yeni satır açmadan Bitiş ve süre o kayda yazılır
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button[data-bitir]"); if(!b) return;
+  const [tur, bas] = b.dataset.bitir.split("|"), simdi = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
+  const bit = (prompt(tur + " kaydı bitiş tarihi ve saati (YYYY-AA-GGTSS:DD):", simdi) || "").trim(); if(!bit) return;
+  const not = (prompt("Kısa not (ör. Kalibrasyondan döndü) – boş bırakılabilir:", tur === "Kalibrasyon" ? "Kalibrasyondan döndü." : "") || "").trim();
+  let pin = localStorage.getItem("kayitPin") || ""; if(!pin){ pin = (prompt("Kayıt PIN'i:") || "").trim(); if(!pin) return; }
+  b.disabled = true;
+  try{ const j = await servis({ islem:"olayBitir", pin, id, tur, bas, bit, aciklama:not });
+    if(j.ok){ localStorage.setItem("kayitPin", pin); yukle(); } else { if(/PIN/.test(j.hata||"")) localStorage.removeItem("kayitPin"); alert("⚠ " + j.hata); b.disabled = false; }
+  }catch(err){ alert("⚠ Servise ulaşılamadı: " + err.message); b.disabled = false; }
+});
 $("#kaydet").onclick = async () => {
   const m = $("#msg"); m.className = "msg";
+  if(!$("#tur").value){ m.className = "msg err"; m.textContent = "Tür seçin."; return; }
   if(!$("#acik").value.trim()){ m.className = "msg err"; m.textContent = "Açıklama yazın."; return; }
   let pin = localStorage.getItem("kayitPin") || ""; if(!pin){ pin = (prompt("Kayıt PIN'i:") || "").trim(); if(!pin) return; }
   $("#kaydet").disabled = true; m.textContent = "Kaydediliyor…";
   try{ const j = await servis({ islem:"olay", pin, id, tur:$("#tur").value, bas:$("#bas").value, bit:$("#bit").value, aciklama:$("#acik").value, kaydeden:$("#kaydeden").value });
-    if(j.ok){ localStorage.setItem("kayitPin", pin); localStorage.setItem("kaydeden", $("#kaydeden").value); m.className = "msg ok"; m.textContent = "✓ Kaydedildi."; $("#acik").value = ""; $("#bit").value = ""; sureHesap(); setTimeout(yukle, 1500); }
+    if(j.ok){ localStorage.setItem("kayitPin", pin); localStorage.setItem("kaydeden", $("#kaydeden").value); m.className = "msg ok"; m.textContent = "✓ Kaydedildi."; $("#acik").value = ""; $("#tur").value = ""; $("#bit").value = ""; sureHesap(); setTimeout(yukle, 1500); }
     else { if(/PIN/.test(j.hata||"")) localStorage.removeItem("kayitPin"); m.className = "msg err"; m.textContent = "⚠ " + j.hata; }
   }catch(err){ m.className = "msg err"; m.textContent = "⚠ Servise ulaşılamadı: " + err.message; }
   $("#kaydet").disabled = false;

@@ -178,9 +178,7 @@ $("#kb").onclick = () => ac($("#kp").value.trim()); $("#kp").onkeydown = e => { 
 if(sessionStorage.getItem("erisimPin")) ac(sessionStorage.getItem("erisimPin"), true);
 const durumu = d => !d ? "" : (d < BUGUN ? "gec" : (d <= SINIR ? "yak" : ""));
 async function yukle(){
-  const [C, OL] = await Promise.all([sekme("Cihazlar"), sekme("Ölçümler").catch(() => [])]);
-  const OLC = {}; OL.forEach(r => { const id = key(v(r["kayıt no"])); if(!id) return; const L = c => String(v(c) || "").split(/[;|\n]+/).map(x => parseFloat(x.trim().replace(",", "."))).filter(x => !isNaN(x));
-    OLC[id] = { S:L(r["set değerleri"]), O:L(r["ölçülen değerler"]), u:String(v(r["birim"]) || ""), dec:Number(v(r["ondalık"])) || 2 }; });
+  const C = await sekme("Cihazlar");
   D = C.filter(r => v(r["kayıt no"])).map(r => { const sb = tarih(r["son bakım tarihi"]), bp = Number(v(r["bakım periyodu (ay)"])) || 0;
     const o = { id:String(v(r["kayıt no"])), ad:String(v(r["cihaz adı"])), marka:String(v(r["marka"])), model:String(v(r["model"])), seri:String(v(r["seri numarası"])), yer:String(v(r["bulunduğu yer"])),
       kt:tarih(r["kalibrasyon tarihi"]), kn:tarih(r["sonraki kalibrasyon"]), kper:Number(v(r["kalibrasyon periyodu (ay)"]))||0, sert:String(v(r["sertifika no"])), firma:String(v(r["kalibrasyon yapan firma"])),
@@ -190,13 +188,6 @@ async function yukle(){
     o.kal = !!(o.kt || o.kper); o.dog = !!(o.dt || o.dper);
     o.durum = /^\s*olumsuz\s*$/i.test(o.durum) ? "Ölçüm raporuna bakınız" : o.durum.trim();
     o.kr = String(v(r["kabul kriteri"]) || "").trim(); o.mx = String(v(r["max hata"]) || "").trim(); o.ks = String(v(r["kal. kontrol sonucu"]) || "").trim(); o.kkt = tarih(r["kal. kontrol tarihi"]);
-    const m = OLC[key(o.id)];
-    if(m && m.S.length && (!o.mx || !o.ks)){ const kr = kriter({ad:o.ad, model:o.model, yer:o.yer}, m.u); let me = null, mp = 0, ok = true;
-      m.S.forEach((s,i) => { if(i >= m.O.length) return; const e = m.O[i] - s, pp = s ? Math.abs(e)/Math.abs(s)*100 : 0; if(me === null || Math.abs(e) > Math.abs(me)) me = e; mp = Math.max(mp, pp); if(kr && (kr.pct ? pp > kr.tol + 1e-9 : Math.abs(e) > kr.tol + 1e-9)) ok = false; });
-      const f = x => (x > 0 ? "+" : "") + String(Math.round(x * 10**m.dec) / 10**m.dec).replace(".", ",");
-      if(!o.kr && kr) o.kr = kr.pct ? "± %" + String(kr.tol).replace(".", ",") : "± " + String(kr.tol).replace(".", ",") + " " + kr.u;
-      if(!o.mx && me !== null) o.mx = kr && kr.pct ? "%" + String(Math.round(mp*100)/100).replace(".", ",") : f(me) + " " + m.u;
-      if(!o.ks && kr && me !== null) o.ks = ok ? "UYGUN" : "Ölçüm raporuna bakınız"; }
     return o; });
   const sec = (sel, alan, bas) => { const L = [...new Set(D.map(x => x[alan]).filter(Boolean))].sort((a,b) => a.localeCompare(b,"tr")); $(sel).innerHTML = `<option value="">${bas}</option>` + L.map(x => `<option>${esc(x)}</option>`).join(""); };
   sec("#f_ad","ad","Tüm cihaz türleri"); sec("#f_yer","yer","Tüm laboratuvar / yerler");
@@ -214,30 +205,6 @@ function filtre(){
     && (!dur || durumu(x.kn) === dur || durumu(x.dn) === dur)).sort((a,b) => a.id.localeCompare(b.id,"tr",{numeric:true}));
 }
 function baslik(){ return ["Cihaz Listesi", $("#f_tip").selectedOptions[0].text, $("#f_ad").value, $("#f_yer").value, $("#f_dur").value ? $("#f_dur").selectedOptions[0].text : ""].filter(x => x && !/^Tüm/.test(x)).join(" – ") + " · " + fd(BUGUN); }
-const KABUL = [   // F7.10-02 Rev 1 (yedek liste; asıl kaynak Kabul_Kriterleri / Kalibrasyon_Noktalari). 4. alan "fs" = % tam skala (Ölçüm Aralığı)
-  [/komparatör|komparator/, 0.005, "mm"], [/kumpas-mikrometre kalibrasyon|kalibrasyon set/, 0.002, "mm"], [/kumpas/, 0.05, "mm"],
-  [/mikrometre/, 0.005, "mm"], [/cam skala|mikroskop/, 0.003, "mm"], [/çap mastar/, 0.002, "mm"], [/çap ölçer|cap olcer/, 0.03, "mm"],
-  [/profil proj/, 5, "µm"], [/çelik metre|celik metre/, 0.5, "mm"], [/şerit metre|serit metre/, 1, "mm"],
-  [/metre sayac|metre disk|yazı makina|yazi makina/, 0.3, "%"], [/termokupl/, 2.5, "°C"], [/ısı kayıt/, 0.5, "°C"], [/su banyosu/, 1, "°C"],
-  [/dondurucu|düşük sıcaklık/, 2, "°C"], [/kül fırını|kul firini/, 3, "°C"], [/etüv|etuv/, 2, "°C"], [/termoreaktör|ısıl kararlılık|isil kararlilik/, 2, "°C"],
-  [/termometre|sıcaklık ölçer|pt-?100|ısı ölçüm|data logger/, 1, "°C"], [/yüksek gerilim probu|ölçüm sistemi/, 3, "%"], [/yüksek gerilim|oto trafo|orta gerilim/, 5, "%"],
-  [/spark/, 5, "%"], [/çekme kopma/, 5, "%"], [/kronometre/, 0.4, "sn"], [/megaohmmetre/, 5, "%"], [/miliohmmetre/, 0.06, "Ω"],
-  [/standart direnç/, 0.03, "mΩ"], [/resistomat/, 0.03, "%"], [/hassas terazi/, 0.003, "g"], [/terazi/, 0.1, "kg"], [/kantar/, 5, "kg"],
-  [/manometre/, 1.6, "bar", "fs"], [/ph metre/, 0.05, "pH"], [/iletkenlik/, 3, "%"], [/anemometre/, 0.5, "m/s"], [/flowmetre/, 5, "%"], [/ses seviye|gürültü/, 1.4, "dB"],
-  [/mezur|balonjoje/, 0.1, "ml"], [/wattmetre|whattmetre/, 0.2, "W"], [/multimetre/, 0.5, "V"], [/sertlik ölçer/, 0.1, "mm"], [/flexible|akım gösterge/, 2, "A"],
-  [/su tayin/, 1, "mA"], [/cpr basınç/, 5, "Pa"], [/duman yoğunluğu/, 5, "%"]
-];
-function kriter(d, unit){
-  const n = norm((d.ad||"") + " " + (d.model||"")), r = KABUL.find(x => x[0].test(n)); if(!r) return null;
-  let tol = r[1], u = r[2];
-  if(r[3] === "fs"){ const fs = Math.max(0, ...(String(d.aralik || "").match(/\d+(?:[.,]\d+)?/g) || ["0"]).map(x => parseFloat(x.replace(",", ".")))); if(!fs) return null; tol = +(r[1] / 100 * fs).toPrecision(3); }
-  if(u === "%") return {tol, u, pct:true};
-  if(u === unit) return {tol, u};
-  if(u === "µm" && unit === "mm") return {tol: tol/1000, u:unit}; if(u === "mm" && unit === "µm") return {tol: tol*1000, u:unit};
-  if(u === "kg" && unit === "g") return {tol: tol*1000, u:unit}; if(u === "g" && unit === "kg") return {tol: tol/1000, u:unit};
-  if(u === "Ω" && unit === "kΩ") return {tol: tol/1000, u:unit}; if(u === "Ω" && unit === "mΩ") return {tol: tol*1000, u:unit};
-  return null;
-}
 const IKON = {"kaltak": "<svg viewBox=\"0 0 64 64\"><rect x=\"10\" y=\"14\" width=\"44\" height=\"40\" rx=\"6\"/><path d=\"M10 26h44M22 8v12M42 8v12\"/><circle cx=\"32\" cy=\"40\" r=\"7\"/></svg>", "dogtak": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"22\"/><path d=\"M21 33l8 8 15-17\"/></svg>", "mqr": "<svg viewBox=\"0 0 64 64\"><rect x=\"8\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"38\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"8\" y=\"38\" width=\"18\" height=\"18\"/><path d=\"M38 38h8v8h-8zM50 50h6v6h-6z\"/></svg>", "mtal": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 12h20a6 6 0 0 1 6 6v36a5 5 0 0 0-5-5H8zM56 12H36a6 6 0 0 0-6 6v36a5 5 0 0 1 5-5h21z\"/></svg>", "msic": "<svg viewBox=\"0 0 64 64\"><path d=\"M28 8a6 6 0 0 1 12 0v30a12 12 0 1 1-12 0z\"/><path d=\"M34 26v18\"/></svg>", "afoto": "<svg viewBox=\"0 0 64 64\"><rect x=\"6\" y=\"14\" width=\"52\" height=\"38\" rx=\"5\"/><circle cx=\"22\" cy=\"28\" r=\"5\"/><path d=\"M6 46l16-12 12 10 10-8 14 10\"/></svg>", "depo": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 22L32 10l24 12v30H8z\"/><path d=\"M8 22h48M22 52V34h20v18M22 42h20\"/></svg>", "park": "<svg viewBox=\"0 0 64 64\"><path d=\"M6 56V30l14-8v8l14-8v8l14-8v34z\"/><path d=\"M50 56V12h6v44M14 44h6M26 44h6M38 44h6\"/></svg>", "makine": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"9\"/><path d=\"M32 8v8M32 48v8M8 32h8M48 32h8M15 15l6 6M43 43l6 6M49 15l-6 6M21 43l-6 6\"/></svg>", "ariza": "<svg viewBox=\"0 0 64 64\"><path d=\"M40 10a12 12 0 0 0-14 16L10 42l12 12 16-16a12 12 0 0 0 16-14l-8 8-8-2-2-8z\"/></svg>", "liste": "<svg viewBox=\"0 0 64 64\"><rect x=\"12\" y=\"8\" width=\"40\" height=\"48\" rx=\"4\"/><path d=\"M20 20h24M20 30h24M20 40h16\"/></svg>", "sert": "<svg viewBox=\"0 0 64 64\"><path d=\"M14 6h26l10 10v30H14z\"/><path d=\"M40 6v10h10M20 18h14M20 26h22M20 34h12\"/><circle cx=\"40\" cy=\"44\" r=\"7\"/><path d=\"M36 50l-2 10 6-4 6 4-2-10\"/></svg>", "dogf": "<svg viewBox=\"0 0 64 64\"><rect x=\"14\" y=\"10\" width=\"36\" height=\"46\" rx=\"4\"/><path d=\"M24 6h16v8H24zM22 30l6 6 12-12M22 46h20\"/></svg>", "rapor": "<svg viewBox=\"0 0 64 64\"><path d=\"M10 54h44\"/><rect x=\"14\" y=\"34\" width=\"8\" height=\"18\"/><rect x=\"28\" y=\"22\" width=\"8\" height=\"30\"/><rect x=\"42\" y=\"12\" width=\"8\" height=\"40\"/></svg>", "dogyap": "<svg viewBox=\"0 0 64 64\"><path d=\"M26 6h12M28 6v18L14 50a5 5 0 0 0 4 8h28a5 5 0 0 0 4-8L36 24V6\"/><path d=\"M20 40h24\"/></svg>", "qr": "<svg viewBox=\"0 0 64 64\"><rect x=\"8\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"38\" y=\"8\" width=\"18\" height=\"18\"/><rect x=\"8\" y=\"38\" width=\"18\" height=\"18\"/><path d=\"M14 14h6v6h-6zM44 14h6v6h-6zM14 44h6v6h-6zM38 38h6v6M50 38h6v6M38 50h6v6M50 50h6v6M44 44h6\"/></svg>", "karne": "<svg viewBox=\"0 0 64 64\"><path d=\"M40 8a12 12 0 0 0-11 16L10 43a5 5 0 0 0 7 7l19-19a12 12 0 0 0 16-11l-7 4-6-2-2-6z\"/></svg>", "talimat": "<svg viewBox=\"0 0 64 64\"><path d=\"M32 14C24 8 14 8 8 10v40c6-2 16-2 24 4 8-6 18-6 24-4V10c-6-2-16-2-24 4zM32 14v40\"/></svg>", "takip": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"34\" r=\"22\"/><path d=\"M32 20v14l10 6M24 6h16\"/></svg>", "enerji": "<svg viewBox=\"0 0 64 64\"><path d=\"M36 6L14 36h16l-4 22 24-32H34z\"/></svg>", "etiket": "<svg viewBox=\"0 0 64 64\"><path d=\"M8 30V10a2 2 0 0 1 2-2h20l26 26-22 22z\"/><circle cx=\"20\" cy=\"20\" r=\"4\"/></svg>", "kalk": "<svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"24\"/><circle cx=\"32\" cy=\"32\" r=\"14\"/><circle cx=\"32\" cy=\"32\" r=\"4\"/></svg>", "yonet": "<svg viewBox=\"0 0 64 64\"><rect x=\"10\" y=\"10\" width=\"44\" height=\"44\" rx=\"8\"/><path d=\"M32 22v20M22 32h20\"/></svg>"};
 const RENK = {"kaltak": "#1d4ed8", "dogtak": "#0f9f7a", "park": "#0d9488", "makine": "#475569", "mqr": "#334155", "mtal": "#4f46e5", "msic": "#ea580c", "ariza": "#b91c1c", "afoto": "#7c3aed", "depo": "#a16207", "liste": "#2563eb", "sert": "#059669", "dogf": "#7c3aed", "rapor": "#0891b2", "dogyap": "#d97706", "qr": "#334155", "karne": "#dc2626", "talimat": "#4f46e5", "takip": "#e11d48", "enerji": "#ca8a04", "etiket": "#be123c", "kalk": "#0f766e", "yonet": "#475569"}, ACIK = {"liste": "Denetim listesi · yazdır / Excel", "sert": "Tüm kalibrasyon sertifikaları", "dogf": "Son doğrulama formları", "rapor": "Ölçüm ve kullanım raporları", "dogyap": "Cihaz seç, doğrulama kartını aç", "qr": "Cihaz kartları (QR sayfası)", "karne": "Bakım · arıza · tamir kayıtları", "talimat": "Kullanım talimatları ve videolar", "takip": "Süresi dolan ve yaklaşanlar", "enerji": "Etiket bilgileri: güç, besleme, kapasite", "etiket": "Hasar gören etiketi yeniden bas", "kalk": "Sertifika değerleri · max hata · sonuç", "yonet": "Yeni cihaz kaydı, bilgi düzeltme, çıkarma"};
 const MOD = {
