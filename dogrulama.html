@@ -405,8 +405,7 @@ function tolFor(nom){
 // Rev 1 karar kuralı (P7.10 Bölüm 8): cihaz sonucu en kötü nokta
 function durumOf(rows){
   const d = rows.filter(r => r.ok !== null); if(!d.length) return "";
-  if(d.some(r => r.ok === false) || fnDurum() === false) return "ÖLÇÜM RAPORUNA BAKINIZ";
-  if(d.some(r => r.kv)) return "ÖLÇÜM SONUÇLARINA BAKINIZ";   // P7.10 B8: karar verilemiyor durumu bu yazıyla gösterilir
+  if(d.some(r => r.ok === false || r.kv) || fnDurum() === false) return "ÖLÇÜM RAPORUNA BAKINIZ";   // iki durumlu: |hata| + U kriteri aşarsa da ölçüm raporuna bakınız
   return "UYGUN";
 }
 const ceilTo = (x,step) => Math.ceil(x/step - 1e-9) * step;
@@ -553,7 +552,7 @@ function render(){
       ${rows.map((r,i) => `<tr><td>${c.serbest ? `<input inputmode="decimal" data-n="${i}" value="${esc(ST.nom[i])}" placeholder="ref.">` : `<b>${nf(c.noktalar[i], c.dec)}</b>`}</td>
         ${c.skala ? `<td><input inputmode="decimal" data-p="${i}" data-j="0" value="${esc(ST.deg[i][0])}" placeholder="12.5"></td><td>${r.ok===null?"":nf(r.mean,c.dec)}</td>` : c.coklu ? `<td><input data-p="${i}" data-j="0" value="${esc(ST.deg[i][0])}" placeholder="21.1 20.7 20.9 …" style="min-width:120px"></td><td>${r.ok===null?"":nf(r.mean,c.dec)}</td>` : [0,1,2].slice(0, ST.tekrar?3:1).map(j => `<td><input inputmode="decimal" data-p="${i}" data-j="${j}" value="${esc(ST.deg[i][j])}"></td>`).join("")}
         <td>${r.ok===null?"":hTxt(r)}</td><td>${r.ok===null?"":nf(r.Ur,c.dec)}</td>
-        <td class="${r.ok===false||r.kv?"bad":"ok"}" title="${r.ok===false?"Kriter aşıldı":r.kv?"Ölçüm sonuçlarına bakınız: |hata| + U kriteri aşıyor (karar verilemiyor)":""}">${r.ok===null?"":(r.ok===false?"✗":r.kv?"?":"✓")}</td>${c.serbest ? `<td><button class="btn w" data-del="${i}" title="Satırı sil" style="padding:2px 8px">✕</button></td>` : ""}</tr>`).join("")}
+        <td class="${r.ok===false||r.kv?"bad":"ok"}" title="${r.ok===false?"Kriter aşıldı":r.kv?"|hata| + U kriteri aşıyor – ölçüm raporuna bakınız":""}">${r.ok===null?"":(r.ok===false||r.kv?"✗":"✓")}</td>${c.serbest ? `<td><button class="btn w" data-del="${i}" title="Satırı sil" style="padding:2px 8px">✕</button></td>` : ""}</tr>`).join("")}
      </table>
      ${c.serbest ? `<button class="btn w" data-add="1">+ Satır ekle</button>` : ""}
      <div class="small" style="margin-top:6px">📋 <b>P7.10 Rev 1:</b> ${esc(P710[CAT_KEY] || "En az 3 nokta (aralığın altı, ortası, üstü ve kullanım noktaları) · nokta başına en az 3 okuma")}${ST.kalKaynak ? "<br>📌 Noktalar: " + esc(ST.kalKaynak) + " – ekleyebilir, ✕ ile silebilirsiniz." : ""}</div>
@@ -572,7 +571,7 @@ function renderSum(rows){
   let h;
   if(!done.length) h = `<div class="small">Ölçülen değerleri girin; hata, belirsizlik ve sonuç otomatik hesaplanır.</div>`;
   else { const dr = durumOf(rows), all = dr === "UYGUN"; const miss = rows.length - done.length;
-    h = `<div class="sum ${all?"ok":"bad"}">SONUÇ: ${dr}${dr === "ÖLÇÜM SONUÇLARINA BAKINIZ" ? turNot(rows) : ""} <span class="small">(${done.length}/${rows.length} nokta${miss? ", "+miss+" nokta boş":""})</span></div>`; }
+    h = `<div class="sum ${all?"ok":"bad"}">SONUÇ: ${dr}${dr !== "UYGUN" ? turNot(rows) : ""} <span class="small">(${done.length}/${rows.length} nokta${miss? ", "+miss+" nokta boş":""})</span></div>`; }
   const fn = `${String(DEV.id).replace(/\//g,"-")}_${slug(DEV.ad)}_Dogrulama_${ST.tarih}.pdf`;
   $("#sum").innerHTML = h + (CAT.spark && done.length && fnDurum() === null ? '<div class="small">Fonksiyon kontrolleri henüz tamamlanmadı.</div>' : "") + `<div class="small" style="margin-top:8px">Kayıt adı önerisi: <b>${esc(fn)}</b><br>Yazdır → "PDF olarak kaydet" → Drive'daki <b>2_Dogrulama_Formlari</b> klasörüne bu adla yükleyin.</div>
     <button class="btn" onclick="window.print()">Yazdır / PDF</button><button class="btn g" onclick="copyFn()">Dosya adını kopyala</button>`;
@@ -631,8 +630,8 @@ function updateRows(rows){
     if(CAT.coklu || CAT.skala) tds[n-4].textContent = r.ok===null ? "" : nf(r.mean, CAT.dec);
     tds[n-3].textContent = r.ok===null ? "" : hTxt(r);
     tds[n-2].textContent = r.ok===null ? "" : nf(r.Ur, CAT.dec);
-    tds[n-1].textContent = r.ok===null ? "" : (r.ok===false ? "✗" : r.kv ? "?" : "✓"); tds[n-1].className = (r.ok===false || r.kv) ? "bad" : "ok";
-    tds[n-1].title = r.ok===false ? "Kriter aşıldı" : r.kv ? "Ölçüm sonuçlarına bakınız: |hata| + U kriteri aşıyor (karar verilemiyor)" : ""; });
+    tds[n-1].textContent = r.ok===null ? "" : (r.ok===false || r.kv ? "✗" : "✓"); tds[n-1].className = (r.ok===false || r.kv) ? "bad" : "ok";
+    tds[n-1].title = r.ok===false ? "Kriter aşıldı" : r.kv ? "|hata| + U kriteri aşıyor – ölçüm raporuna bakınız" : ""; });
 }
 
 
@@ -679,8 +678,8 @@ function rsRow(r){ const ref = pf(r.ref), o = pf(r.olc), tol = pf(RS.tolP); if(i
   if(U > lim) return {sap, lim, U, ok:true, bilgi:true};   // P7.10 Rev 1 Bölüm 5: TUR < 1 → bu standart karara katılmaz (bilgi amaçlı)
   const ok = Math.abs(sap) <= lim + 1e-12;
   return {sap, lim, U, ok, kv: ok && Math.abs(sap) + U > lim + 1e-12}; }
-function rsDurum(L){ const d = L.filter(r => r.ok !== null && !r.bilgi); if(!d.length) return ""; if(d.some(r => r.ok === false)) return "ÖLÇÜM RAPORUNA BAKINIZ"; if(d.some(r => r.kv)) return "ÖLÇÜM SONUÇLARINA BAKINIZ"; return "UYGUN"; }
-const rsIsaret = x => x.ok === null ? "" : x.bilgi ? "ℹ" : (x.ok === false ? "✗" : x.kv ? "?" : "✓"), rsSinif = x => x.bilgi ? "" : (x.ok === false || x.kv) ? "bad" : "ok";
+function rsDurum(L){ const d = L.filter(r => r.ok !== null && !r.bilgi); if(!d.length) return ""; if(d.some(r => r.ok === false || r.kv)) return "ÖLÇÜM RAPORUNA BAKINIZ"; return "UYGUN"; }
+const rsIsaret = x => x.ok === null ? "" : x.bilgi ? "ℹ" : (x.ok === false || x.kv ? "✗" : "✓"), rsSinif = x => x.bilgi ? "" : (x.ok === false || x.kv) ? "bad" : "ok";
 function rsTemp(){ const a = pf(RS.tref), b = pf(RS.tolc), tol = pf(RS.tolT); if(isNaN(a) || isNaN(b)) return {ok:null}; const s = rnd(b - a, 1); return {sap:s, ok: isNaN(tol) ? null : Math.abs(s) <= tol + 1e-9}; }
 function resRender(){
   const d = DEV, tr = rsTemp();
@@ -1096,7 +1095,7 @@ function exHesap(s){
   return { ok, kv: ok === true && sapma + Ur > tol + 1e-9, mean, sapma: rnd(sapma,1), Ur, n:v.length };
 }
 // P7.10 Rev 1 Bölüm 8: üç durumlu karar, makine sonucu en kötü nokta
-function exDurum(rows){ const d = rows.filter(r => r.ok !== null); if(!d.length) return ""; if(d.some(r => r.ok === false)) return "ÖLÇÜM RAPORUNA BAKINIZ"; if(d.some(r => r.kv)) return "ÖLÇÜM SONUÇLARINA BAKINIZ"; return "UYGUN"; }
+function exDurum(rows){ const d = rows.filter(r => r.ok !== null); if(!d.length) return ""; if(d.some(r => r.ok === false || r.kv)) return "ÖLÇÜM RAPORUNA BAKINIZ"; return "UYGUN"; }
 function exRender(){
   const mk = EX.makine, ref = ALL["KK-152"] || {};
   const bol = EX.bolum.map((b,bi) => `<div class="card"><h3>${esc(b.ad || "ÖLÇÜM NOKTALARI")}</h3>
