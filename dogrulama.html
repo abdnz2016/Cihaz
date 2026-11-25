@@ -134,9 +134,9 @@ const REFU = {
 };
 /* Kategori şablonları. Yeni kategori eklemek için buraya bir blok eklenir. */
 const CATS = {
-  gesAnaliz: { ad:"ENERJİ ANALİZÖRÜ", kod:"F7.10-XX", match:/enerji analiz/, klTip:"enerji", noktalar:[], refs:[] },   // GES / enerji izleme – referans Fluke 1734 (KK-399)
-  gesSayac: { ad:"ENERJİ SAYACI", kod:"F7.10-XX", match:/enerji sayac|trafo bağlantılı sayaç/, klTip:"sayac", noktalar:[], refs:[] },
-  gesLog: { ad:"GES DATALOGGER", kod:"F7.10-XX", match:/ges datalogger/, klTip:"datalogger", noktalar:[], refs:[] },
+  gesAnaliz: { ad:"ENERJİ ANALİZÖRÜ", kod:"F7.10-14", match:/enerji analiz/, klTip:"enerji", noktalar:[], refs:[] },   // GES / enerji izleme – referans Fluke 1734 (KK-399)
+  gesSayac: { ad:"ENERJİ SAYACI", kod:"F7.10-14", match:/enerji sayac|trafo bağlantılı sayaç/, klTip:"sayac", noktalar:[], refs:[] },
+  gesLog: { ad:"GES DATALOGGER", kod:"F7.10-14", match:/ges datalogger/, klTip:"datalogger", noktalar:[], refs:[] },
   phmetre: { ad:"pH / İLETKENLİK METRE", kod:"F7.10-24", match:/ph metre/, klTip:"ph", noktalar:[], refs:[] },
   havaAkis: { ad:"EN 50399 HAVA AKIŞI", kod:"F7.10-21", match:/50399/, klTip:"hava", noktalar:[], refs:[] },
   alev60332: { ad:"EN 60332-1-2 ALEV KAYNAĞI", kod:"F7.10-20", match:/60332-1-2/, klTip:"alev", noktalar:[], refs:[] },
@@ -910,19 +910,24 @@ function asBind(){
 /* ===================== KONTROL LİSTESİ FORMLARI (F7.10-24 pH/iletkenlik · F7.10-21 EN 50399 hava akışı · F7.10-20 EN 60332-1-2 alev kaynağı) ===================== */
 // satır: ad, tolYazi (formdaki tolerans), nom ± tol (sayısal sınır; tol yoksa metin kontrolü), birim, n (ortalaması alınan giriş sayısı), hes (ortalamadan türetilen değer), vars (Excel'deki son değerler: örnek)
 const KL_SPEC = {
-  enerji: { kod:"F7.10-XX", std:"Üretici doğruluk sınıfı", refs:["KK-399"], cevre:"İşletme koşulları",
-    satirlar:[ { ad:"L1-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L2-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L3-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L1 akım", nomGir:"", tolTip:"yuzde", tol:"2", uYuzde:1.3, birim:"A" }, { ad:"L2 akım", nomGir:"", tolTip:"yuzde", tol:"2", uYuzde:1.3, birim:"A" }, { ad:"L3 akım", nomGir:"", tolTip:"yuzde", tol:"2", uYuzde:1.3, birim:"A" }, { ad:"Toplam aktif güç", nomGir:"", tolTip:"yuzde", tol:"1", uYuzde:0.2, birim:"kW" },
-               { ad:"Haberleşme – SCADA'daki değerler cihazla aynı", tolYazi:"Ethernet / RS485 · SCADA", metin:true } ],
-    not:"Referans: Fluke 1734 güç analizörü (KK-399) aynı noktaya bağlanır. Nominal = Fluke değeri, Ölçülen = cihazın gösterdiği değer. Karar: |sapma| + U ≤ kriter; U, KK-399 sertifikasından (gerilim %0,07 · akım %1,3 · güç %0,2). Kabul sınırları TASLAKTIR – Kalite Kontrol onayı bekliyor. Gerilim ± %0,5, akım ± %2 (Fluke akım belirsizliği %1,3 olduğu için), güç ± %1." },
-  sayac: { kod:"F7.10-XX", std:"IEC 62053-21 (sınıf 1)", refs:["KK-399"], cevre:"İşletme koşulları",
-    satirlar:[ { ad:"Toplam aktif güç", nomGir:"", tolTip:"yuzde", tol:"1", uYuzde:0.2, birim:"kW" }, { ad:"L1-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L2-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L3-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" },
-               { ad:"Endeks ilerliyor (sayaç enerjiyi sayıyor)", tolYazi:"Okuma öncesi / sonrası endeks farkı > 0", metin:true } ],
-    not:"Referans: Fluke 1734 (KK-399). Nominal = Fluke değeri, Ölçülen = sayacın anlık değeri. Karar: |sapma| + U ≤ kriter. Kabul sınırları TASLAKTIR – Kalite Kontrol onayı bekliyor. Aktif güç ± %1 (sınıf 1), gerilim ± %0,5." },
-  datalogger: { kod:"F7.10-XX", std:"Sungrow COM100D", refs:["KK-399"], cevre:"İşletme koşulları",
-    satirlar:[ { ad:"Anlık AC güç – datalogger ↔ trafo enerji analizörü", nomGir:"", tolTip:"yuzde", tol:"2", birim:"kW" },
+  enerji: { kod:"F7.10-14", std:"Üretici doğruluk sınıfı", refs:["KK-399"], cevre:"İşletme koşulları",
+    satirlar:[ { ad:"L1-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L2-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L3-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L1 akım", nomGir:"", tolTip:"yuzde", tol:"2", uYuzde:1.3, birim:"A" }, { ad:"L2 akım", nomGir:"", tolTip:"yuzde", tol:"2", uYuzde:1.3, birim:"A" }, { ad:"L3 akım", nomGir:"", tolTip:"yuzde", tol:"2", uYuzde:1.3, birim:"A" },
+               { ad:"Toplam aktif güç", nomGir:"", tolTip:"yuzde", tol:"1", uYuzde:0.2, birim:"kW" },
+               { ad:"Güç faktörü (cos φ)", nomGir:"", tolTip:"mutlak", tol:"0,02", birim:"" },
+               { ad:"Haberleşme – SCADA'daki değerler cihaz ekranıyla aynı", tolYazi:"Ethernet / RS485 · SCADA", metin:true } ],
+    not:"Fluke 1734 (KK-399) cihazla aynı noktaya bağlanır; değerler aynı anda okunur. Standart değer = Fluke, Ölçülen = cihaz ekranı. Karar: |sapma| + U ≤ kriter; U KK-399 sertifikasından (gerilim %0,07 · akım %1,3 · güç %0,2). Kabul sınırları TASLAKTIR – Kalite Kontrol onayı bekliyor. Gerilim ± %0,5, akım ± %2, güç ± %1, cos φ ± 0,02." },
+  sayac: { kod:"F7.10-14", std:"IEC 62053-21 (sınıf 1)", refs:["KK-399"], cevre:"İşletme koşulları",
+    satirlar:[ { ad:"Aktif enerji – 1 saatlik kayıt (sayaç endeks farkı)", nomGir:"", tolTip:"yuzde", tol:"1", uYuzde:0.2, birim:"kWh" },
+               { ad:"L1-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L2-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L3-N gerilim", nomGir:"", tolTip:"yuzde", tol:"0,5", uYuzde:0.07, birim:"V" }, { ad:"L1 akım", nomGir:"", tolTip:"yuzde", tol:"2", uYuzde:1.3, birim:"A" }, { ad:"L2 akım", nomGir:"", tolTip:"yuzde", tol:"2", uYuzde:1.3, birim:"A" }, { ad:"L3 akım", nomGir:"", tolTip:"yuzde", tol:"2", uYuzde:1.3, birim:"A" },
+               { ad:"Sayaç tarihi / saati", tolYazi:"Fark ≤ 1 dk", metin:true } ],
+    not:"Fluke 1734 (KK-399) en az 1 saat enerji kaydı yapar; aynı sürede sayacın aktif enerji endeksi başta ve sonda okunur. Standart değer = Fluke kWh, Ölçülen = endeks farkı (kWh). Anlık gerilim ve akım sayacın ekran menüsünden okunur. Kabul sınırları TASLAKTIR – Kalite Kontrol onayı bekliyor. Enerji ± %1 (sınıf 1), gerilim ± %0,5, akım ± %2." },
+  datalogger: { kod:"F7.10-14", std:"Sungrow COM100D", refs:["KK-399"], cevre:"İşletme koşulları",
+    satirlar:[ { ad:"Günlük üretim – datalogger ↔ GES sayacı endeks farkı", nomGir:"", tolTip:"yuzde", tol:"2", birim:"kWh" },
+               { ad:"Anlık AC güç – datalogger ↔ aynı trafodaki enerji analizörü", nomGir:"", tolTip:"yuzde", tol:"2", birim:"kW" },
+               { ad:"Bağlı inverter sayısı", tolYazi:"Sahadaki inverter sayısına eşit", metin:true },
                { ad:"Ethernet haberleşmesi – SCADA'da veri akıyor", tolYazi:"Son veri ≤ 5 dk önce", metin:true },
                { ad:"Saat senkronu", tolYazi:"Fark ≤ 1 dk", metin:true } ],
-    not:"Nominal = aynı trafodaki GES enerji analizörünün anlık gücü, Ölçülen = datalogger'ın bildirdiği güç. Kabul sınırları TASLAKTIR – Kalite Kontrol onayı bekliyor. Güç farkı ± %2." },
+    not:"Datalogger kendisi ölçmez; inverterlerden topladığı veriyi doğrularız. Standart değer = aynı trafodaki GES sayacının günlük endeks farkı ve enerji analizörünün anlık gücü, Ölçülen = datalogger / SCADA değeri. Kabul sınırları TASLAKTIR – Kalite Kontrol onayı bekliyor. Fark ± %2." },
   ph: { kod:"F7.10-24", std:"TS EN 60754-2", refs:["KK-06"], cevre:"23 ± 5 °C",
     satirlar:[ { ad:"Standart çözelti (pH)", nomGir:"7,413", tolTip:"mutlak", tol:"0,05", birim:"pH" },
                { ad:"Standart çözelti (iletkenlik)", nomGir:"0,147", tolTip:"yuzde", tol:"3", birim:"mS/cm" } ],
