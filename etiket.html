@@ -14,7 +14,7 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef1f5;color:#2
 .tool button{padding:10px 14px;border:0;border-radius:8px;background:#e31e24;color:#fff;font-weight:bold;font-size:14px}
 .tool button.g{background:#14305e}
 #msg{padding:14px;color:#666;text-align:center;font-size:14px}
-#list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;padding:14px;max-width:1100px;margin:0 auto}
+#list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;padding:14px;max-width:1100px;margin:0 auto}
 .item{background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .cap{font-size:14px;margin-bottom:8px}
 .item img{width:100%;display:block;border:1px solid #e5e5e5;border-radius:8px}
@@ -23,7 +23,7 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef1f5;color:#2
 .btns a.l{background:#eef1f5;color:#14305e}
 @media print{
   body{background:#fff}.top,.tool,#msg,.cap,.btns{display:none}
-  #list{display:grid;grid-template-columns:repeat(3,64mm);gap:4mm;padding:0;justify-content:center;max-width:none}
+  #list{display:grid;grid-template-columns:repeat(3,64mm);gap:3mm;padding:0;justify-content:center;max-width:none}   /* 3 × 7 yatay etiket / A4 */
   .item{padding:0;box-shadow:none;border-radius:0;break-inside:avoid}
   .item img{border:0}
   @page{size:A4;margin:6mm}
@@ -1328,11 +1328,13 @@ async function loadDevices(){
   const t = await res.text();
   const j = JSON.parse(t.substring(t.indexOf("{"), t.lastIndexOf("}")+1));
   const idx = {}; j.table.cols.forEach((c,i)=>{ idx[norm(c.label)] = i; });
-  const ik = idx["kayıt no"], ia = idx["cihaz adı"];
+  const ik = idx["kayıt no"], ia = idx["cihaz adı"], al = ad => { const i = idx[ad]; return r => i === undefined || !r.c[i] ? "" : String(r.c[i].v ?? "").replace(/\.0$/, "").trim(); };
+  const marka = al("marka"), model = al("model"), seri = al("seri numarası"), yer = al("bulunduğu yer");
   if(ik === undefined) throw new Error("'Kayıt No' sütunu bulunamadı");
   return j.table.rows.filter(r => r.c && idOf(r.c[ik])).map(r => ({
     id: idOf(r.c[ik]),
-    ad: ia === undefined || !r.c[ia] ? "" : String(r.c[ia].v ?? "").trim()
+    ad: ia === undefined || !r.c[ia] ? "" : String(r.c[ia].v ?? "").trim(),
+    mm: [marka(r), model(r)].filter(Boolean).join(" "), seri: seri(r), yer: yer(r)
   }));
 }
 
@@ -1369,47 +1371,26 @@ function fitName(c, text, maxW, F){
   while(t.length>3 && c.measureText(t+"…").width>maxW) t=t.slice(0,-1);
   return {lines:[t+"…"], fs:20};
 }
-function drawLabel(id, ad){
-  const W=900, H=1200, NAVY="#14305e", RED="#e31e24", F="Arial, Helvetica, sans-serif";
+// Yatay etiket: kırmızı çerçeve, logo, büyük Kayıt No, ad / marka-model / seri / yer, sağda QR, kırmızı alt bant
+function drawLabel(d){
+  const W=1560, H=900, NAVY="#14305e", RED="#e3261c", GRI="#465064", F="Arial, Helvetica, sans-serif";
   const cv = document.createElement("canvas"); cv.width=W; cv.height=H;
   const c = cv.getContext("2d");
   c.fillStyle="#fff"; c.fillRect(0,0,W,H);
-  c.strokeStyle="#222"; c.lineWidth=6; rr(c,10,10,W-20,H-20,40); c.stroke();
-  if(logoImg){ const lw=420; c.drawImage(logoImg,50,60,lw,lw*logoImg.height/logoImg.width); }
-  c.textBaseline="middle"; c.textAlign="left";
-  c.fillStyle=NAVY; c.font=`bold 40px ${F}`; c.fillText("CİHAZ KARTI",545,84);
-  c.font=`32px ${F}`; c.fillText("Kayıt No:",545,128);
-  let fs=36; c.fillStyle=RED;
-  c.font=`bold ${fs}px ${F}`;
-  while(c.measureText(id).width>150 && fs>16){ fs-=2; c.font=`bold ${fs}px ${F}`; }
-  c.fillText(id,712,128);
-  if(ad){
-    const nm = fitName(c, ad, 320, F);
-    c.fillStyle=NAVY; c.font=`bold ${nm.fs}px ${F}`;
-    if(nm.lines.length===1) c.fillText(nm.lines[0],545,172);
-    else { c.fillText(nm.lines[0],545,164); c.fillText(nm.lines[1],545,164+nm.fs+6); }
-  }
-  c.strokeStyle="#d7d7d7"; c.lineWidth=2; c.beginPath(); c.moveTo(55,224); c.lineTo(845,224); c.stroke();
-  c.strokeStyle=RED; c.lineWidth=6; rr(c,60,248,780,650,45); c.stroke();
-  // QR
-  const m = makeQR(CONFIG.KART_URL + "?id=" + encodeURIComponent(id));
-  const n = m.length, mod = Math.floor(440/n), side = n*mod;
-  const ox = Math.round((W-side)/2), oy = Math.round(248+(650-side)/2);
+  c.strokeStyle=RED; c.lineWidth=12; rr(c,12,12,W-24,H-24,48); c.stroke();
+  if(logoImg){ const lh=96, lw=Math.min(500, lh*logoImg.width/logoImg.height); c.drawImage(logoImg,56,52,lw,lw*logoImg.height/logoImg.width); }
+  c.textBaseline="top"; c.textAlign="right"; c.fillStyle=NAVY; c.font=`bold 44px ${F}`; c.fillText("CİHAZ KARTI",W-56,60);
+  c.textAlign="left"; c.fillStyle=RED; let fs=92; c.font=`bold ${fs}px ${F}`;
+  while(c.measureText(d.id).width>820 && fs>48){ fs-=4; c.font=`bold ${fs}px ${F}`; }
+  c.fillText(d.id,56,192);
+  const sat=[[d.ad,`bold 50px ${F}`,NAVY],[d.mm,`46px ${F}`,GRI],["Seri: "+(d.seri||"—"),`46px ${F}`,GRI],[d.yer,`bold 46px ${F}`,"#1e1e1e"]];
+  let y=316;
+  sat.forEach(([t,font,renk]) => { if(!t) return; c.font=font; c.fillStyle=renk; t=String(t); while(t.length>3 && c.measureText(t).width>820) t=t.slice(0,-1); c.fillText(t,56,y); y+=80; });
+  const m = makeQR(CONFIG.KART_URL + "?id=" + encodeURIComponent(d.id)), n = m.length, mod = Math.floor(560/n), side = n*mod, ox = W-56-side, oy = 184+Math.round((560-side)/2);
   c.fillStyle="#000";
   for(let r=0;r<n;r++) for(let q=0;q<n;q++) if(m[r][q]) c.fillRect(ox+q*mod, oy+r*mod, mod, mod);
-  // telefon simgesi + metin
-  c.strokeStyle="#000"; c.lineWidth=4; rr(c,107,933,53,79,8); c.stroke();
-  c.lineWidth=3; c.strokeRect(118,945,30,40);
-  c.textAlign="center"; c.fillStyle="#111"; c.font=`bold 32px ${F}`; c.fillText("QR KODU OKUTUNUZ",450,953);
-  c.fillStyle="#333"; c.font=`23px ${F}`; c.fillText("Cihaz bilgilerini görüntüleyiniz.",450,994);
-  // alt bar
-  c.fillStyle=RED; rr(c,38,1080,824,86,28); c.fill();
-  c.strokeStyle="#fff"; c.lineWidth=3; c.beginPath(); c.arc(95,1123,13,0,Math.PI*2); c.stroke();
-  c.fillStyle="#fff"; c.beginPath(); c.arc(95,1123,4,0,Math.PI*2); c.fill();
-  c.textAlign="left"; c.font=`26px ${F}`; c.fillText(CONFIG.WEB,125,1123);
-  c.strokeStyle="#fff"; c.lineWidth=2; c.beginPath(); c.moveTo(476,1098); c.lineTo(476,1148); c.stroke();
-  c.font=`bold 26px ${F}`; c.fillText("Tel:",505,1123);
-  c.font=`26px ${F}`; c.fillText(CONFIG.TEL,565,1123);
+  c.fillStyle=RED; rr(c,40,H-132,W-80,92,24); c.fill();
+  c.textAlign="center"; c.textBaseline="middle"; c.fillStyle="#fff"; c.font=`bold 38px ${F}`; c.fillText("QR KODU OKUTUNUZ · cihaz bilgileri görüntülenir",W/2,H-86);
   return cv.toDataURL("image/png");
 }
 
@@ -1429,7 +1410,7 @@ async function more(){
   const next = CUR.slice(SHOWN, SHOWN + PAGE);
   let k = 0;
   for(const d of next){
-    const png = drawLabel(d.id, d.ad);
+    const png = drawLabel(d);
     const fname = "etiket_" + d.id.replace(/[^A-Za-z0-9ÇĞİÖŞÜçğıöşü_-]+/g, "_") + ".png";
     const link = CONFIG.KART_URL + "?id=" + encodeURIComponent(d.id);
     const div = document.createElement("div"); div.className = "item";
